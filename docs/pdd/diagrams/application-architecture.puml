@@ -18,7 +18,7 @@ rectangle "Flutter Mobile App" as Flutter {
 cloud "Firebase Backend / BaaS" as Firebase {
   component "Firebase Authentication" as Auth
   database "Cloud Firestore" as Firestore
-  component "Cloud Functions\nActivity Processing Function\nXP and Streak Function\nLeaderboard Aggregation Function\nNotification Service\nEntitlement Service\nSummary Generation Function" as Functions
+  component "Cloud Functions\nActivity Processing Function\nPlan Generation Support\nXP and Streak Function\nLeaderboard Aggregation Function\nNotification Service\nEntitlement Service\nAdmin Expert Plan Management\nSummary Generation Function" as Functions
   component "Firebase Cloud Messaging" as FCM
   component "Cloud Storage\n(optional media storage)" as Storage
 }

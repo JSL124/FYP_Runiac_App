@@ -65,7 +65,7 @@ Firebase Authentication manages user identity and session tokens. It ensures tha
 
 Cloud Firestore stores the main application data, including user profiles, onboarding details, subscription or entitlement state, activity records, training plans, approved and published expert plans, progress records, route records, notification preferences, and leaderboard result documents. Firestore is also used for real-time synchronization so that processed backend results can appear in the Flutter app shortly after Cloud Functions update them.
 
-Cloud Functions handles backend logic that must be trusted and consistent. This includes the Activity Processing Function for activity validation and metric derivation, the XP and Streak Function for XP, level, streak, weekly XP, and monthly XP updates, the Leaderboard Aggregation Function for regional and league-based ranking, the Notification Service for reminder checks, the Entitlement Service for backend premium checks, the Admin Expert Plan Management workflow for expert plan review and publication, and the Summary Generation Function for AI-assisted post-run summaries. XP and leaderboard logic must be placed here to prevent users from manipulating progression or ranking values from the client.
+Cloud Functions handles backend logic that must be trusted and consistent. This includes the Activity Processing Function for activity validation and metric derivation, backend-supported plan generation that uses onboarding profile, goals, running level, availability, health/safety readiness, and cautiousness inputs to create the first beginner running plan, the XP and Streak Function for XP, level, streak, weekly XP, and monthly XP updates, the Leaderboard Aggregation Function for regional and league-based ranking, the Notification Service for reminder checks, the Entitlement Service for backend premium checks, the Admin Expert Plan Management workflow for expert plan review and publication, and the Summary Generation Function for AI-assisted post-run summaries. XP and leaderboard logic must be placed here to prevent users from manipulating progression or ranking values from the client.
 
 Firebase Cloud Messaging sends push notifications for run reminders, rest reminders, missed-session reminders, and streak-risk reminders.
 
@@ -80,7 +80,7 @@ An AI summary service is treated as a future extension only. If implemented late
 ## 4. Data Flow Between Flutter And Firebase
 
 1. The user signs in through the Flutter app. Firebase Authentication returns an authenticated session, and Firestore security rules use this identity to control access to user data.
-2. During onboarding, the Flutter app stores profile, goal, fitness level, and preference information in Cloud Firestore.
+2. During onboarding, the Flutter app submits and stores profile, goal, running level, availability, preference, health/safety readiness, and cautiousness inputs in Cloud Firestore. The Plan Data Service and Cloud Functions then create or initialise the first beginner running plan and store it in Firestore for plan screens and reminders.
 3. During a run, the Flutter app records GPS samples and live metrics locally while rendering the active run screen and map view.
 4. When the run ends, Flutter submits the completed activity data to the Activity Data Service or a restricted raw activity submission path that triggers the Activity Processing Function.
 5. The Activity Processing Function validates the activity by checking minimum duration, plausible pace, route consistency, GPS trace quality, and other anti-abuse rules.
@@ -96,7 +96,7 @@ An AI summary service is treated as a future extension only. If implemented late
 
 | Area | MVP Scope | Future Extension |
 | --- | --- | --- |
-| Authentication and onboarding | Firebase Authentication, user profile, goals, fitness level, basic health-related onboarding | Additional sign-in providers, richer profile controls, administrator review tools |
+| Authentication and onboarding | Firebase Authentication, user profile, goals, fitness level, readiness/cautiousness onboarding, and backend-supported first beginner plan initialisation | Additional sign-in providers, richer profile controls, administrator review tools |
 | Run tracking | Flutter GPS tracking, local run buffer, activity upload, basic activity history | Deeper wearable integration and richer offline sync handling |
 | Analysis and plans | Basic metrics, beginner-friendly training plan, schedule display, simple plan adjustment | Premium goal plans for 5K, 10K, 21K, and 42K preparation, visible only after Platform Administrator approval and publication |
 | Expert plan governance | Platform Administrator can enter, approve, publish, update, or archive expert plans through a restricted backend workflow; Medical Trainer/Expert content is handled off-system or through controlled submission | Future Expert Dashboard for verified experts to submit draft plan content; admin approval still required before publication |
@@ -129,7 +129,7 @@ rectangle "Flutter Mobile App" as Flutter {
 cloud "Firebase Backend / BaaS" as Firebase {
   component "Firebase Authentication" as Auth
   database "Cloud Firestore" as Firestore
-  component "Cloud Functions\nActivity Processing Function\nXP and Streak Function\nLeaderboard Aggregation Function\nNotification Service\nEntitlement Service\nSummary Generation Function" as Functions
+  component "Cloud Functions\nActivity Processing Function\nPlan Generation Support\nXP and Streak Function\nLeaderboard Aggregation Function\nNotification Service\nEntitlement Service\nAdmin Expert Plan Management\nSummary Generation Function" as Functions
   component "Firebase Cloud Messaging" as FCM
   component "Cloud Storage\n(optional media storage)" as Storage
 }
