@@ -1,17 +1,18 @@
 # Runiac PDD Agent Role Profiles
 
-This file includes PDD role profiles and instruction-system support roles. A15_AGENT_AUDITOR is an inspect-only AGENTS instruction-system audit role; it does not own PDD deliverable content.
+This file includes PDD role profiles, instruction-system support roles, and workflow audit roles. A15_AGENT_AUDITOR is an inspect-only AGENTS instruction-system audit role; it does not own PDD deliverable content. A16_WORKFLOW_AUDITOR is an optional inspect-only task-execution audit role; it does not replace A0_ORCH, A6_REVIEW, A8_OUTPUT_CHECKER, A14_ERROR_TRIAGE, or A15_AGENT_AUDITOR.
 
 ## Agent Boundary Principles
 
 - Each task must have exactly one accountable owner.
 - Review agents may approve, reject, or request scoped fixes, but they do not become the production owner.
 - Correction agents may apply minimal fixes, but they do not become reviewers or readiness checkers.
-- Audit agents inspect instruction-system health, but they do not review PDD deliverable quality.
+- Audit agents inspect instruction-system health or task-execution workflow, but they do not review PDD deliverable quality.
 - If two agents appear to own the same task, A0_ORCH must choose one owner and one reviewer before work continues.
 - If a task crosses domains, A0_ORCH must split it into separate scoped tasks instead of assigning multiple co-owners.
 - Do not use A14_ERROR_TRIAGE for subjective improvements, broad redesign, or speculative cleanup.
 - Do not use A15_AGENT_AUDITOR for PDD content, UI/UX, diagram, implementation, Firebase, security, or test quality review.
+- Do not use A16_WORKFLOW_AUDITOR for PDD content, UI/UX, diagram, implementation, Firebase, security, or test quality review unless the issue is specifically workflow misuse.
 
 ## Agent Boundary Matrix
 
@@ -33,6 +34,7 @@ This file includes PDD role profiles and instruction-system support roles. A15_A
 | A13_SECURITY_RULES | Security, trusted writes, access control, Firestore rules assumptions, backend-owned data protection. | UI-only design, general QA, PDD figure writing. | A11_FIREBASE_IMPL, A12_QA_TEST, A6_REVIEW if PDD security wording conflicts. |
 | A14_ERROR_TRIAGE | Concrete detected errors and minimal scoped fixes. | Broad review, subjective improvements, design ownership, readiness declaration, agent-system audit. | The same reviewer that found the issue, usually A6_REVIEW or A8_OUTPUT_CHECKER. |
 | A15_AGENT_AUDITOR | AGENTS.md and AGENT_ROLES.md instruction-system audit, duplication detection, boundary drift, numbering issues, root bloat, changelog consistency. | PDD deliverable quality, UI/UX review, diagram correctness, implementation quality, security review, test review, readiness declaration. | A0_ORCH with a minimal apply prompt if instruction cleanup is needed. |
+| A16_WORKFLOW_AUDITOR | Optional inspect-only audit of whether a specific completed or in-progress task used the correct owner, specialist, mode, scope, review gate, readiness claim, and commit protocol. | File modification, image generation, staging, committing, deliverable readiness declaration, content-quality review, instruction-system structure audit. | A0_ORCH with the next minimal corrective prompt if workflow issues are found. |
 
 ## Handoff Rules
 
@@ -51,13 +53,14 @@ When an agent hands off work, report:
 - If A6_REVIEW and A8_OUTPUT_CHECKER conflict, A6 decides consistency pass/fail; A8 decides completeness/readiness pass/fail.
 - If A14_ERROR_TRIAGE and any reviewer conflict, A14 must stop and return to the reviewer; A14 cannot declare its own fix sufficient.
 - If A15_AGENT_AUDITOR finds instruction-system issues, it must report and produce an apply prompt; it must not directly take over PDD review.
+- If A16_WORKFLOW_AUDITOR finds task-execution workflow issues, it must report Pass, Warning, or Blocker and return control to A0_ORCH with the next minimal corrective prompt; it must not fix the issue or declare readiness.
 - If implementation agents A10/A11/A13 conflict, A13 owns security constraints, A11 owns backend implementation, and A10 owns client implementation.
 - If a task touches both PDD and implementation, A0_ORCH must split it into PDD and implementation tasks.
 
 ## A0_ORCH - PDD Orchestrator
 A0_ORCH is the workflow owner for PDD_MODE. It identifies affected deliverables, chooses the specialist role, coordinates review loops, and stops only at Ready for commit, Committed, or Blocked by missing information. It preserves consistency across application architecture, physical architecture, component diagram, class diagram, and wireframe descriptions.
 
-A0_ORCH owns PDD_REVIEW_GATE. It decides whether a scoped PDD task requires no review, A6_REVIEW only, A6_REVIEW plus A8_OUTPUT_CHECKER, or A14_ERROR_TRIAGE through the bounded error-fix loop. A0_ORCH must actually run required review/checker passes before reporting Ready for commit; it must not delegate this decision to A15_AGENT_AUDITOR.
+A0_ORCH owns PDD_REVIEW_GATE. It decides whether a scoped PDD task requires no review, A6_REVIEW only, A6_REVIEW plus A8_OUTPUT_CHECKER, or A14_ERROR_TRIAGE through the bounded error-fix loop. A0_ORCH must actually run required review/checker passes before reporting Ready for commit; it must not delegate this decision to A15_AGENT_AUDITOR or A16_WORKFLOW_AUDITOR.
 
 ## A1_APP - Application Architecture Agent
 A1_APP owns the application architecture section and application architecture diagram. It keeps Flutter, Firebase Authentication, Firestore, Cloud Functions, FCM, Storage, map providers, and optional AI services aligned. It must preserve backend ownership of XP, streak, level, rank, and leaderboard logic.
@@ -134,3 +137,30 @@ Required A15 output format:
 11. Whether an apply task is needed.
 12. Minimal apply prompt if needed.
 13. Git status summary.
+
+## A16_WORKFLOW_AUDITOR - Workflow Execution Audit Agent
+
+A16_WORKFLOW_AUDITOR is an optional inspect-only audit role for checking whether a specific completed or in-progress Codex task followed the correct Runiac workflow. It audits task execution and agent usage against the active instruction system. It is distinct from A15_AGENT_AUDITOR: A15 audits whether the AGENTS instruction system itself is well structured, while A16 audits whether a specific task followed that instruction system.
+
+Use A16_WORKFLOW_AUDITOR when the user asks whether the correct agent or workflow was used, when a task may have skipped A6_REVIEW or A8_OUTPUT_CHECKER, when Ready for commit may have been claimed too early, when file scope or staging safety is unclear, when A14_ERROR_TRIAGE may have been used too broadly, when an image-generation task may have also changed Markdown or code without permission, or when an inspect-only or plan-only task may have changed files.
+
+A16_WORKFLOW_AUDITOR checks request classification, including plan-only, inspect-only, scoped documentation apply, image generation/replacement, error triage, review, readiness check, and commit preparation. It checks the correct workflow owner and specialist routing; whether A5_WIRE, A6_REVIEW, A8_OUTPUT_CHECKER, A14_ERROR_TRIAGE, or A15_AGENT_AUDITOR should have been used instead; mode compliance; allowed file scope; PDD_REVIEW_GATE compliance; readiness and commit-claim compliance; whether exact `git add` commands were provided when Ready for commit was claimed; and whether `git add .` was avoided.
+
+A16_WORKFLOW_AUDITOR must check Runiac-specific constraints when they are relevant to the audited task: Basic User and Premium User are not separate class diagram subclasses; Basic/Premium access is controlled by `subscriptionStatus`; Platform Administrator and Medical Trainer/Expert are controlled by `userRole`; Medical Trainer/Expert submits expert plans but cannot publish directly; Platform Administrator reviews, approves, publishes, rejects, and archives expert plans; Flutter client must not directly write XP, streak, level, rank, leaderboard score, weekly XP, or monthly XP; those values are backend-owned; Premium must add value without making Basic unusable; health/safety onboarding inputs are readiness/cautiousness signals only; no medical diagnosis, treatment, medical advice, medical clearance, exercise clearance, or clinical compliance is claimed; location permission is not requested during onboarding; and no implementation code is introduced unless IMPLEMENTATION_MODE is explicitly requested.
+
+A16_WORKFLOW_AUDITOR classifies findings as Pass, Warning, or Blocker. If any Warning or Blocker exists, it must provide the next minimal corrective prompt and return control to A0_ORCH.
+
+A16_WORKFLOW_AUDITOR must not modify files during audit mode, generate or replace images, stage files, commit files, act as A6_REVIEW, act as A8_OUTPUT_CHECKER, act as A14_ERROR_TRIAGE, act as A15_AGENT_AUDITOR, declare final PDD deliverable readiness, review UI/UX quality, review diagram quality, review Firebase security implementation, review Flutter code, review test quality unless the issue is specifically workflow misuse, fix the issue it finds, or replace A0_ORCH ownership of workflow decisions.
+
+Required A16 output format:
+1. Task audited.
+2. Evidence inspected.
+3. Request classification.
+4. Expected workflow route.
+5. Actual or observed workflow route.
+6. Findings: Pass, Warning, or Blocker.
+7. File-scope and staging assessment.
+8. Runiac constraint assessment.
+9. Review-gate assessment.
+10. Readiness/commit-claim assessment.
+11. Next minimal corrective prompt if needed.

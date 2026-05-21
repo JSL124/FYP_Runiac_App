@@ -1,5 +1,32 @@
 # Runiac AGENTS.md Changelog
 
+## 2026-05-21 - Add A16 Workflow Auditor
+
+### Files modified
+- `AGENTS.md`
+- `docs/pdd/AGENTS.md`
+- `docs/pdd/AGENT_ROLES.md`
+- `docs/pdd/AGENTS_CHANGELOG.md`
+
+### Reason
+Added A16_WORKFLOW_AUDITOR as an optional inspect-only role for auditing whether a specific completed or in-progress task followed the correct workflow.
+
+### Summary of changes
+- Added A16_WORKFLOW_AUDITOR to the root role index.
+- Added concise A16 routing guidance to `docs/pdd/AGENTS.md`.
+- Added the detailed A16_WORKFLOW_AUDITOR definition to `docs/pdd/AGENT_ROLES.md`.
+- Defined A16 as a task-execution audit role for request classification, owner/specialist routing, mode compliance, file scope, PDD_REVIEW_GATE usage, readiness/commit claims, staging safety, and Runiac-specific workflow constraints.
+- Confirmed A16 does not replace A0_ORCH, A6_REVIEW, A8_OUTPUT_CHECKER, A14_ERROR_TRIAGE, or A15_AGENT_AUDITOR.
+- Confirmed A16 is inspect-only and must not modify files, generate images, stage files, commit files, fix issues, or declare final PDD deliverable readiness.
+- Added no PDD deliverable content, implementation code, Firebase files, test files, diagram files, wireframe images, PNG files, or legacy `wireframe_assets/` files.
+
+### Review required
+- A6_REVIEW: verify A16 has a distinct task-execution audit boundary, preserves A0 ownership of workflow decisions, does not duplicate A6/A8/A14/A15, and does not weaken Runiac role, subscription, expert governance, backend-owned progression, health/safety, onboarding permission, or implementation-boundary constraints.
+- A8_OUTPUT_CHECKER: verify the root index, PDD routing note, detailed role definition, output format, and changelog entry exist; no PDD deliverable content, PRD content, implementation code, Firebase files, tests, diagrams, wireframe images, PNG files, or legacy `wireframe_assets/` files were modified.
+
+### Final status
+Ready for commit.
+
 ## 2026-05-21 - Add PDD Review Gate
 
 ### Files modified

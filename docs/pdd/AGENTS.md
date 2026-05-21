@@ -46,12 +46,13 @@ Support files such as `docs/pdd/00-orchestration-plan.md`, `docs/pdd/05-final-wi
 - In PDD_MODE, A14 must not modify implementation, Firebase, test, or production source files.
 - A7_AGENT_ROUTER is only for new, ambiguous, or unclear task categories.
 - Use A15_AGENT_AUDITOR only for inspect-only AGENTS instruction-system audits, not for PDD deliverable review or readiness checking.
+- A0_ORCH may invoke A16_WORKFLOW_AUDITOR when there is concern that the wrong role, mode, file scope, review gate, or readiness/commit process was used. A16 reports workflow issues only, returns control to A0_ORCH with the next minimal corrective prompt, and does not replace A6_REVIEW, A8_OUTPUT_CHECKER, A14_ERROR_TRIAGE, or A15_AGENT_AUDITOR.
 
 ## PDD_REVIEW_GATE
 
 Purpose: A0_ORCH uses PDD_REVIEW_GATE to decide whether a task requires no review, A6_REVIEW only, A6_REVIEW plus A8_OUTPUT_CHECKER, or A14_ERROR_TRIAGE through the bounded error-fix loop.
 
-PDD_REVIEW_GATE is a workflow decision rule owned by A0_ORCH. It does not create a new numbered agent, does not renumber existing agents, and does not make A15_AGENT_AUDITOR responsible for PDD review decisions.
+PDD_REVIEW_GATE is a workflow decision rule owned by A0_ORCH. It does not create a new numbered agent, does not renumber existing agents, and does not make A15_AGENT_AUDITOR or A16_WORKFLOW_AUDITOR responsible for PDD review decisions.
 
 ### Mandatory A6_REVIEW + A8_OUTPUT_CHECKER
 
@@ -180,14 +181,21 @@ When the loop is used, report:
 - A8_OUTPUT_CHECKER: completeness and deliverable readiness, not consistency.
 - A14_ERROR_TRIAGE: concrete error detection and minimal scoped fixes before returning to review.
 - A15_AGENT_AUDITOR: inspect-only AGENTS instruction-system audit role; not a PDD deliverable reviewer and not a readiness checker.
+- A16_WORKFLOW_AUDITOR: optional inspect-only task-execution audit role; checks workflow, mode, scope, review-gate, readiness, and commit-protocol compliance for a specific task.
 
-Detailed PDD role profiles, the Agent Boundary Matrix, handoff rules, and conflict-resolution rules are in `docs/pdd/AGENT_ROLES.md`.
+Detailed PDD role profiles, workflow audit role profiles, the Agent Boundary Matrix, handoff rules, and conflict-resolution rules are in `docs/pdd/AGENT_ROLES.md`.
 
 ## A15 Instruction-System Audit Routing
 
 Use A15_AGENT_AUDITOR when the user asks whether the AGENTS structure is efficient; asks to inspect AGENTS.md files only; asks whether a new agent is needed; asks to find duplicated, conflicting, or unclear AGENTS rules; asks to audit role boundaries, numbering, or instruction drift; asks whether root `AGENTS.md` or folder-specific `AGENTS.md` files have grown too long; or asks whether instruction-system cleanup is needed.
 
 Do not use A15_AGENT_AUDITOR for PDD content consistency review, PDD output completeness review, concrete bug fixing, Flutter/Firebase/test implementation review, wireframe UI/UX review, or diagram correctness review. Use A6_REVIEW, A8_OUTPUT_CHECKER, A14_ERROR_TRIAGE, A5_WIRE, or the relevant implementation/testing role instead.
+
+## A16 Workflow Audit Routing
+
+A0_ORCH may invoke A16_WORKFLOW_AUDITOR when there is concern that a specific completed or in-progress task used the wrong workflow owner, specialist role, mode, file scope, review gate, or readiness/commit process. A16 reports workflow issues only and returns control to A0_ORCH with the next minimal corrective prompt.
+
+Do not use A16_WORKFLOW_AUDITOR as a substitute for A6_REVIEW, A8_OUTPUT_CHECKER, A14_ERROR_TRIAGE, or A15_AGENT_AUDITOR. A16 does not declare final PDD deliverable readiness, fix issues, stage files, commit files, generate images, or replace A0_ORCH ownership of workflow decisions.
 
 ## Runiac PDD Constraints
 - Basic/Premium access uses `subscriptionStatus`.
