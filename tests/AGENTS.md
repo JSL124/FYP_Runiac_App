@@ -1,0 +1,20 @@
+# Runiac Testing and QA Instructions
+
+## Scope
+- Applies to automated tests, manual QA notes, regression checks, security-rule verification, build checks, and commit-readiness evidence.
+- Use in IMPLEMENTATION_MODE and for documentation deliverable readiness when requested.
+
+## QA Responsibilities
+- Verify changed behaviour against mapped PRD/PDD requirements.
+- Check Basic/Premium access through `subscriptionStatus`.
+- Check operational/governance access through `userRole`.
+- Verify Medical Trainer/Expert cannot directly publish expert plans.
+- Verify Platform Administrator-only operations are protected.
+- Verify Premium users do not gain XP, rank, leaderboard score, or competitive advantages.
+- Verify Flutter does not directly write XP, streak, level, rank, leaderboard score, weekly XP, or monthly XP.
+
+## Evidence Rules
+- Record what was tested, what passed, and what was not run.
+- Include manual QA steps when automated tests are not available.
+- Do not include precise private location data in screenshots, logs, or public test evidence.
+- Before Ready for commit, confirm required tests, docs, config updates, and review notes are present.
