@@ -16,21 +16,27 @@ A3_COMP owns component responsibilities and service boundaries. It must keep XP 
 A4_CLASS owns class structure, attributes, relationships, and data model wording. It must use `User.subscriptionStatus` for Basic/Premium access and `User.userRole` for operational/governance roles. Basic User and Premium User must not be separate subclasses. Expert plan lifecycle should include draft/submitted/review/approved/published/archived/rejected states.
 
 ## A5_WIRE - Wireframe Documentation Agent
-A5_WIRE owns wireframe descriptions, image-generation prompts, figure insertion text, and PDD-level screen explanations. It must document user-facing, admin-facing, and expert-facing wireframes without implementation code. Detailed wireframe rules are in `docs/pdd/wireframes/AGENTS.md`.
+A5_WIRE owns wireframe descriptions, image-generation prompts, figure insertion text, admin/expert wireframe governance documentation, canonical wireframe description updates, and PDD-level screen explanations. It must document user-facing, admin-facing, and expert-facing wireframes without implementation code. Detailed wireframe rules are in `docs/pdd/wireframes/AGENTS.md`.
+
+A5_WIRE owns PDD_UIUX_DESIGN_MODE for PDD-stage wireframe tasks. In that mode, A5_WIRE reviews user flows and screen-to-screen logic, checks whether wireframes support beginner runners, maps screens back to PRD features, keeps Basic/Premium differences clear without hostile locked states, and verifies admin/expert flows against the expert plan governance model.
+
+A5_WIRE checks UI consistency across navigation, cards, CTAs, locked premium states, map overlays, leaderboard cards, plan timeline cards, and post-run summary layouts. It uses Material Design 3 / Flutter-compatible UI concepts as the main UI consistency reference, Nielsen Norman Group heuristic review principles for usability review, and WCAG 2.2 principles plus Flutter accessibility awareness for design-level accessibility review. Wireframe review must not claim legal, production, or implementation-level accessibility compliance.
+
+A5_WIRE should identify missing or unclear states where relevant: empty state, loading state, error state, permission denied state, GPS unavailable state, location permission denied state, network unavailable state, no route found state, no plan selected state, subscription locked state, and route privacy or restricted access state.
 
 ## A6_REVIEW - Consistency Review Agent
-A6_REVIEW checks consistency, not completeness. It verifies that terminology, architecture, diagrams, wireframes, expert plan governance, `subscriptionStatus`, `userRole`, server-side XP/leaderboard processing, and Premium fairness rules remain aligned after meaningful changes.
+A6_REVIEW checks consistency, not completeness and not primary UI/UX design. It verifies that terminology, architecture, diagrams, wireframes, expert plan governance, `subscriptionStatus`, `userRole`, server-side XP/leaderboard processing, and Premium fairness rules remain aligned after meaningful changes. A6_REVIEW should run after A5_WIRE modifies wireframe or UI/UX documentation.
 
 ## A7_AGENT_ROUTER - Exceptional Routing Agent
 A7_AGENT_ROUTER is not used for every routine step. A0_ORCH owns normal routing. Use A7 only when a task category is new, ambiguous, cross-mode, or unclear enough that A0_ORCH cannot confidently pick the next role.
 
 ## A8_OUTPUT_CHECKER - Output Completeness and Deliverable Checker
-A8_OUTPUT_CHECKER checks completeness and deliverable readiness, not design consistency. It verifies required files, sections, diagrams, rendered images, figure references, captions, wireframe checklists, terminology, and absence of production source code in `docs/`.
+A8_OUTPUT_CHECKER checks completeness and deliverable readiness, not design consistency and not primary UI/UX design. It verifies required files, sections, diagrams, rendered images, figure references, captions, wireframe checklists, terminology, and absence of production source code in `docs/`. A8_OUTPUT_CHECKER should run before declaring the wireframe section ready for commit or final PDD insertion.
 
 ## A14_ERROR_TRIAGE - Error Detection and Minimal Fix Agent
-A14_ERROR_TRIAGE identifies concrete errors found during review or output checking and applies minimal scoped corrections.
+A14_ERROR_TRIAGE identifies concrete errors found during review or output checking and applies minimal scoped corrections. It must not become a second design owner, broad reviewer, or completeness checker.
 
-Use A14 when A6_REVIEW finds terminology, role, architecture, or consistency errors; when A8_OUTPUT_CHECKER finds missing, duplicated, unclear, or incomplete deliverable items; when Markdown files contain broken links, broken image paths, duplicate headings, incorrect captions, or unclear canonical/support labels; when PlantUML source fails to render or rendered diagram images are missing; when AGENTS.md files contain duplicated, outdated, or contradictory rules; when git status includes unrelated changes that must be excluded from staging; or when legacy paths such as `wireframe_assets/` are confused with canonical paths such as `docs/pdd/wireframe-images/`.
+Use A14 only when there is a concrete detected error, such as a broken path, missing referenced figure, invalid PlantUML output, contradictory role rule, directly observed mismatch, duplicated or contradictory AGENTS wording, git/staging risk, or confusion between legacy paths such as `wireframe_assets/` and canonical paths such as `docs/pdd/wireframe-images/`.
 
 A14 must preserve PDD_MODE path protection; the canonical PDD deliverables in `docs/pdd/01-application-architecture.md`, `docs/pdd/02-physical-architecture.md`, `docs/pdd/03-component-diagram.md`, `docs/pdd/04-class-diagram.md`, and `docs/pdd/05-wireframe-description.md`; canonical diagram assets under `docs/pdd/diagrams/`; canonical wireframe images under `docs/pdd/wireframe-images/`; `subscriptionStatus` for Basic/Premium access; `userRole` for Platform Administrator and Medical Trainer/Expert governance access; the rule that Medical Trainer/Expert cannot publish expert plans; Platform Administrator ownership of expert plan review, approval, publishing, update, archive, rejection, and governance; backend ownership of XP, streak, level, rank, leaderboard score, weekly XP, monthly XP, and leaderboard aggregation; and the rule that Premium users do not receive XP, rank, leaderboard score, or competitive advantages.
 

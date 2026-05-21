@@ -63,7 +63,7 @@
 - A2_PHYS: physical architecture PDD role.
 - A3_COMP: component diagram PDD role.
 - A4_CLASS: class diagram and data model PDD role.
-- A5_WIRE: wireframe documentation and prompt role.
+- A5_WIRE: wireframe documentation, prompt, figure insertion, and PDD UI/UX design-review role.
 - A6_REVIEW: consistency review role.
 - A7_AGENT_ROUTER: new or ambiguous task routing role only.
 - A8_OUTPUT_CHECKER: completeness and deliverable readiness role.
@@ -86,7 +86,7 @@
 - PDD work: `docs/pdd/AGENTS.md`
 - PDD role details: `docs/pdd/AGENT_ROLES.md`
 - Diagram work: `docs/pdd/diagrams/AGENTS.md`
-- Wireframe work: `docs/pdd/wireframes/AGENTS.md`
+- Wireframe and PDD UI/UX design work: `docs/pdd/wireframes/AGENTS.md`
 - Implementation work: `implementation/AGENTS.md`
 - Implementation role details: `implementation/AGENT_ROLES.md`
 - Firebase/backend work: `firebase/AGENTS.md`
