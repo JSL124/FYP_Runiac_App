@@ -1,5 +1,63 @@
 # Runiac AGENTS.md Changelog
 
+## 2026-05-21 - Add Agent Instruction Management Policy
+
+### Files modified
+- `AGENTS.md`
+- `docs/pdd/AGENTS_CHANGELOG.md`
+
+### Reason
+Added a lightweight policy for keeping the existing AGENTS instruction system maintainable without importing an external framework or restructuring the repository.
+
+### Summary of changes
+- Added an Agent Instruction Management Policy to root `AGENTS.md`.
+- Clarified that root `AGENTS.md` should stay concise and folder-specific `AGENTS.md` files should own local detailed rules.
+- Clarified that detailed role definitions belong in `AGENT_ROLES.md` files.
+- Clarified that `AGENTS.md` and `AGENT_ROLES.md` files are active instructions, while planning and deliverable files are context unless explicitly invoked.
+- Added criteria for when a new numbered agent may be created.
+- Clarified that existing roles should be extended with a mode, checklist, routing rule, or support document when possible.
+- Preserved the layered review-pass model for A5_WIRE, A6_REVIEW, A8_OUTPUT_CHECKER, and A14_ERROR_TRIAGE.
+- Imported no external agent framework.
+- Added no new numbered agents and performed no agent renumbering.
+
+### Review required
+- A6_REVIEW: verify the policy preserves current role boundaries, does not duplicate detailed role definitions, keeps root concise, preserves the layered review-pass model, and does not weaken Runiac constraints.
+- A8_OUTPUT_CHECKER: verify the policy and changelog entry exist, no repository restructuring occurred, no binary images or production code were modified, no new numbered agents were added, and no agent renumbering was performed.
+
+### Final status
+Ready for commit.
+
+## 2026-05-21 - Add PDD UI/UX Design Mode
+
+### Files modified
+- `AGENTS.md`
+- `docs/pdd/AGENTS.md`
+- `docs/pdd/AGENT_ROLES.md`
+- `docs/pdd/wireframes/AGENTS.md`
+- `docs/pdd/AGENTS_CHANGELOG.md`
+
+### Reason
+Added controlled PDD_UIUX_DESIGN_MODE for PDD-stage wireframe review and extended A5_WIRE instead of adding separate UI/UX agents.
+
+### Summary of changes
+- Added PDD_UIUX_DESIGN_MODE to `docs/pdd/wireframes/AGENTS.md`.
+- Extended A5_WIRE with UI/UX design-review responsibilities for wireframe flows, PRD traceability, beginner suitability, UI consistency, design-level accessibility, usability heuristics, and missing-state coverage.
+- Confirmed Material Design 3 / Flutter-compatible concepts as the main mobile UI consistency reference.
+- Confirmed Nielsen Norman Group usability heuristics, WCAG 2.2 principles, and Flutter accessibility awareness are design-review guidance only, not claims of legal, production, or implementation-level accessibility compliance.
+- Clarified A5_WIRE owns UI/UX and wireframe-specific design work.
+- Clarified A6_REVIEW checks cross-PDD consistency, A8_OUTPUT_CHECKER checks completeness/readiness, and A14_ERROR_TRIAGE remains correction-only for concrete detected errors.
+- Added the layered PDD wireframe review-pass route: A5_WIRE -> A6_REVIEW -> A8_OUTPUT_CHECKER, with A14_ERROR_TRIAGE used only for concrete detected errors.
+- Documented that one monolithic review agent is avoided because UI/UX, consistency, completeness, and concrete error correction require different review lenses.
+- Added no new numbered UI/UX agents and performed no agent renumbering.
+- Preserved canonical wireframe file decisions and the canonical `docs/pdd/wireframe-images/` path.
+
+### Review required
+- A6_REVIEW: verify PDD_UIUX_DESIGN_MODE stays under A5_WIRE, no new numbered UI/UX agents were added, no agent numbers changed, A14 remains correction-only, canonical wireframe files and image paths are preserved, and Runiac role/subscription/progression rules remain intact.
+- A8_OUTPUT_CHECKER: verify the detailed mode rules, checklist, output format, role updates, boundary guidance, and changelog entry exist; no binary images, implementation files, Firebase files, test files, PRD requirements, or wireframe image filenames were changed.
+
+### Final status
+Ready for commit.
+
 ## 2026-05-21 - Add A14 Error Triage Role
 
 ### Files modified
@@ -72,6 +130,64 @@ Added conditional auto-commit protocol.
 ### Review required
 - A6_REVIEW: verify auto-commit requires explicit user permission, only task-relevant files may be staged, PDD_MODE still protects implementation/Firebase/test files, deleted legacy `wireframe_assets/` files are not automatically restored or staged, commit message conventions are clear, and no production code was modified.
 - A8_OUTPUT_CHECKER: verify root `AGENTS.md` contains the canonical Commit Protocol, folder-specific AGENTS files do not duplicate the full protocol unnecessarily, changelog was updated, and no unrelated files were staged or committed during this instruction update unless auto-commit permission was explicitly granted.
+
+### Final status
+Ready for commit.
+
+## 2026-05-21 - Clarify PDD Asset Paths and Instruction-Only Folders
+
+### Files modified
+- `docs/pdd/00-orchestration-plan.md`
+- `implementation/AGENTS.md`
+- `firebase/AGENTS.md`
+- `tests/AGENTS.md`
+- `docs/pdd/AGENTS_CHANGELOG.md`
+
+### Reason
+Clarified canonical wireframe image path and instruction-only implementation/firebase/tests folders.
+
+### Summary of changes
+- Clarified that `docs/pdd/00-orchestration-plan.md` is a planning reference, not the active source of agent rules.
+- Confirmed active Codex instructions live in repository `AGENTS.md` files and detailed PDD role profiles live in `docs/pdd/AGENT_ROLES.md`.
+- Clarified that `wireframe.md` remains the readable wireframe source.
+- Clarified that prepared PDD wireframe image assets live under `docs/pdd/wireframe-images/`.
+- Marked `wireframe_assets/` as a legacy path that may appear in earlier planning notes or Git history.
+- Confirmed `implementation/`, `firebase/`, and `tests/` currently contain instruction-only placeholders, not production source code, Firebase configuration, Cloud Functions, Firestore rules, or production test suites.
+
+### Review required
+- A6_REVIEW: verify PDD_MODE remains clear, `docs/pdd/wireframe-images/` is canonical for PDD wireframe images, `wireframe.md` remains the readable wireframe source, legacy `wireframe_assets/` is not restored, implementation/firebase/tests folders are instruction-only, and no production code was modified.
+- A8_OUTPUT_CHECKER: verify all active AGENTS files still exist, canonical PDD deliverables are not unnecessarily changed, support files do not compete with canonical final files, no unnecessary folders were created, and no commit was made.
+
+### Final status
+Ready for commit.
+
+## 2026-05-21 - Stabilize Canonical and Support Markdown Boundaries
+
+### Files modified
+- `docs/pdd/AGENTS.md`
+- `docs/pdd/00-orchestration-plan.md`
+- `docs/pdd/05-final-wireframe-section.md`
+- `docs/pdd/05-final-wireframe-insertion-order.md`
+- `docs/pdd/05-admin-expert-wireframe-figure-insert.md`
+- `docs/pdd/05-wireframe-image-generation-prompts.md`
+- `implementation/AGENTS.md`
+- `firebase/AGENTS.md`
+- `tests/AGENTS.md`
+- `docs/pdd/AGENTS_CHANGELOG.md`
+
+### Reason
+Stabilize the AGENTS.md structure and clarify canonical PDD deliverables versus support, draft, figure-insertion, prompt, and planning Markdown files.
+
+### Summary of changes
+- Confirmed `docs/pdd/05-wireframe-description.md` as the canonical wireframe description file.
+- Marked support wireframe and orchestration files as non-canonical where appropriate.
+- Clarified that `docs/pdd/00-orchestration-plan.md` is planning context, not the active source of agent rules.
+- Clarified that `implementation/`, `firebase/`, and `tests/` currently contain future-mode instruction files and are not production implementation folders unless source files are added intentionally.
+- Preserved the split between global root rules, PDD_MODE rules, detailed role profiles, diagram rules, wireframe rules, implementation rules, Firebase/security rules, and testing rules.
+
+### Review required
+- A6_REVIEW: verify consistency with Runiac PDD rules, canonical/support file boundaries, role governance, `subscriptionStatus`/`userRole` separation, expert plan governance, backend-owned XP/leaderboard processing, and PDD_MODE path protection.
+- A8_OUTPUT_CHECKER: verify all active AGENTS.md and AGENT_ROLES.md files remain present, support files have notices, and no production code was modified.
 
 ### Final status
 Ready for commit.

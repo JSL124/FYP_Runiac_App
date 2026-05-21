@@ -74,11 +74,19 @@
 - A13_SECURITY_RULES: security and access-control review role.
 - A14_ERROR_TRIAGE: detects concrete documentation, diagram, path, rule, and workflow errors, then applies minimal scoped fixes before routing back to review.
 
-## AGENTS.md Stewardship
-- Keep AGENTS.md files short, practical, and non-repetitive.
-- Add new rules only when they prevent repeated mistakes or protect important project constraints.
-- Put new rules in the closest relevant AGENTS.md file.
-- Do not duplicate long rules across multiple AGENTS.md files.
+## Agent Instruction Management Policy
+- Keep root `AGENTS.md` concise and limited to global rules, mode defaults, non-negotiable Runiac constraints, path protection, the role index, commit protocol, and instruction-management policy.
+- Folder-specific `AGENTS.md` files own local rules for PDD, diagrams, wireframes, implementation, Firebase, and tests.
+- Detailed role definitions stay in `AGENT_ROLES.md` files, not root `AGENTS.md`.
+- Treat `AGENTS.md` and `AGENT_ROLES.md` files as active instructions. Treat planning files and deliverable files as project context, not active agent instructions, unless explicitly invoked.
+- Add new rules only when repeated mistakes, recurring workflow needs, or important project constraints justify them.
+- Prefer small, scoped AGENTS changes over large instruction-system rewrites. Split large instruction sets into task-specific Markdown files rather than expanding root indefinitely.
+- Do not duplicate long rules across many AGENTS files; keep root or the closest relevant folder file canonical and use short reminders elsewhere.
+- Do not add a new numbered agent if an existing role can be safely extended with a mode, checklist, routing rule, or support document.
+- Create a new numbered agent only when the responsibility is recurring, cannot be handled by an existing agent without making that agent unclear, has a distinct input/output pattern, has clear routing triggers, and does not duplicate A6_REVIEW, A8_OUTPUT_CHECKER, or A14_ERROR_TRIAGE.
+- Do not renumber agents unless there is a strong reason and all references can be updated safely.
+- Keep review, completeness checking, and concrete error triage as separate review passes.
+- Keep instruction restructuring changes separate from feature or content changes where possible.
 - If a rule changes project behavior, update `docs/pdd/AGENTS_CHANGELOG.md`.
 - A0_ORCH must check whether an AGENTS.md update is needed when repeated mistakes occur.
 
