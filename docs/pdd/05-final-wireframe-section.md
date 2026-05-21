@@ -6,7 +6,7 @@ This section presents the Runiac wireframes prepared for the Project Design Docu
 
 The mobile wireframes are based on the completed Basic and Premium user flows. The Admin/Expert wireframes are web dashboard or controlled portal screens and are separate from the mobile app interface. Basic/Premium feature access is represented through `subscriptionStatus`, while operational and governance access is represented through `userRole`.
 
-The mobile figures should be grouped by user journey rather than inserted as every individual Basic/Premium screen. Most Basic/Premium mobile images already exist under `docs/pdd/wireframe-images/mobile-user/`, including the canonical 13-page onboarding sequence under `docs/pdd/wireframe-images/mobile-user/shared/onboarding/`. State coverage such as loading, empty, permission denied, GPS unavailable, network unavailable, no route found, no plan selected, subscription locked, and route privacy/restricted access can normally be explained as notes under the relevant figure group instead of separate figures.
+The mobile figures should be grouped by user journey rather than inserted as every individual Basic/Premium screen. Most Basic/Premium mobile images already exist under `docs/pdd/wireframe-images/mobile-user/`, including the canonical 13-page onboarding sequence under `docs/pdd/wireframe-images/mobile-user/shared/onboarding/`. Shared mobile screens should be treated as common Basic/Premium user experiences unless a screen explicitly shows a locked Premium state or Premium-only enhancement. State coverage such as loading, empty, permission denied, GPS unavailable, network unavailable, no route found, no plan selected, subscription locked, and route privacy/restricted access can normally be explained as notes under the relevant figure group instead of separate figures.
 
 ## 5.1 Mobile User Wireframes
 
@@ -16,7 +16,7 @@ The mobile figures should be grouped by user journey rather than inserted as eve
 
 **Caption:** Home Dashboard wireframes showing daily plan guidance, XP progress, weekly plan preview, last-run information, and Premium dashboard extensions.
 
-The Home Dashboard is the main entry point for Basic User and Premium User. It supports daily running guidance, habit visibility, and quick access to the current plan or run start flow. Premium versions add richer goal-plan and route suggestions, but do not create XP or leaderboard scoring advantages.
+The Home Dashboard is the main entry point for Basic User and Premium User. It supports daily running guidance, habit visibility, and quick access to the current plan or run start flow. Premium versions add richer goal-plan and route suggestions, but do not create XP, rank, weekly XP, monthly XP, or leaderboard scoring advantages.
 
 ### Figure 5.2: Onboarding / Profile Setup
 
@@ -32,7 +32,7 @@ Onboarding collects the information required to initialise the user's first begi
 
 **Caption:** Training plan wireframes showing weekly plan progress, daily plan detail, session guidance, XP reward display, and start-run entry points.
 
-These wireframes show how users review weekly plans and inspect individual sessions before running. The screens connect Training Plan, Reminder / Notification, Run Tracking, and XP / Streak / Level display. Premium plan details provide richer guidance, while XP remains server-side calculated.
+These wireframes show how users review weekly plans and inspect individual sessions before running. The screens connect Training Plan, Reminder / Notification, Run Tracking, and XP / Streak / Level display. Premium plan details provide richer guidance, while XP, streak, level, rank, weekly XP, and monthly XP remain backend-owned values displayed by the mobile client after processing.
 
 ### Figure 5.4: Edit Schedule
 
@@ -56,7 +56,7 @@ These screens represent the core activity recording journey. Flutter handles the
 
 **Caption:** Post-run wireframes showing recovery guidance, activity summary, XP/streak update, and Premium run analysis.
 
-The post-run flow closes the activity session and converts run data into understandable feedback. Basic users receive essential metrics and beginner-friendly summaries, while Premium users may receive deeper analysis. XP, streak, level, and leaderboard-related values are displayed after server-side calculation.
+The post-run flow closes the activity session and converts run data into understandable feedback. Basic users receive essential metrics and beginner-friendly summaries, while Premium users may receive deeper analysis. XP, streak, level, rank, weekly XP, monthly XP, and leaderboard-related values are displayed after backend calculation; the Flutter client does not calculate, edit, or directly write them.
 
 ## 5.2 Route, Leaderboard, and Profile Wireframes
 
@@ -74,7 +74,7 @@ These screens support community route discovery and route selection. Basic users
 
 **Caption:** Route detail and saved-route wireframes showing route information, select-route confirmation, reporting, selected-route management, and Premium saved-route extensions.
 
-The route detail flow allows users to inspect, select, report, and manage routes. Reported routes are handled by Platform Administrator moderation. Premium route features focus on convenience and presentation rather than competitive advantage.
+The route detail flow allows users to inspect, select, report, and manage routes. Route and GPS data are sensitive, so sharing should require confirmation and use privacy-aware wording such as masking or avoiding unnecessary precise exposure where appropriate. Reported routes are handled by Platform Administrator moderation. Premium route features focus on convenience and presentation rather than competitive advantage.
 
 ### Figure 5.9: Leaderboard
 
@@ -82,7 +82,7 @@ The route detail flow allows users to inspect, select, report, and manage routes
 
 **Caption:** Leaderboard wireframes showing territorial ranking, regional detail, league views, expanded rankings, and sharing.
 
-Leaderboard screens show level-based territorial competition using precomputed backend ranking data. Basic and Premium users can access fair ranking information; Premium may receive enhanced sharing templates but no XP, rank, or leaderboard score advantage.
+Leaderboard screens show level-based territorial competition using precomputed backend ranking data. Basic and Premium users can access fair ranking information; Premium may receive enhanced sharing templates for presentation/status value only, with no XP, rank, weekly XP, monthly XP, or leaderboard score advantage.
 
 ### Figure 5.10: Profile / You
 
@@ -98,7 +98,7 @@ The Profile area gives the user a personal progress view and links to recent run
 
 **Caption:** Premium expert plan wireframes showing expert plan discovery, published plan detail, goal-plan journey, and Premium plan progress.
 
-Premium Users can view and select only expert plans that have been approved and published by the Platform Administrator. Access is controlled by `subscriptionStatus`, while publication is controlled by administrator governance through `userRole`.
+Premium Users can view and select only expert plans that have been approved and published by the Platform Administrator. Access is controlled by `subscriptionStatus`, while expert submission, review, approval, publishing, rejection, and archive decisions are controlled through `userRole` governance. Medical Trainer/Expert submits and revises content only; Platform Administrator controls publication.
 
 ## 5.3 Admin/Expert Governance Flow Overview
 

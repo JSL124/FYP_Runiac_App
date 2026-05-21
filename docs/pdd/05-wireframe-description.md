@@ -45,6 +45,8 @@ The Basic User wireframes cover the beginner habit-formation journey from Home, 
 
 The Premium User wireframes keep the same mobile navigation structure and add deeper support around goal preparation, expert verified plans, advanced analytics, LLM-enhanced post-run summaries, saved routes, advanced route presentation, and enhanced sharing/status visuals. Premium screens must add interpretation, planning depth, convenience, or presentation value without changing XP, level, streak, rank, leaderboard score, weekly XP, or monthly XP outcomes.
 
+Shared mobile screens should be read as common Basic/Premium user experiences unless a screen explicitly shows a locked Premium state or Premium-only enhancement. The existing images are treated as reusable PDD assets; this documentation clarification does not require mobile image regeneration.
+
 | Coverage area | Basic User coverage | Premium User coverage | PDD image status |
 | --- | --- | --- | --- |
 | Onboarding / Profile Setup | Shared first-time setup for running goal, current running level, preferred schedule, session cautiousness, and health/safety readiness prompts. These answers initialise the user's first beginner running plan rather than acting as cosmetic profile fields. | Same setup; Premium access is checked later through `subscriptionStatus`. Premium expert-plan access remains separate from the Basic onboarding plan. | Canonical 13-page onboarding image set. |
@@ -61,6 +63,8 @@ Basic should remain a complete beginner running habit product. The wireframes sh
 
 Premium differences are fair only when they do not affect competitive outcomes. Premium Users must not receive extra XP, rank boosts, leaderboard score advantages, exclusive ranking data that changes competition, or client-side calculation privileges. Basic/Premium access is represented through `subscriptionStatus`; it must not be modelled as separate Basic User and Premium User subclasses.
 
+The Flutter client may display XP, streak, level, rank, leaderboard score, weekly XP, and monthly XP after backend processing, but it must not calculate, edit, or directly write those trusted progression or ranking values. Locked and upgrade screens should therefore describe Premium as deeper analytics, adaptive or goal-based planning, approved expert plan access, route convenience, and presentation/sharing value, not as a competitive advantage.
+
 ## 2.4 Mobile User Flow Coverage
 
 The first-time Basic User flow is: Onboarding / Profile Setup -> Home Dashboard -> Today's Plan Detail -> Run Guide -> Run Landing -> Live Run -> Paused Run or End Run -> Cool Down -> Basic Run Summary -> XP and Streak Update -> Updated Home Dashboard. This flow should keep one clear next action at each step so beginner runners are not forced through deep configuration before their first run.
@@ -72,6 +76,8 @@ The Premium expert plan flow is: Premium Home or Plan -> Premium You Plan -> Exp
 The Premium post-run analysis flow is: Run Landing -> Live Run -> Paused Run or End Run -> Cool Down -> Premium Run Summary -> Premium Run Analysis -> XP and Streak Update -> Premium Updated Home. Advanced analysis should be available after the basic completion summary so the post-run result remains understandable.
 
 Premium sharing and saving flows are optional branches from Premium Run Summary, Premium Route Detail, Premium My Route, and Premium Leaderboard Ranking Sharing. These flows should include privacy confirmation when route or location information may be exposed externally.
+
+Route and GPS data are sensitive user data. Route sharing should ask for explicit confirmation and use privacy-aware wording, such as masking or avoiding unnecessary precise exposure of start/end locations where appropriate. Reported routes should enter Platform Administrator moderation rather than being handled as direct user-to-user disputes.
 
 ## 2.5 State Coverage Notes
 
@@ -277,6 +283,8 @@ For final PDD insertion, repeated Basic/Premium variants should be grouped into 
 
 **Basic/Premium difference:** Basic receives the essential post-run metrics and beginner-friendly summary, with premium analysis visibly locked. Basic users may still use basic route sharing/upload when F7 is implemented. Premium unlocks detailed run analysis, richer AI-assisted feedback, advanced route presentation, and enhanced sharing templates.
 
+**Progression boundary:** XP, streak, level, rank, weekly XP, monthly XP, and leaderboard-related values shown in the summary or XP update screens are backend-owned outputs. The mobile interface displays the results after processing; it must not calculate, edit, or directly write those values.
+
 ## 11. Explore Map
 
 **Screen name:** Maps Landing Page.
@@ -319,6 +327,8 @@ For final PDD insertion, repeated Basic/Premium variants should be grouped into 
 
 **User action flow:** The user selects a route from the map or route list, reviews route details, selects the route, receives confirmation, and can proceed to Run Landing. If there is a route issue, the user opens the report flow, selects a reason, and submits the report for Platform Administrator moderation. After completing a run, Basic users may submit a basic shared route when F7 is implemented, while Premium users receive richer route-sharing controls and presentation.
 
+**Privacy and moderation note:** Route sharing should require user confirmation before publishing or externally sharing route information. Where appropriate, the interface should avoid unnecessary precise exposure of private route details, and reported routes should be reviewed through Platform Administrator moderation.
+
 **Related user stories:** `UC-F1`, `UC-F5`, `UC-F7`.
 
 **Related component:** Explore / Route Component, Run Tracking Component, Route Data Service, Google Maps / Mapbox APIs, Premium / Entitlement Component, OS Share Sheet / Social Media.
@@ -341,6 +351,8 @@ For final PDD insertion, repeated Basic/Premium variants should be grouped into 
 
 **Basic/Premium difference:** Basic supports selected-route management and shows saved collections as premium-gated. Premium supports saved or favorite routes directly and includes the route removal state.
 
+**Entitlement and privacy note:** Saved/favourite route collections are Premium convenience features controlled by `subscriptionStatus`. They must not affect XP, rank, leaderboard score, weekly XP, or monthly XP, and route-management screens should continue to treat GPS route data as sensitive.
+
 ## 15. Leaderboard
 
 **Screen name:** Leaderboard Landing Page, Click Regional Page, Click Region Leaderboard Page, View More Leaderboard Page, View More Ranking Page, View League Page, View Tips for Leaderboard Page, Basic Share Leaderboard Page, Premium Leaderboard Ranking Sharing Page.
@@ -356,6 +368,8 @@ For final PDD insertion, repeated Basic/Premium variants should be grouped into 
 **Related component:** Leaderboard Component, Leaderboard Aggregation Function, XP and Streak Function, Google Maps / Mapbox APIs, Premium / Entitlement Component, OS Share Sheet / Social Media.
 
 **Basic/Premium difference:** Ranking access must remain fair for both Basic and Premium users. Basic can participate in leaderboard views and basic sharing. Premium unlocks richer visual sharing templates and presentation, but does not receive extra XP, ranking boost, or competitive information advantage.
+
+**Leaderboard fairness note:** Leaderboard aggregation and ranking values are backend-owned. Leaderboard tips and sharing screens should explain ranking behaviour without implying that the client can manipulate score, rank, weekly XP, or monthly XP. Premium sharing templates are presentation/status value only.
 
 ## 16. Profile
 
@@ -406,6 +420,8 @@ For final PDD insertion, repeated Basic/Premium variants should be grouped into 
 **Related component:** Premium / Entitlement Component.
 
 **Basic/Premium difference:** Basic users see this screen when attempting to access premium-only features. Premium users should pass entitlement checks and proceed directly to the unlocked feature.
+
+**Entitlement boundary:** Upgrade messaging should make clear that Premium access is controlled by `subscriptionStatus`. Premium benefits are deeper analytics, adaptive or goal-based planning, approved expert plan access, richer route tools, and presentation/sharing value. The upgrade screen must not imply extra XP, rank boosts, leaderboard score advantages, weekly XP/monthly XP advantages, or client-side control over backend-owned progression values.
 
 ## 19. Platform Administrator Wireframes
 

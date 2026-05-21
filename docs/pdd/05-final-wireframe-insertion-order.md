@@ -10,7 +10,7 @@ Insert this material in PDD Section 5, after the wireframe description introduct
 
 ## Mobile Figure Grouping Rules
 
-Use grouped figures for repeated Basic/Premium mobile variants instead of inserting every individual screen as a separate large figure. Basic and Premium versions should be compared inside the same figure group where the difference is meaningful, such as Home, Plan, Run Summary, Routes, Leaderboard Sharing, Profile, and Premium Expert Plan Access.
+Use grouped figures for repeated Basic/Premium mobile variants instead of inserting every individual screen as a separate large figure. Basic and Premium versions should be compared inside the same figure group where the difference is meaningful, such as Home, Plan, Run Summary, Routes, Leaderboard Sharing, Profile, and Premium Expert Plan Access. Shared mobile screens should be presented as common mobile user experiences unless a specific figure shows a locked Premium state or Premium-only enhancement.
 
 State screens such as loading, empty, permission denied, GPS unavailable, network unavailable, no route found, no plan selected, subscription locked, and route privacy/restricted access can normally be documented as notes under the relevant figure group. They only need separate figures if the final PDD needs to explain a state that is central to the flow.
 
@@ -24,7 +24,7 @@ Most Basic/Premium mobile images already exist under `docs/pdd/wireframe-images/
 
 **Caption:** Home Dashboard wireframes showing daily plan guidance, XP progress, weekly plan preview, last-run information, and Premium dashboard extensions.
 
-**PDD explanation:** The Home Dashboard is the main entry point for Basic User and Premium User. It supports daily running guidance, habit visibility, and quick access to the current plan or run start flow. Premium versions add richer goal-plan and route suggestions, but do not create XP or leaderboard scoring advantages.
+**PDD explanation:** The Home Dashboard is the main entry point for Basic User and Premium User. It supports daily running guidance, habit visibility, and quick access to the current plan or run start flow. Premium versions add richer goal-plan and route suggestions, but do not create XP, rank, weekly XP, monthly XP, or leaderboard scoring advantages.
 
 ### Figure 5.2: Onboarding / Profile Setup
 
@@ -40,7 +40,7 @@ Most Basic/Premium mobile images already exist under `docs/pdd/wireframe-images/
 
 **Caption:** Training plan wireframes showing weekly plan progress, daily plan detail, session guidance, XP reward display, and start-run entry points.
 
-**PDD explanation:** These wireframes show how users review weekly plans and inspect individual sessions before running. The screens connect Training Plan, Reminder / Notification, Run Tracking, and XP / Streak / Level display. Premium plan details provide richer guidance, while XP remains server-side calculated.
+**PDD explanation:** These wireframes show how users review weekly plans and inspect individual sessions before running. The screens connect Training Plan, Reminder / Notification, Run Tracking, and XP / Streak / Level display. Premium plan details provide richer guidance, while XP, streak, level, rank, weekly XP, and monthly XP remain backend-owned values displayed by the mobile client after processing.
 
 ### Figure 5.4: Edit Schedule
 
@@ -64,7 +64,7 @@ Most Basic/Premium mobile images already exist under `docs/pdd/wireframe-images/
 
 **Caption:** Post-run wireframes showing recovery guidance, activity summary, XP/streak update, and Premium run analysis.
 
-**PDD explanation:** The post-run flow closes the activity session and converts run data into understandable feedback. Basic users receive essential metrics and beginner-friendly summaries, while Premium users may receive deeper analysis. XP, streak, level, and leaderboard-related values are displayed after server-side calculation.
+**PDD explanation:** The post-run flow closes the activity session and converts run data into understandable feedback. Basic users receive essential metrics and beginner-friendly summaries, while Premium users may receive deeper analysis. XP, streak, level, rank, weekly XP, monthly XP, and leaderboard-related values are displayed after backend calculation; the Flutter client does not calculate, edit, or directly write them.
 
 ## 5.2 Route, Leaderboard, and Profile Wireframes
 
@@ -82,7 +82,7 @@ Most Basic/Premium mobile images already exist under `docs/pdd/wireframe-images/
 
 **Caption:** Route detail and saved-route wireframes showing route information, select-route confirmation, reporting, selected-route management, and Premium saved-route extensions.
 
-**PDD explanation:** The route detail flow allows users to inspect, select, report, and manage routes. Reported routes are handled by Platform Administrator moderation. Premium route features focus on convenience and presentation rather than competitive advantage.
+**PDD explanation:** The route detail flow allows users to inspect, select, report, and manage routes. Route and GPS data are sensitive, so sharing should require confirmation and use privacy-aware wording such as masking or avoiding unnecessary precise exposure where appropriate. Reported routes are handled by Platform Administrator moderation. Premium route features focus on convenience and presentation rather than competitive advantage.
 
 ### Figure 5.9: Leaderboard
 
@@ -90,7 +90,7 @@ Most Basic/Premium mobile images already exist under `docs/pdd/wireframe-images/
 
 **Caption:** Leaderboard wireframes showing territorial ranking, regional detail, league views, expanded rankings, and sharing.
 
-**PDD explanation:** Leaderboard screens show level-based territorial competition using precomputed backend ranking data. Basic and Premium users can access fair ranking information; Premium may receive enhanced sharing templates but no XP, rank, or leaderboard score advantage.
+**PDD explanation:** Leaderboard screens show level-based territorial competition using precomputed backend ranking data. Basic and Premium users can access fair ranking information; Premium may receive enhanced sharing templates for presentation/status value only, with no XP, rank, weekly XP, monthly XP, or leaderboard score advantage.
 
 ### Figure 5.10: Profile / You
 
@@ -106,7 +106,7 @@ Most Basic/Premium mobile images already exist under `docs/pdd/wireframe-images/
 
 **Caption:** Premium expert plan wireframes showing expert plan discovery, published plan detail, goal-plan journey, and Premium plan progress.
 
-**PDD explanation:** Premium Users can view and select only expert plans that have been approved and published by the Platform Administrator. Access is controlled by `subscriptionStatus`, while publication is controlled by administrator governance through `userRole`.
+**PDD explanation:** Premium Users can view and select only expert plans that have been approved and published by the Platform Administrator. Access is controlled by `subscriptionStatus`, while expert submission, review, approval, publishing, rejection, and archive decisions are controlled through `userRole` governance. Medical Trainer/Expert submits and revises content only; Platform Administrator controls publication.
 
 ## 5.3 Admin/Expert Governance Flow Overview
 
