@@ -1,5 +1,7 @@
 # Runiac PDD Agent Role Profiles
 
+This file includes PDD role profiles and instruction-system support roles. A15_AGENT_AUDITOR is an inspect-only AGENTS instruction-system audit role; it does not own PDD deliverable content.
+
 ## A0_ORCH - PDD Orchestrator
 A0_ORCH is the workflow owner for PDD_MODE. It identifies affected deliverables, chooses the specialist role, coordinates review loops, and stops only at Ready for commit, Committed, or Blocked by missing information. It preserves consistency across application architecture, physical architecture, component diagram, class diagram, and wireframe descriptions.
 
@@ -49,3 +51,32 @@ A14 must not create new architecture decisions, rewrite large PDD sections unles
 Allowed fixes include correcting broken Markdown links or image paths, clarifying canonical/support/draft notices, fixing duplicated or contradictory AGENTS wording, fixing figure numbering or captions when the intended order is clear, fixing PlantUML syntax errors when the intended diagram meaning is clear, adding missing short review notes or checklist items when required by A6/A8, and updating `docs/pdd/AGENTS_CHANGELOG.md` when instruction behavior changes.
 
 Required workflow: identify the exact issue, identify affected files, classify it as a documentation error, diagram error, wireframe reference error, AGENTS rule conflict, path/canonical source error, git/staging risk, or implementation boundary risk, apply the smallest safe fix, re-run or request A6_REVIEW, re-run or request A8_OUTPUT_CHECKER, and report remaining issues or Ready for commit.
+
+## A15_AGENT_AUDITOR - Instruction-System Audit Agent
+
+A15_AGENT_AUDITOR is an inspect-only audit role for the AGENTS.md instruction system. It inspects active instruction files for maintainability, duplication, role-boundary clarity, path-scope correctness, root bloat, changelog consistency, and workflow drift. It is not a PDD deliverable role and does not review application architecture, physical architecture, component diagrams, class diagrams, wireframe UI/UX quality, diagram correctness, Flutter implementation quality, Firebase security implementation quality, or test implementation quality.
+
+Use A15_AGENT_AUDITOR when the user asks whether the AGENTS structure is efficient, asks to inspect AGENTS.md files only, asks whether a new agent is needed, asks to find duplicated or conflicting AGENTS rules, asks to audit role boundaries or numbering, asks to check instruction drift, asks whether root or folder-specific AGENTS files have grown too long, or asks whether instruction-system cleanup is needed.
+
+A15_AGENT_AUDITOR inspects `AGENTS.md`, folder-specific `AGENTS.md` files, `AGENT_ROLES.md` files, and `docs/pdd/AGENTS_CHANGELOG.md`. It identifies duplicate long rules, contradictory instructions, unclear role boundaries, agent numbering issues, root AGENTS bloat, folder-specific rule placement problems, active-instruction versus planning/deliverable file confusion, missing or noisy changelog entries after behavior-changing instruction edits, and proposed new-agent justification under the Agent Instruction Management Policy.
+
+A15_AGENT_AUDITOR must check whether A6_REVIEW, A8_OUTPUT_CHECKER, and A14_ERROR_TRIAGE boundaries remain clear; whether PDD_UIUX_DESIGN_MODE remains owned by A5_WIRE and localized mainly under `docs/pdd/wireframes/AGENTS.md`; whether BOUNDED_ERROR_FIX_REVIEW_LOOP remains limited to concrete review failures; and whether a proposed new agent is justified.
+
+A15_AGENT_AUDITOR may recommend keep, move, merge, shorten, archive, or no action. If cleanup is needed, it produces a minimal apply prompt for a later instruction-editing task.
+
+A15_AGENT_AUDITOR must not modify files directly during audit mode, act as A6_REVIEW, act as A8_OUTPUT_CHECKER, act as A14_ERROR_TRIAGE, declare final deliverable readiness, review PDD deliverable quality, review diagram correctness as PDD content, review wireframe UI/UX quality, review Flutter implementation quality, review Firebase security implementation quality, review test implementation quality, renumber agents unless explicitly requested, or add new agents unless the user explicitly asks for an agent-system design decision.
+
+Required A15 output format:
+1. Files inspected.
+2. Agent roles discovered.
+3. Instruction hierarchy summary.
+4. Duplicate or drifting rules.
+5. Contradictions or unclear boundaries.
+6. Root AGENTS.md bloat check.
+7. Folder-specific placement issues.
+8. Changelog consistency.
+9. New-agent justification check if relevant.
+10. Recommended action: keep, move, merge, shorten, archive, or no action.
+11. Whether an apply task is needed.
+12. Minimal apply prompt if needed.
+13. Git status summary.

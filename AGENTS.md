@@ -52,7 +52,7 @@
 
 ## Agent Execution Model
 - A0_ORCH is the workflow owner.
-- A0 to A14 are role profiles and review lenses by default.
+- A0 to A15 are role profiles and review lenses by default.
 - Do not assume real parallel Codex subagents are available unless the user explicitly asks Codex to spawn subagents.
 - If subagents are not explicitly requested, A0_ORCH should emulate specialist checks sequentially.
 - Stop only when Ready for commit, Committed, or Blocked by missing information.
@@ -73,6 +73,7 @@
 - A12_QA_TEST: testing and QA role.
 - A13_SECURITY_RULES: security and access-control review role.
 - A14_ERROR_TRIAGE: detects concrete documentation, diagram, path, rule, and workflow errors, then applies minimal scoped fixes before routing back to review.
+- A15_AGENT_AUDITOR: inspect-only AGENTS instruction-system audit role.
 
 ## Agent Instruction Management Policy
 - Keep root `AGENTS.md` concise and limited to global rules, mode defaults, non-negotiable Runiac constraints, path protection, the role index, commit protocol, and instruction-management policy.

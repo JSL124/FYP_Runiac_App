@@ -1,5 +1,33 @@
 # Runiac AGENTS.md Changelog
 
+## 2026-05-21 - Add A15 Agent Auditor
+
+### Files modified
+- `AGENTS.md`
+- `docs/pdd/AGENTS.md`
+- `docs/pdd/AGENT_ROLES.md`
+- `docs/pdd/AGENTS_CHANGELOG.md`
+
+### Reason
+Added A15_AGENT_AUDITOR as an inspect-only role for auditing the AGENTS instruction system as it grows.
+
+### Summary of changes
+- Added A15_AGENT_AUDITOR to the root role index.
+- Added a short A15 routing note to `docs/pdd/AGENTS.md`.
+- Added the detailed A15_AGENT_AUDITOR definition to `docs/pdd/AGENT_ROLES.md`.
+- Defined A15 as an inspect-only instruction-system audit role for maintainability, duplication, role-boundary clarity, path-scope correctness, root bloat, changelog consistency, workflow drift, and new-agent justification checks.
+- Confirmed A15 does not replace A6_REVIEW, A8_OUTPUT_CHECKER, or A14_ERROR_TRIAGE.
+- Confirmed A15 does not review PDD deliverable content, wireframe UI/UX quality, diagram correctness, Flutter implementation quality, Firebase security implementation quality, or test implementation quality.
+- Confirmed A15 does not declare final readiness or modify files directly during audit mode.
+- Added no other new agents and performed no agent renumbering.
+
+### Review required
+- A6_REVIEW: verify A15 is inspect-only, does not duplicate A6/A8/A14, does not own PDD deliverable review, does not declare readiness, and preserves role boundaries.
+- A8_OUTPUT_CHECKER: verify the root index, PDD routing note, detailed role definition, output format, and changelog entry exist; no PDD deliverable content, implementation code, binary images, or file names were modified.
+
+### Final status
+Ready for commit.
+
 ## 2026-05-21 - Add Bounded Error Fix Review Loop
 
 ### Files modified

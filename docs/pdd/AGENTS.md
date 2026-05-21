@@ -45,6 +45,7 @@ Support files such as `docs/pdd/00-orchestration-plan.md`, `docs/pdd/05-final-wi
 - A14 must not become a second design owner, broad reviewer, or completeness checker.
 - In PDD_MODE, A14 must not modify implementation, Firebase, test, or production source files.
 - A7_AGENT_ROUTER is only for new, ambiguous, or unclear task categories.
+- Use A15_AGENT_AUDITOR only for inspect-only AGENTS instruction-system audits, not for PDD deliverable review or readiness checking.
 
 ## PDD Review-Pass Model
 - Do not create a monolithic review agent for PDD work.
@@ -107,8 +108,15 @@ When the loop is used, report:
 - A7_AGENT_ROUTER: exception routing for unclear tasks.
 - A8_OUTPUT_CHECKER: completeness and deliverable readiness, not consistency.
 - A14_ERROR_TRIAGE: concrete error detection and minimal scoped fixes before returning to review.
+- A15_AGENT_AUDITOR: inspect-only AGENTS instruction-system audit role; not a PDD deliverable reviewer and not a readiness checker.
 
 Detailed PDD role profiles are in `docs/pdd/AGENT_ROLES.md`.
+
+## A15 Instruction-System Audit Routing
+
+Use A15_AGENT_AUDITOR when the user asks whether the AGENTS structure is efficient; asks to inspect AGENTS.md files only; asks whether a new agent is needed; asks to find duplicated, conflicting, or unclear AGENTS rules; asks to audit role boundaries, numbering, or instruction drift; asks whether root `AGENTS.md` or folder-specific `AGENTS.md` files have grown too long; or asks whether instruction-system cleanup is needed.
+
+Do not use A15_AGENT_AUDITOR for PDD content consistency review, PDD output completeness review, concrete bug fixing, Flutter/Firebase/test implementation review, wireframe UI/UX review, or diagram correctness review. Use A6_REVIEW, A8_OUTPUT_CHECKER, A14_ERROR_TRIAGE, A5_WIRE, or the relevant implementation/testing role instead.
 
 ## Runiac PDD Constraints
 - Basic/Premium access uses `subscriptionStatus`.
