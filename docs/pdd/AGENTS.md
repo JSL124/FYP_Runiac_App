@@ -110,7 +110,7 @@ When the loop is used, report:
 - A14_ERROR_TRIAGE: concrete error detection and minimal scoped fixes before returning to review.
 - A15_AGENT_AUDITOR: inspect-only AGENTS instruction-system audit role; not a PDD deliverable reviewer and not a readiness checker.
 
-Detailed PDD role profiles are in `docs/pdd/AGENT_ROLES.md`.
+Detailed PDD role profiles, the Agent Boundary Matrix, handoff rules, and conflict-resolution rules are in `docs/pdd/AGENT_ROLES.md`.
 
 ## A15 Instruction-System Audit Routing
 

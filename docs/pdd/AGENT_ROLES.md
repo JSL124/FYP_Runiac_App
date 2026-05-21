@@ -2,6 +2,58 @@
 
 This file includes PDD role profiles and instruction-system support roles. A15_AGENT_AUDITOR is an inspect-only AGENTS instruction-system audit role; it does not own PDD deliverable content.
 
+## Agent Boundary Principles
+
+- Each task must have exactly one accountable owner.
+- Review agents may approve, reject, or request scoped fixes, but they do not become the production owner.
+- Correction agents may apply minimal fixes, but they do not become reviewers or readiness checkers.
+- Audit agents inspect instruction-system health, but they do not review PDD deliverable quality.
+- If two agents appear to own the same task, A0_ORCH must choose one owner and one reviewer before work continues.
+- If a task crosses domains, A0_ORCH must split it into separate scoped tasks instead of assigning multiple co-owners.
+- Do not use A14_ERROR_TRIAGE for subjective improvements, broad redesign, or speculative cleanup.
+- Do not use A15_AGENT_AUDITOR for PDD content, UI/UX, diagram, implementation, Firebase, security, or test quality review.
+
+## Agent Boundary Matrix
+
+| Agent | Owns | Does not own | Hands off to |
+| --- | --- | --- | --- |
+| A0_ORCH | Workflow routing, mode decision, scope control, final task sequencing. | Detailed deliverable writing alone. | The relevant production, review, correction, or audit role. |
+| A1_APP | Application architecture section and application-level diagram logic. | Physical deployment, class attributes, UI wireframes, Firebase implementation. | A2_PHYS, A3_COMP, A6_REVIEW. |
+| A2_PHYS | Physical architecture, deployment view, Firebase/BaaS deployment assumptions. | Application-layer responsibilities, class model, UI screen descriptions. | A1_APP, A3_COMP, A6_REVIEW. |
+| A3_COMP | Component responsibilities, interfaces, and component diagram boundaries. | Class attributes, UI screen layout, production implementation. | A4_CLASS, A5_WIRE, A6_REVIEW. |
+| A4_CLASS | Class diagram, data model consistency, role/subscription representation. | Firebase implementation files, UI layout, PDD figure insertion. | A3_COMP, A6_REVIEW, future A11_FIREBASE_IMPL if implementation begins. |
+| A5_WIRE | Wireframe descriptions, image prompts, figure insertion guidance, PDD_UIUX_DESIGN_MODE, Basic/Premium/Admin/Expert wireframe documentation. | Final deliverable readiness, broad PDD consistency, class model changes, implementation. | A6_REVIEW for consistency, A8_OUTPUT_CHECKER for readiness, A14_ERROR_TRIAGE for concrete errors. |
+| A6_REVIEW | Cross-document consistency across PDD sections, diagrams, terminology, role rules, and architecture assumptions. | Completeness/readiness declaration, primary writing, subjective redesign, direct broad fixes. | A14_ERROR_TRIAGE for concrete fixable errors, A8_OUTPUT_CHECKER after consistency passes. |
+| A7_AGENT_ROUTER | Exceptional routing when the correct role is unclear. | Normal workflow sequencing, production, review, or correction. | A0_ORCH or the selected role. |
+| A8_OUTPUT_CHECKER | Final completeness, deliverable readiness, missing-output detection, ready-for-commit recommendation. | Broad consistency review, production writing, concrete fixing. | A14_ERROR_TRIAGE for concrete blockers, A0_ORCH for blocked scope decisions. |
+| A9_TRACE | Implementation-phase PRD/PDD traceability. | PDD deliverable writing, Flutter/Firebase implementation, security enforcement. | A10_FLUTTER_IMPL, A11_FIREBASE_IMPL, A12_QA_TEST, A13_SECURITY_RULES. |
+| A10_FLUTTER_IMPL | Flutter UI, navigation, forms, state handling, client integration. | Backend-owned XP/streak/level/rank/leaderboard writes, Firebase security policy, PDD diagram writing. | A11_FIREBASE_IMPL, A13_SECURITY_RULES, A12_QA_TEST. |
+| A11_FIREBASE_IMPL | Firebase Auth, Firestore, Cloud Functions, FCM, Storage implementation. | Flutter UI design, client-only premium enforcement, PDD deliverable writing. | A13_SECURITY_RULES, A12_QA_TEST, A10_FLUTTER_IMPL. |
+| A12_QA_TEST | Testing, QA, regression, evidence, readiness checks during implementation. | Production implementation, PDD deliverable writing, security policy ownership. | A10_FLUTTER_IMPL, A11_FIREBASE_IMPL, A13_SECURITY_RULES. |
+| A13_SECURITY_RULES | Security, trusted writes, access control, Firestore rules assumptions, backend-owned data protection. | UI-only design, general QA, PDD figure writing. | A11_FIREBASE_IMPL, A12_QA_TEST, A6_REVIEW if PDD security wording conflicts. |
+| A14_ERROR_TRIAGE | Concrete detected errors and minimal scoped fixes. | Broad review, subjective improvements, design ownership, readiness declaration, agent-system audit. | The same reviewer that found the issue, usually A6_REVIEW or A8_OUTPUT_CHECKER. |
+| A15_AGENT_AUDITOR | AGENTS.md and AGENT_ROLES.md instruction-system audit, duplication detection, boundary drift, numbering issues, root bloat, changelog consistency. | PDD deliverable quality, UI/UX review, diagram correctness, implementation quality, security review, test review, readiness declaration. | A0_ORCH with a minimal apply prompt if instruction cleanup is needed. |
+
+## Handoff Rules
+
+When an agent hands off work, report:
+1. Current owner.
+2. Reason for handoff.
+3. Target agent.
+4. Files in scope.
+5. Files out of scope.
+6. Pass condition.
+7. Whether the next step is review, fix, audit, or readiness check.
+
+## Conflict-Resolution Rules
+
+- If A5_WIRE and A6_REVIEW conflict, A5 owns wireframe-specific design content, but A6 may block on cross-document inconsistency.
+- If A6_REVIEW and A8_OUTPUT_CHECKER conflict, A6 decides consistency pass/fail; A8 decides completeness/readiness pass/fail.
+- If A14_ERROR_TRIAGE and any reviewer conflict, A14 must stop and return to the reviewer; A14 cannot declare its own fix sufficient.
+- If A15_AGENT_AUDITOR finds instruction-system issues, it must report and produce an apply prompt; it must not directly take over PDD review.
+- If implementation agents A10/A11/A13 conflict, A13 owns security constraints, A11 owns backend implementation, and A10 owns client implementation.
+- If a task touches both PDD and implementation, A0_ORCH must split it into PDD and implementation tasks.
+
 ## A0_ORCH - PDD Orchestrator
 A0_ORCH is the workflow owner for PDD_MODE. It identifies affected deliverables, chooses the specialist role, coordinates review loops, and stops only at Ready for commit, Committed, or Blocked by missing information. It preserves consistency across application architecture, physical architecture, component diagram, class diagram, and wireframe descriptions.
 

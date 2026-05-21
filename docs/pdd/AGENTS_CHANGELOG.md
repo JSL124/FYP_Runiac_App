@@ -1,5 +1,30 @@
 # Runiac AGENTS.md Changelog
 
+## 2026-05-21 - Clarify Agent Boundaries
+
+### Files modified
+- `docs/pdd/AGENTS.md`
+- `docs/pdd/AGENT_ROLES.md`
+- `docs/pdd/AGENTS_CHANGELOG.md`
+
+### Reason
+Clarified role ownership, handoff behavior, and conflict resolution across the existing agent instruction system without adding or renumbering agents.
+
+### Summary of changes
+- Added Agent Boundary Principles to require one accountable owner per task and prevent review, correction, or audit roles from becoming production owners.
+- Added an Agent Boundary Matrix covering A0_ORCH through A15_AGENT_AUDITOR with Owns, Does not own, and Hands off to guidance.
+- Added handoff output requirements for owner, reason, target role, scope, pass condition, and next-step type.
+- Added conflict-resolution rules for A5/A6, A6/A8, A14/reviewer, A15/PDD review, A10/A11/A13, and mixed PDD/implementation tasks.
+- Added no new agents and performed no agent renumbering.
+- Confirmed A14_ERROR_TRIAGE remains correction-only and A15_AGENT_AUDITOR remains instruction-system audit only.
+
+### Review required
+- A6_REVIEW: verify the matrix and conflict rules preserve existing role boundaries, keep A14 correction-only, keep A15 audit-only, and do not create new ownership conflicts.
+- A8_OUTPUT_CHECKER: verify the boundary principles, matrix, handoff rules, conflict-resolution rules, and changelog entry exist; no PDD deliverable content, implementation code, binary images, file names, new agents, or renumbering were introduced.
+
+### Final status
+Ready for commit.
+
 ## 2026-05-21 - Add A15 Agent Auditor
 
 ### Files modified
