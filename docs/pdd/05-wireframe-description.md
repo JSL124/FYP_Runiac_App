@@ -6,7 +6,7 @@ This section documents the existing Runiac wireframes for the Project Design Doc
 
 The repository stores the wireframe source as `wireframe.md` and `docs/pdd/wireframe-images/` rather than `docs/wireframes/`, and the available PRD source is `PRD.md` rather than `docs/prd/Runiac_PRD.pdf`. The PRD defines use cases rather than separately numbered user stories, so this document treats the PRD use cases `UC-F1` to `UC-F10` as the related user-story references.
 
-No redesign is proposed in this section. The descriptions explain the intent, visible elements, user flow, and system relationship of the existing wireframes. The current repository includes Basic User and Premium User mobile wireframe assets under `docs/pdd/wireframe-images/mobile-user/`. Most main mobile screens already have exported images; the only likely new mobile image still needed later is an Onboarding / Profile Setup wireframe.
+No redesign is proposed in this section. The descriptions explain the intent, visible elements, user flow, and system relationship of the existing wireframes. The current repository includes Basic User and Premium User mobile wireframe assets under `docs/pdd/wireframe-images/mobile-user/`, including the canonical 13-page onboarding flow under `docs/pdd/wireframe-images/mobile-user/shared/onboarding/`.
 
 Basic and Premium access differences are treated as subscription differences controlled by `subscriptionStatus`. Operational or governance access, such as Platform Administrator moderation and expert plan publication, is treated as `userRole` behaviour rather than as a separate Basic/Premium tier. Medical Trainer/Expert is treated as an expert plan content provider, not as a direct mobile-app publisher in the MVP.
 

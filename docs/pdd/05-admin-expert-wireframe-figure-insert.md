@@ -16,9 +16,11 @@ Premium Users can view and select only expert plans that are both approved and p
 
 **Recommended insertion point:** Place this overview before the individual Admin/Expert wireframe figures in the PDD wireframe section. It should appear immediately after the introductory paragraph for Platform Administrator and Medical Trainer/Expert wireframes.
 
-**Expert Plan Review Queue note:** An additional Expert Plan Review Queue wireframe is optional, not necessary. The existing Admin Dashboard, Expert Plan Review, Plan Management, Expert Plan Submission Form, and Submitted Plan Status Page already provide enough screen-level coverage for the PDD. A separate queue screen may be added later only if the final document needs a more explicit list view of pending expert submissions.
+**Generated support assets:** The Admin/Expert governance flow also includes current support images for the lifecycle overview, expert plan review queue, expert plan publish confirmation, and expert revision response. These support images clarify the controlled review and publication lifecycle without changing the core role boundaries.
 
-**Suggested future figure caption:** "Figure 5.X: Admin/Expert Expert Plan Governance Flow from expert draft submission to administrator-controlled publication."
+![Support Figure: Admin/Expert Governance Flow Overview](wireframe-images/shared-governance/admin-expert-governance-flow-overview.png)
+
+**Suggested support caption:** "Admin/Expert Expert Plan Governance Flow from expert draft submission to administrator-controlled publication."
 
 ## Figure 5.1: Admin Dashboard
 
@@ -68,6 +70,18 @@ The Expert Plan Review screen allows the Platform Administrator to evaluate subm
 
 **Governance/access-control note:** Medical Trainer/Expert does not publish plans. Only the Platform Administrator can approve and publish expert plans after review.
 
+## Support Figure: Expert Plan Review Queue
+
+![Support Figure: Expert Plan Review Queue](wireframe-images/platform-admin/expert-plan-review-queue.png)
+
+The Expert Plan Review Queue wireframe shows pending expert plan submissions, review status, provider information, and administrator review actions. It supports the Expert Plan Review screen by showing how the Platform Administrator locates and opens submitted plans for controlled review.
+
+**Role supported:** Platform Administrator.
+
+**Key design purpose:** To make the pending expert plan list explicit before administrator review, approval, rejection, revision request, archive, or publication.
+
+**Governance/access-control note:** Queue actions remain administrator-controlled. Medical Trainer/Expert cannot approve or publish expert plans.
+
 ## Figure 5.5: Plan Management
 
 ![Figure 5.5: Plan Management](wireframe-images/platform-admin/plan-management.png)
@@ -79,6 +93,18 @@ The Plan Management wireframe supports administrative management of system goal 
 **Key design purpose:** To provide a controlled interface for searching, creating, viewing, editing, and archiving training plans.
 
 **Governance/access-control note:** Premium expert plans must not create XP or leaderboard scoring advantages. Premium access is controlled by `subscriptionStatus`, while plan publication is controlled by Platform Administrator governance.
+
+## Support Figure: Expert Plan Publish Confirmation
+
+![Support Figure: Expert Plan Publish Confirmation](wireframe-images/platform-admin/expert-plan-publish-confirmation.png)
+
+The Expert Plan Publish Confirmation wireframe shows the administrator's final pre-publication check for an approved expert plan. It reinforces that Approved and Published are separate lifecycle states.
+
+**Role supported:** Platform Administrator.
+
+**Key design purpose:** To document the controlled publication checkpoint before an approved expert plan becomes visible to Premium Users.
+
+**Governance/access-control note:** Only Platform Administrator can publish after review and approval. Publication must not create XP, rank, leaderboard score, or competitive advantages.
 
 ## Figure 5.6: Route Management
 
@@ -127,3 +153,15 @@ The Submitted Plan Status Page allows a Medical Trainer/Expert to track submitte
 **Key design purpose:** To let experts view submission status, edit drafts, respond to administrator comments, and resubmit plans for review.
 
 **Governance/access-control note:** Medical Trainer/Expert cannot directly publish plans. Published status appears only after Platform Administrator approval and publishing.
+
+## Support Figure: Expert Plan Revision Response
+
+![Support Figure: Expert Plan Revision Response](wireframe-images/medical-trainer-expert/expert-plan-revision-response.png)
+
+The Expert Plan Revision Response wireframe shows how Medical Trainer/Expert responds when the Platform Administrator requests changes. It includes revision comments, editable plan sections, response notes, save draft, and resubmit-for-review actions.
+
+**Role supported:** Medical Trainer/Expert.
+
+**Key design purpose:** To document the revision loop without giving the expert publication authority.
+
+**Governance/access-control note:** Medical Trainer/Expert can revise and resubmit content only. Platform Administrator remains responsible for approval and publication.

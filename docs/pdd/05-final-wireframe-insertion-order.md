@@ -14,7 +14,7 @@ Use grouped figures for repeated Basic/Premium mobile variants instead of insert
 
 State screens such as loading, empty, permission denied, GPS unavailable, network unavailable, no route found, no plan selected, subscription locked, and route privacy/restricted access can normally be documented as notes under the relevant figure group. They only need separate figures if the final PDD needs to explain a state that is central to the flow.
 
-Most Basic/Premium mobile images already exist under `docs/pdd/wireframe-images/mobile-user/`. Onboarding / Profile Setup is the only likely new mobile image needed later.
+Most Basic/Premium mobile images already exist under `docs/pdd/wireframe-images/mobile-user/`. Onboarding / Profile Setup uses the canonical 13-page sequence under `docs/pdd/wireframe-images/mobile-user/shared/onboarding/`.
 
 ## 5.1 Mobile User Wireframes
 
@@ -110,15 +110,19 @@ Most Basic/Premium mobile images already exist under `docs/pdd/wireframe-images/
 
 ## 5.3 Admin/Expert Governance Flow Overview
 
-### Optional Unnumbered Governance Overview
+### Support Figure: Admin/Expert Governance Flow Overview
 
-**Suggested source:** Optional future flow diagram. Existing screen-level coverage is sufficient; this diagram is not required unless the final PDD needs a visual lifecycle summary.
+![Support Figure: Admin/Expert Governance Flow Overview](wireframe-images/shared-governance/admin-expert-governance-flow-overview.png)
+
+**Suggested source:** `wireframe-images/shared-governance/admin-expert-governance-flow-overview.png`.
 
 **Suggested caption:** Admin/Expert Expert Plan Governance Flow from Medical Trainer/Expert draft submission to Platform Administrator-controlled publication.
 
 **PDD explanation:** The governance flow begins when the Medical Trainer/Expert creates draft expert plan content and submits it for admin review. The Platform Administrator reviews the plan for safety, completeness, beginner suitability, and Runiac standards. The administrator may request revision, approve, reject, archive, or publish only after approval. Premium Users can view and select only approved and published expert plans.
 
 **Governance note:** Medical Trainer/Expert is a content provider only and must not publish plans. Basic/Premium feature access is controlled by `subscriptionStatus`; operational access is controlled by `userRole`.
+
+**Figure status:** Current generated support figure for explaining the expert plan lifecycle before the individual Platform Administrator and Medical Trainer/Expert screens.
 
 ## 5.4 Platform Administrator Wireframes
 
@@ -162,6 +166,16 @@ Most Basic/Premium mobile images already exist under `docs/pdd/wireframe-images/
 
 **Governance note:** Medical Trainer/Expert does not publish plans. Platform Administrator publishes only after review and approval.
 
+### Support Figure: Expert Plan Review Queue
+
+![Support Figure: Expert Plan Review Queue](wireframe-images/platform-admin/expert-plan-review-queue.png)
+
+**Caption:** Expert Plan Review Queue showing pending expert plan submissions, review status, provider information, and administrator review actions.
+
+**PDD explanation:** This support figure clarifies the list-view step where submitted Medical Trainer/Expert plans enter the Platform Administrator review workflow. It supports the Expert Plan Review figure by showing how administrators select pending submissions for review.
+
+**Governance note:** Queue actions route submissions into administrator review; Medical Trainer/Expert still cannot approve or publish expert plans.
+
 ### Figure 5.16: Plan Management
 
 ![Figure 5.16: Plan Management](wireframe-images/platform-admin/plan-management.png)
@@ -171,6 +185,16 @@ Most Basic/Premium mobile images already exist under `docs/pdd/wireframe-images/
 **PDD explanation:** Plan Management allows the administrator to manage Runiac system goal plans and approved expert plans. It distinguishes System Plan and Expert Plan records and supports lifecycle states such as Submitted, Pending Review, Revision Requested, Approved, Published, Archived, and Rejected.
 
 **Governance note:** Premium expert plans must not create XP, rank, leaderboard score, or competitive advantages.
+
+### Support Figure: Expert Plan Publish Confirmation
+
+![Support Figure: Expert Plan Publish Confirmation](wireframe-images/platform-admin/expert-plan-publish-confirmation.png)
+
+**Caption:** Expert Plan Publish Confirmation showing administrator pre-publication checks before making an approved expert plan visible.
+
+**PDD explanation:** This support figure documents the controlled publication confirmation step after expert plan approval. It reinforces that publication is an administrator action and that approved and published statuses remain separate.
+
+**Governance note:** Platform Administrator publishes only after review and approval. Publication must not create XP, rank, leaderboard score, or other competitive advantages for Premium Users.
 
 ### Figure 5.17: Route Management
 
@@ -214,8 +238,12 @@ Most Basic/Premium mobile images already exist under `docs/pdd/wireframe-images/
 
 **Governance note:** Medical Trainer/Expert cannot approve, publish, archive published plans, or directly write published plan records.
 
-## Optional Queue Figure
+### Support Figure: Expert Plan Revision Response
 
-An additional Expert Plan Review Queue wireframe is optional, not necessary for the current PDD. The existing Admin Dashboard, Expert Plan Review, Plan Management, Expert Plan Submission Form, and Submitted Plan Status Page already explain the expert plan lifecycle. If added later, the caption should be:
+![Support Figure: Expert Plan Revision Response](wireframe-images/medical-trainer-expert/expert-plan-revision-response.png)
 
-**Suggested caption:** Expert Plan Review Queue showing pending expert plan submissions, review status, provider information, and administrator review actions.
+**Caption:** Expert Plan Revision Response showing Medical Trainer/Expert updates after a Platform Administrator revision request.
+
+**PDD explanation:** This support figure clarifies the revision loop after the administrator requests changes. The Medical Trainer/Expert can revise and resubmit content for review, but cannot publish directly or update published catalogue records.
+
+**Governance note:** Revision response returns the plan to Platform Administrator review; readiness and publication remain administrator-controlled.
