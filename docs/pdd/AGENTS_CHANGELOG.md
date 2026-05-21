@@ -1,5 +1,32 @@
 # Runiac AGENTS.md Changelog
 
+## 2026-05-21 - Add A14 Error Triage Role
+
+### Files modified
+- `AGENTS.md`
+- `docs/pdd/AGENTS.md`
+- `docs/pdd/AGENT_ROLES.md`
+- `docs/pdd/diagrams/AGENTS.md`
+- `docs/pdd/wireframes/AGENTS.md`
+- `docs/pdd/AGENTS_CHANGELOG.md`
+
+### Reason
+Added A14_ERROR_TRIAGE for concrete error detection and minimal PDD/AGENTS fixes.
+
+### Summary of changes
+- Added A14_ERROR_TRIAGE to the root role index.
+- Added PDD workflow routing rules for using A14 after A6_REVIEW or A8_OUTPUT_CHECKER finds concrete fixable issues.
+- Added the detailed A14 role profile to `docs/pdd/AGENT_ROLES.md`.
+- Added short diagram and wireframe routing references for concrete path, rendering, and governance wording errors.
+- Kept A14 scoped to minimal corrections and prohibited new architecture decisions, large rewrites, PDD_MODE implementation changes, legacy `wireframe_assets/` restoration, unrelated staging, and `git add .`.
+
+### Review required
+- A6_REVIEW: verify A14 does not overlap too much with A6 or A8, is clearly a correction agent and not a design owner, preserves PDD_MODE and path protection, does not permit implementation changes in PDD_MODE, routes back to A6/A8 after fixes, and preserves Runiac role, subscription, expert governance, and backend-owned progression rules.
+- A8_OUTPUT_CHECKER: verify A14 appears in the root role index, the detailed role exists in `docs/pdd/AGENT_ROLES.md`, folder-specific references are short and not duplicated excessively, changelog was updated, no production code was modified, no unrelated files were staged, and no `wireframe_assets/` deletions were staged.
+
+### Final status
+Ready for commit.
+
 ## 2026-05-21 - Add Ready-for-Commit Manual Command Rule
 
 ### Files modified

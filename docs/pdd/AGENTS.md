@@ -29,6 +29,9 @@
 - Run A6_REVIEW after meaningful documentation, diagram, or wireframe changes.
 - Run A8_OUTPUT_CHECKER before declaring PDD output Ready for commit.
 - If A6_REVIEW or A8_OUTPUT_CHECKER finds issues, route back to the correct specialist role, correct the issue, and review again.
+- Use A14_ERROR_TRIAGE when A6_REVIEW or A8_OUTPUT_CHECKER finds concrete fixable issues. A14 must apply the smallest safe correction, then route back to A6_REVIEW and A8_OUTPUT_CHECKER.
+- A14 must not introduce new architecture decisions or rewrite large sections unless explicitly requested.
+- In PDD_MODE, A14 must not modify implementation, Firebase, test, or production source files.
 - A7_AGENT_ROUTER is only for new, ambiguous, or unclear task categories.
 
 ## PDD Role Summary
@@ -41,6 +44,7 @@
 - A6_REVIEW: consistency review, not completeness.
 - A7_AGENT_ROUTER: exception routing for unclear tasks.
 - A8_OUTPUT_CHECKER: completeness and deliverable readiness, not consistency.
+- A14_ERROR_TRIAGE: concrete error detection and minimal scoped fixes before returning to review.
 
 Detailed PDD role profiles are in `docs/pdd/AGENT_ROLES.md`.
 

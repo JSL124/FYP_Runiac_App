@@ -52,7 +52,7 @@
 
 ## Agent Execution Model
 - A0_ORCH is the workflow owner.
-- A0 to A13 are role profiles and review lenses by default.
+- A0 to A14 are role profiles and review lenses by default.
 - Do not assume real parallel Codex subagents are available unless the user explicitly asks Codex to spawn subagents.
 - If subagents are not explicitly requested, A0_ORCH should emulate specialist checks sequentially.
 - Stop only when Ready for commit, Committed, or Blocked by missing information.
@@ -72,6 +72,7 @@
 - A11_FIREBASE_IMPL: Firebase/backend implementation role.
 - A12_QA_TEST: testing and QA role.
 - A13_SECURITY_RULES: security and access-control review role.
+- A14_ERROR_TRIAGE: detects concrete documentation, diagram, path, rule, and workflow errors, then applies minimal scoped fixes before routing back to review.
 
 ## AGENTS.md Stewardship
 - Keep AGENTS.md files short, practical, and non-repetitive.

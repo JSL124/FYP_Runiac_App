@@ -19,6 +19,7 @@
 - Submitted Plan Status Page
 
 ## Wireframe Rules
+- If broken wireframe image paths, duplicate wireframe sections, missing canonical/support labels, or admin/expert governance wording errors are found, route to A14_ERROR_TRIAGE for minimal correction, then return to A6_REVIEW and A8_OUTPUT_CHECKER.
 - Medical Trainer/Expert screens must not include a Publish button.
 - Expert Plan Submission Form uses Save Draft and Submit for Admin Review.
 - Submitted Plan Status Page does not include a Publish button.

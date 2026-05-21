@@ -14,6 +14,7 @@
 ## Diagram Rules
 - Use PlantUML source files where applicable.
 - Keep rendered diagram images under `docs/pdd/diagrams/` or another clearly named PDD diagram/image folder.
+- If PlantUML rendering, missing rendered image, or diagram path errors are found, route to A14_ERROR_TRIAGE for minimal correction, then return to A6_REVIEW and A8_OUTPUT_CHECKER.
 - Use straight-line PlantUML links if requested by the user.
 - Do not add Kubernetes, custom server clusters, custom load balancers, or microservice complexity unless explicitly requested.
 - Application, physical, component, and class diagrams must remain consistent with the same Runiac assumptions.
