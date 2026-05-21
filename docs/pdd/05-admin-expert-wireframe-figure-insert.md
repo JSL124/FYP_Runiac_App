@@ -1,5 +1,7 @@
 # Platform Administrator and Medical Trainer/Expert Wireframe Figures
 
+> **Support note:** This file is a support figure-insertion note for Admin/Expert wireframes. The canonical final wireframe description is `docs/pdd/05-wireframe-description.md`.
+
 The following wireframes document the controlled web-based governance screens for Runiac. These screens are separate from the mobile user application wireframes and support administration, moderation, expert plan review, and expert plan submission workflows.
 
 ## Admin/Expert Governance Flow Overview
