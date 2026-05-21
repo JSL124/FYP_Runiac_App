@@ -411,8 +411,9 @@ end note
 
 note right of ExpertPlan
 status values include:
-draft, underReview, revisionRequired,
-approved, published, archived.
+draft, submitted, pendingAdminReview,
+revisionRequested, approved, published,
+rejected, archived.
 Premium Users can select only published plans.
 end note
 
