@@ -4,8 +4,18 @@
 - Default mode is PDD_MODE unless the user explicitly asks for implementation, build, test, or code changes.
 - Runiac is a beginner-focused running app for a Final Year Project.
 - Current primary work is Project Design Document preparation.
-- Do not commit unless the user explicitly asks. Stop at Ready for commit.
 - Use `grep` and `find` for repository searches.
+
+## Commit Protocol
+- Default: do not commit unless the user explicitly grants commit or auto-commit permission for the current task or workflow. Stop at Ready for commit by default.
+- Auto-commit is limited to AGENTS instruction-system cleanup tasks when the user explicitly grants auto-commit permission for the current task. For all other tasks, stop at Ready for commit and provide manual git commands.
+- Before committing, run `git status --short`, review `git diff`, identify task-relevant modified files, avoid staging unrelated pre-existing changes, stage only files directly related to the current task, run the required review/checker process, create a clear commit message using the repository style below, and report the commit hash and final status.
+- If a task reaches Ready for commit but Codex is not allowed to commit automatically, provide exact manual git commands for the user. This applies when auto-commit permission was not granted, the task is outside the authorized AGENTS cleanup scope, the task includes PDD deliverables, diagrams, wireframe images, implementation, Firebase, tests, or other non-AGENTS files, or unrelated pre-existing changes make manual staging safer.
+- Before showing manual commit commands, run `git status --short`, identify task-relevant files, identify unrelated pre-existing changes that should remain unstaged, avoid recommending `git add .`, provide explicit `git add <file>` commands only for task-relevant files, suggest an appropriate commit message, and include optional verification commands before commit. Use this format: `git status --short`; explicit `git add <task-relevant-file>` commands; `git diff --cached --stat`; `git diff --cached`; `git commit -m "type(scope): concise message"`. If unrelated changes exist, list them under "Do not stage these unrelated changes."
+- PDD_MODE commits require A6_REVIEW and A8_OUTPUT_CHECKER before commit. Do not commit implementation, Firebase, test, or production source changes in PDD_MODE unless explicitly requested. Do not restore or stage deleted legacy `wireframe_assets/` files unless the current task explicitly includes that migration or cleanup.
+- IMPLEMENTATION_MODE commits require relevant tests, or a clear explanation of why tests could not be run. Run A6_REVIEW if architecture, security, roles, entitlements, XP, leaderboard, or data model behaviour is affected. Run A12_QA_TEST and A13_SECURITY_RULES where relevant.
+- Commit message style: use `docs(pdd): ...` for PDD documentation updates, `docs(agents): ...` for AGENTS.md or workflow instruction updates, `docs(wireframes): ...` for wireframe documentation or prompt assets, `docs(diagrams): ...` for PDD diagram source or rendered diagram updates, `chore(repo): ...` for repository structure or non-functional cleanup, `feat(...): ...` only for actual implementation features, and `fix(...): ...` only for bug fixes.
+- If unrelated changes are present, do not stage them and mention them in the final response as left unstaged because unrelated.
 
 ## Non-Negotiable Runiac Rules
 - Flutter handles UI, navigation, GPS tracking UI, and local interaction.

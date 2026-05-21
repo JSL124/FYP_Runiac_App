@@ -24,6 +24,7 @@
 
 ## PDD Workflow
 - A0_ORCH owns the workflow and chooses the needed PDD role.
+- PDD work stops at Ready for commit by default. If auto-commit is not allowed, provide manual git commands following the root `AGENTS.md` Commit Protocol. PDD deliverable changes are not auto-committed unless separately authorized.
 - Use A1_APP, A2_PHYS, A3_COMP, A4_CLASS, or A5_WIRE based on the affected deliverable.
 - Run A6_REVIEW after meaningful documentation, diagram, or wireframe changes.
 - Run A8_OUTPUT_CHECKER before declaring PDD output Ready for commit.

@@ -1,5 +1,54 @@
 # Runiac AGENTS.md Changelog
 
+## 2026-05-21 - Add Ready-for-Commit Manual Command Rule
+
+### Files modified
+- `AGENTS.md`
+- `docs/pdd/AGENTS.md`
+- `docs/pdd/AGENTS_CHANGELOG.md`
+
+### Reason
+Added Ready-for-commit manual git command rule.
+
+### Summary of changes
+- Updated the root Commit Protocol so that when work reaches Ready for commit but auto-commit is not allowed, Codex must provide exact manual git commands.
+- Required `git status --short`, task-relevant file identification, unrelated-change identification, explicit file staging commands, verification commands, and a suggested commit message.
+- Prohibited recommending `git add .` when unrelated changes may exist.
+- Required unrelated pre-existing changes to be listed under "Do not stage these unrelated changes."
+- Updated `docs/pdd/AGENTS.md` with a short reference to the root Commit Protocol for Ready-for-commit manual commands.
+
+### Review required
+- A6_REVIEW: verify auto-commit remains limited to explicitly authorized AGENTS cleanup tasks, non-auto-commit tasks stop at Ready for commit, Ready-for-commit tasks provide safe manual git commands, commands use explicit file staging rather than `git add .`, unrelated pre-existing changes are listed and left unstaged, deleted legacy `wireframe_assets/` files are not automatically staged, and no production code was modified.
+- A8_OUTPUT_CHECKER: verify root `AGENTS.md` contains the Ready-for-commit manual command rule, folder-specific AGENTS files do not duplicate the full protocol unnecessarily, changelog was updated, and no unrelated files were staged or committed.
+
+### Final status
+Ready for commit.
+
+## 2026-05-21 - Add Conditional Auto-Commit Protocol
+
+### Files modified
+- `AGENTS.md`
+- `docs/pdd/AGENTS.md`
+- `docs/pdd/AGENTS_CHANGELOG.md`
+
+### Reason
+Added conditional auto-commit protocol.
+
+### Summary of changes
+- Added the canonical Commit Protocol to the root `AGENTS.md`.
+- Kept the default rule as no commit unless the user explicitly grants commit or auto-commit permission for the current task or workflow.
+- Allowed auto-commit only after Ready for commit and after required review/checker steps pass.
+- Required Codex to inspect status and diff, stage only task-relevant files, avoid unrelated pre-existing changes, use repository commit message style, and report the commit hash.
+- Added PDD_MODE and IMPLEMENTATION_MODE commit safeguards, including A6_REVIEW/A8_OUTPUT_CHECKER for PDD commits and relevant tests/reviews for implementation commits.
+- Added a short PDD workflow reference in `docs/pdd/AGENTS.md` instead of duplicating the full protocol.
+
+### Review required
+- A6_REVIEW: verify auto-commit requires explicit user permission, only task-relevant files may be staged, PDD_MODE still protects implementation/Firebase/test files, deleted legacy `wireframe_assets/` files are not automatically restored or staged, commit message conventions are clear, and no production code was modified.
+- A8_OUTPUT_CHECKER: verify root `AGENTS.md` contains the canonical Commit Protocol, folder-specific AGENTS files do not duplicate the full protocol unnecessarily, changelog was updated, and no unrelated files were staged or committed during this instruction update unless auto-commit permission was explicitly granted.
+
+### Final status
+Ready for commit.
+
 ## 2026-05-21 - Restructure Agent Instructions
 
 ### Files changed
