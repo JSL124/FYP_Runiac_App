@@ -1,5 +1,30 @@
 # Runiac AGENTS.md Changelog
 
+## 2026-05-21 - Add Bounded Error Fix Review Loop
+
+### Files modified
+- `docs/pdd/AGENTS.md`
+- `docs/pdd/AGENTS_CHANGELOG.md`
+
+### Reason
+Added a bounded workflow for fixing concrete review errors and routing them back to the same review role without creating an infinite loop or allowing broad uncontrolled edits.
+
+### Summary of changes
+- Added `BOUNDED_ERROR_FIX_REVIEW_LOOP` to `docs/pdd/AGENTS.md`.
+- Limited the loop to concrete, verifiable errors found by A6_REVIEW or A8_OUTPUT_CHECKER, such as broken figure references, inconsistent figure numbering, broken image paths, contradictory role rules, invalid PlantUML output, Markdown formatting errors, mismatched canonical/support guidance, or direct contradictions between scoped PDD documents.
+- Prohibited use of the loop for broad redesign, new feature planning, subjective UI preferences, large restructuring, implementation work, speculative improvements, and unrelated cleanup.
+- Required A14_ERROR_TRIAGE to apply only the smallest scoped fix and route back to the same reviewing role.
+- Set a maximum of two A14 fix attempts for the same issue before reporting Blocked with the remaining issue, affected files, safety reason, and user decision needed.
+- Confirmed A14_ERROR_TRIAGE remains correction-only, A6_REVIEW remains consistency review, and A8_OUTPUT_CHECKER remains the only role that may declare final deliverable readiness.
+- Added no new numbered agents and performed no agent renumbering.
+
+### Review required
+- A6_REVIEW: verify the loop preserves A6/A8/A14 role boundaries, does not broaden A14 authority, keeps final readiness under A8_OUTPUT_CHECKER, and prevents unrelated file changes.
+- A8_OUTPUT_CHECKER: verify the loop policy and changelog entry exist, the two-attempt limit is documented, no production code or binary images were modified, no new numbered agents were added, and no agent renumbering occurred.
+
+### Final status
+Ready for commit.
+
 ## 2026-05-21 - Add Agent Instruction Management Policy
 
 ### Files modified

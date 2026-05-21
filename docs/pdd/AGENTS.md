@@ -13,6 +13,15 @@
 4. Class Diagram
 5. Wireframe descriptions
 
+Canonical deliverable files:
+- `docs/pdd/01-application-architecture.md`
+- `docs/pdd/02-physical-architecture.md`
+- `docs/pdd/03-component-diagram.md`
+- `docs/pdd/04-class-diagram.md`
+- `docs/pdd/05-wireframe-description.md`
+
+Support files such as `docs/pdd/00-orchestration-plan.md`, `docs/pdd/05-final-wireframe-section.md`, `docs/pdd/05-final-wireframe-insertion-order.md`, `docs/pdd/05-admin-expert-wireframe-figure-insert.md`, and `docs/pdd/05-wireframe-image-generation-prompts.md` are planning, draft, figure-insertion, or prompt assets. They are not canonical final deliverables unless explicitly promoted.
+
 ## PDD Documentation Rules
 - Produce PDD-ready explanation.
 - Use clear academic wording without overcomplicated enterprise architecture.
@@ -21,18 +30,71 @@
 - Separate MVP assumptions, future extensions, and out-of-scope items.
 - Do not mix PDD content, implementation planning, and production source code in the same Markdown file.
 - After editing Markdown, check duplicated sections, terminology consistency, broken figure references, and whether diagrams, wireframes, or class model are affected.
+- Treat `docs/pdd/00-orchestration-plan.md` as planning context, not the active instruction source.
 
 ## PDD Workflow
 - A0_ORCH owns the workflow and chooses the needed PDD role.
 - PDD work stops at Ready for commit by default. If auto-commit is not allowed, provide manual git commands following the root `AGENTS.md` Commit Protocol. PDD deliverable changes are not auto-committed unless separately authorized.
 - Use A1_APP, A2_PHYS, A3_COMP, A4_CLASS, or A5_WIRE based on the affected deliverable.
+- Use PDD_UIUX_DESIGN_MODE for wireframe flow review, UI consistency review, design-level accessibility/usability review, PRD alignment of screens, and wireframe implementation handoff notes. A5_WIRE owns this mode; detailed rules live in `docs/pdd/wireframes/AGENTS.md`.
 - Run A6_REVIEW after meaningful documentation, diagram, or wireframe changes.
 - Run A8_OUTPUT_CHECKER before declaring PDD output Ready for commit.
 - If A6_REVIEW or A8_OUTPUT_CHECKER finds issues, route back to the correct specialist role, correct the issue, and review again.
-- Use A14_ERROR_TRIAGE when A6_REVIEW or A8_OUTPUT_CHECKER finds concrete fixable issues. A14 must apply the smallest safe correction, then route back to A6_REVIEW and A8_OUTPUT_CHECKER.
+- Use A14_ERROR_TRIAGE only when A6_REVIEW or A8_OUTPUT_CHECKER finds concrete fixable errors such as broken paths, missing referenced figures, invalid PlantUML output, contradictory role rules, or directly observed mismatches. A14 must apply the smallest safe correction, then route back to A6_REVIEW and A8_OUTPUT_CHECKER.
 - A14 must not introduce new architecture decisions or rewrite large sections unless explicitly requested.
+- A14 must not become a second design owner, broad reviewer, or completeness checker.
 - In PDD_MODE, A14 must not modify implementation, Firebase, test, or production source files.
 - A7_AGENT_ROUTER is only for new, ambiguous, or unclear task categories.
+
+## PDD Review-Pass Model
+- Do not create a monolithic review agent for PDD work.
+- Use separate review passes because UI/UX design, cross-document consistency, deliverable completeness, and concrete error correction require different review lenses.
+- For PDD wireframe work, use: A5_WIRE -> A6_REVIEW -> A8_OUTPUT_CHECKER.
+- Use A14_ERROR_TRIAGE only if a concrete error is found.
+- A5_WIRE owns UI/UX and wireframe-specific design review, but it must not declare final readiness alone.
+- Final readiness requires A6_REVIEW and A8_OUTPUT_CHECKER after A5_WIRE changes.
+
+## BOUNDED_ERROR_FIX_REVIEW_LOOP
+
+Purpose: allow concrete errors found during review to be fixed and re-reviewed in a controlled loop until the issue is resolved or safely blocked.
+
+Use this loop only when A6_REVIEW or A8_OUTPUT_CHECKER identifies a concrete, verifiable error, such as a broken figure reference, inconsistent figure numbering, broken image path, contradictory role rule, invalid PlantUML source or rendered output, Markdown formatting error, mismatched canonical/support file guidance, or direct contradiction between scoped PDD documents.
+
+Do not use this loop for broad redesign, new feature planning, subjective UI preference changes, large restructuring, implementation work, speculative improvements, or unrelated cleanup.
+
+Required flow:
+1. A6_REVIEW or A8_OUTPUT_CHECKER identifies the concrete issue and states the exact file(s), exact problem, expected correction, and pass condition.
+2. A14_ERROR_TRIAGE applies the smallest scoped fix only.
+3. The same review role that found the issue rechecks the same scoped files.
+4. If the issue is resolved, continue normal workflow: after A6_REVIEW passes, run A8_OUTPUT_CHECKER; after A8_OUTPUT_CHECKER passes, report Ready for commit.
+5. If the issue remains, repeat the loop only if the issue is still concrete, the scope has not expanded, and the next fix is still minimal.
+6. Stop after a maximum of two A14_ERROR_TRIAGE fix attempts for the same issue.
+7. If the issue still fails after two A14 attempts, stop as Blocked and report the remaining issue, files involved, why it could not be resolved safely, and the user decision needed.
+
+Loop constraints:
+- Do not use `git add .`.
+- Do not stage unrelated files.
+- Do not modify binary image files unless the original task explicitly permits it.
+- Do not restore deleted legacy `wireframe_assets/` files unless explicitly requested.
+- Do not broaden scope after the loop starts.
+- Do not combine multiple unrelated fixes into one loop.
+- Do not let A14_ERROR_TRIAGE decide final readiness.
+- A14_ERROR_TRIAGE must route back to A6_REVIEW or A8_OUTPUT_CHECKER after fixing.
+- A8_OUTPUT_CHECKER is the only role that may declare final deliverable readiness.
+- Final readiness must include `git status --short` and exact files to stage.
+
+When the loop is used, report:
+1. Issue detected.
+2. Reviewing role.
+3. Fixing role.
+4. Attempt number.
+5. Files in scope.
+6. Fix applied.
+7. Re-review result.
+8. Pass/fail.
+9. If pass, next workflow step.
+10. If fail, whether another attempt is allowed.
+11. If blocked, exact reason and user decision needed.
 
 ## PDD Role Summary
 - A0_ORCH: coordinates full PDD tasks until Ready for commit, Committed, or Blocked.
@@ -40,7 +102,7 @@
 - A2_PHYS: physical architecture.
 - A3_COMP: component responsibilities and component diagram.
 - A4_CLASS: class diagram and data model.
-- A5_WIRE: wireframe descriptions, prompts, and figure insertion.
+- A5_WIRE: wireframe descriptions, prompts, figure insertion, and PDD_UIUX_DESIGN_MODE.
 - A6_REVIEW: consistency review, not completeness.
 - A7_AGENT_ROUTER: exception routing for unclear tasks.
 - A8_OUTPUT_CHECKER: completeness and deliverable readiness, not consistency.
