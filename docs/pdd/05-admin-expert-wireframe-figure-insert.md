@@ -2,6 +2,22 @@
 
 The following wireframes document the controlled web-based governance screens for Runiac. These screens are separate from the mobile user application wireframes and support administration, moderation, expert plan review, and expert plan submission workflows.
 
+## Admin/Expert Governance Flow Overview
+
+The Admin/Expert governance flow explains how expert plan content moves from specialist preparation to controlled publication. The Medical Trainer/Expert acts only as an expert content provider. This role can create draft expert plan content and submit it for Platform Administrator review, but it must not directly publish plans or directly place published plans into the Premium User catalogue.
+
+The lifecycle begins when the Medical Trainer/Expert creates a draft expert plan using the Expert Plan Submission Form. The expert enters plan details, weekly structure, target beginner profile, safety notes, injury-prevention guidance, and disclaimer information. When the content is ready, the expert submits the plan for admin review. The submitted plan then appears in the Platform Administrator's pending expert plan queue, which may be accessed from the Admin Dashboard, Expert Plan Review screen, or Plan Management screen.
+
+The Platform Administrator reviews the submitted plan for safety, completeness, beginner suitability, and consistency with Runiac standards. After review, the administrator may request revision, approve, reject, archive, or publish only after approval. If revision is requested, the Medical Trainer/Expert can view the administrator comment on the Submitted Plan Status Page, update the submission, and resubmit it for review. If the plan is rejected or archived, it remains unavailable to Premium Users. If the plan is approved, the Platform Administrator can publish it through the controlled admin workflow.
+
+Premium Users can view and select only expert plans that are both approved and published. Basic/Premium feature access is controlled through `subscriptionStatus`, while operational and governance access is controlled through `userRole`. Premium expert plans must not create XP, rank, leaderboard score, or other competitive advantages; they provide richer plan guidance only.
+
+**Recommended insertion point:** Place this overview before the individual Admin/Expert wireframe figures in the PDD wireframe section. It should appear immediately after the introductory paragraph for Platform Administrator and Medical Trainer/Expert wireframes.
+
+**Expert Plan Review Queue note:** An additional Expert Plan Review Queue wireframe is optional, not necessary. The existing Admin Dashboard, Expert Plan Review, Plan Management, Expert Plan Submission Form, and Submitted Plan Status Page already provide enough screen-level coverage for the PDD. A separate queue screen may be added later only if the final document needs a more explicit list view of pending expert submissions.
+
+**Suggested future figure caption:** "Figure 5.X: Admin/Expert Expert Plan Governance Flow from expert draft submission to administrator-controlled publication."
+
 ## Figure 5.1: Admin Dashboard
 
 ![Figure 5.1: Admin Dashboard](wireframe-images/admin-dashboard.png)
