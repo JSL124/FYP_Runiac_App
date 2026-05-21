@@ -28,9 +28,9 @@ Runiac uses a mobile client with Firebase Backend-as-a-Service architecture. The
 
 This architecture is suitable for a university MVP because it keeps the system small enough to implement within the project timeline while still supporting synchronized user data, server-side validation, reminders, XP progression, and future leaderboard features. Security-sensitive and fairness-sensitive logic is handled in Firebase Cloud Functions rather than inside the Flutter client.
 
-![Figure 2.1: Application Architecture](diagrams/application-architecture.png)
+![Figure 1: Application Architecture](diagrams/application-architecture.png)
 
-**Caption:** Figure 2.1 shows how the Flutter mobile app, Firebase services, and external services work together so Runiac can provide mobile running features while keeping trusted progression and governance logic on the backend.
+**Caption:** Figure 1 shows how the Flutter mobile app, Firebase services, and external services work together so Runiac can provide mobile running features while keeping trusted progression and governance logic on the backend.
 
 ### 2.1 Main Architectural Layers
 
@@ -69,9 +69,9 @@ Runiac is deployed as a mobile-first system using a Flutter application and Fire
 
 The backend is not deployed as a custom server, Kubernetes cluster, or microservice platform. Instead, backend responsibilities are handled by managed Firebase cloud components. Firebase Authentication manages user identity, Cloud Firestore stores application data, Cloud Functions runs server-side validation and aggregation logic, Firebase Cloud Messaging delivers reminders, and Cloud Storage for Firebase stores files or generated media if required.
 
-![Figure 3.1: Physical Architecture](diagrams/physical-architecture.png)
+![Figure 2: Physical Architecture](diagrams/physical-architecture.png)
 
-**Caption:** Figure 3.1 shows the deployment boundary between the mobile device, Firebase managed cloud services, and external services so Runiac can support GPS-based running features without operating a custom backend server.
+**Caption:** Figure 2 shows the deployment boundary between the mobile device, Firebase managed cloud services, and external services so Runiac can support GPS-based running features without operating a custom backend server.
 
 ### 3.1 Client Device Responsibilities
 
@@ -111,9 +111,9 @@ The component diagram describes the main software components that make up Runiac
 
 Runiac is organised into a Flutter mobile application and a Firebase backend. The Flutter application handles user interaction, screen rendering, GPS-based run tracking, map display, and local session behaviour. Firebase provides authentication, persistent data access, backend processing, aggregation, and notification delivery. External services such as map providers, geocoding, device sensors, the operating system share sheet, and optional AI summary generation sit outside the Runiac ownership boundary.
 
-![Figure 4.1: Component Diagram](diagrams/component-diagram.png)
+![Figure 3: Component Diagram](diagrams/component-diagram.png)
 
-**Caption:** Figure 4.1 shows the main frontend, backend, and external service components and highlights that trusted processing such as XP, streak, and leaderboard updates belongs to backend services.
+**Caption:** Figure 3 shows the main frontend, backend, and external service components and highlights that trusted processing such as XP, streak, and leaderboard updates belongs to backend services.
 
 **Formatting note:** The component diagram is intentionally detailed and may need full-width or landscape placement in the final Word/PDF version.
 
@@ -146,9 +146,9 @@ Expert plan governance is handled separately from the Premium plan UI. Medical T
 
 The class diagram represents the design-level logical structure of Runiac. It identifies the main model classes used to describe users, running activities, GPS traces, plans, routes, route reports, progression, leaderboards, post-run feedback, and notification preferences. It also includes the main service and controller classes that coordinate authentication, plan handling, run tracking, activity processing, XP calculation, leaderboard aggregation, route management, entitlement checks, summary generation, and notifications.
 
-![Figure 5.1: Class Diagram](diagrams/class-diagram.png)
+![Figure 4: Class Diagram](diagrams/class-diagram.png)
 
-**Caption:** Figure 5.1 shows the design-level entities and services used by Runiac, including backend-owned progression records, subscription-based access, and administrator-controlled expert plan governance.
+**Caption:** Figure 4 shows the design-level entities and services used by Runiac, including backend-owned progression records, subscription-based access, and administrator-controlled expert plan governance.
 
 **Formatting note:** The class diagram is large and may need full-width or landscape placement in the final Word/PDF version.
 
@@ -197,247 +197,247 @@ The mobile figures are grouped by user journey rather than inserted as every ind
 
 ### 6.1 Mobile User Wireframes
 
-#### Figure 6.1: Home Dashboard
+#### Figure 5: Home Dashboard
 
-![Figure 6.1a: Basic Home Dashboard](wireframe-images/mobile-user/basic/basic-home-page.png)
+![Figure 5a: Basic Home Dashboard](wireframe-images/mobile-user/basic/basic-home-page.png)
 
-![Figure 6.1b: Premium Home Dashboard](wireframe-images/mobile-user/premium/premium-home-page.png)
+![Figure 5b: Premium Home Dashboard](wireframe-images/mobile-user/premium/premium-home-page.png)
 
-**Caption:** Figure 6.1 shows the Home Dashboard for Basic and Premium users, including daily plan guidance, XP progress display, weekly plan preview, last-run information, and Premium dashboard extensions.
+**Caption:** Figure 5 shows the Home Dashboard for Basic and Premium users, including daily plan guidance, XP progress display, weekly plan preview, last-run information, and Premium dashboard extensions.
 
 Premium dashboard content adds richer guidance and presentation value, but it must not create XP, rank, weekly XP, monthly XP, or leaderboard scoring advantages.
 
-#### Figure 6.2: Onboarding / Profile Setup
+#### Figure 6: Onboarding / Profile Setup
 
-![Figure 6.2a: Onboarding Welcome](wireframe-images/mobile-user/shared/onboarding/01-onboarding-welcome-page.png)
+![Figure 6a: Onboarding Welcome](wireframe-images/mobile-user/shared/onboarding/01-onboarding-welcome-page.png)
 
-![Figure 6.2b: Onboarding Main Goal](wireframe-images/mobile-user/shared/onboarding/02-onboarding-main-goal-page.png)
+![Figure 6b: Onboarding Main Goal](wireframe-images/mobile-user/shared/onboarding/02-onboarding-main-goal-page.png)
 
-![Figure 6.2c: Onboarding Current Level](wireframe-images/mobile-user/shared/onboarding/03-onboarding-current-level-page.png)
+![Figure 6c: Onboarding Current Level](wireframe-images/mobile-user/shared/onboarding/03-onboarding-current-level-page.png)
 
-![Figure 6.2d: Onboarding Weekly Availability](wireframe-images/mobile-user/shared/onboarding/04-onboarding-weekly-availability-page.png)
+![Figure 6d: Onboarding Weekly Availability](wireframe-images/mobile-user/shared/onboarding/04-onboarding-weekly-availability-page.png)
 
-![Figure 6.2e: Onboarding Preferred Days](wireframe-images/mobile-user/shared/onboarding/05-onboarding-preferred-days-page.png)
+![Figure 6e: Onboarding Preferred Days](wireframe-images/mobile-user/shared/onboarding/05-onboarding-preferred-days-page.png)
 
-![Figure 6.2f: Onboarding Preferred Time](wireframe-images/mobile-user/shared/onboarding/06-onboarding-preferred-time-page.png)
+![Figure 6f: Onboarding Preferred Time](wireframe-images/mobile-user/shared/onboarding/06-onboarding-preferred-time-page.png)
 
-![Figure 6.2g: Onboarding Session Length](wireframe-images/mobile-user/shared/onboarding/07-onboarding-session-length-page.png)
+![Figure 6g: Onboarding Session Length](wireframe-images/mobile-user/shared/onboarding/07-onboarding-session-length-page.png)
 
-![Figure 6.2h: Onboarding Running Place](wireframe-images/mobile-user/shared/onboarding/08-onboarding-running-place-page.png)
+![Figure 6h: Onboarding Running Place](wireframe-images/mobile-user/shared/onboarding/08-onboarding-running-place-page.png)
 
-![Figure 6.2i: Onboarding Motivation Style](wireframe-images/mobile-user/shared/onboarding/09-onboarding-motivation-style-page.png)
+![Figure 6i: Onboarding Motivation Style](wireframe-images/mobile-user/shared/onboarding/09-onboarding-motivation-style-page.png)
 
-![Figure 6.2j: Onboarding Health Condition](wireframe-images/mobile-user/shared/onboarding/10-onboarding-health-condition-page.png)
+![Figure 6j: Onboarding Health Condition](wireframe-images/mobile-user/shared/onboarding/10-onboarding-health-condition-page.png)
 
-![Figure 6.2k: Onboarding Activity Symptoms](wireframe-images/mobile-user/shared/onboarding/11-onboarding-activity-symptoms-page.png)
+![Figure 6k: Onboarding Activity Symptoms](wireframe-images/mobile-user/shared/onboarding/11-onboarding-activity-symptoms-page.png)
 
-![Figure 6.2l: Onboarding Plan Cautiousness](wireframe-images/mobile-user/shared/onboarding/12-onboarding-plan-cautiousness-page.png)
+![Figure 6l: Onboarding Plan Cautiousness](wireframe-images/mobile-user/shared/onboarding/12-onboarding-plan-cautiousness-page.png)
 
-![Figure 6.2m: Onboarding Plan Preview](wireframe-images/mobile-user/shared/onboarding/13-onboarding-plan-preview-page.png)
+![Figure 6m: Onboarding Plan Preview](wireframe-images/mobile-user/shared/onboarding/13-onboarding-plan-preview-page.png)
 
-**Caption:** Figure 6.2 shows the canonical 13-page onboarding sequence used to collect beginner plan inputs and initialise the user's first running plan.
+**Caption:** Figure 6 shows the canonical 13-page onboarding sequence used to collect beginner plan inputs and initialise the user's first running plan.
 
 Onboarding collects the user's running goal, current level, weekly availability, preferred days, preferred time, session length, running place/context, motivation style, health/safety readiness, cautiousness inputs, and final plan preview. Health/safety inputs are readiness and cautiousness signals only. Location permission is not requested during onboarding and is requested later when starting a run or using route features.
 
-#### Figure 6.3: Plan Home and Today's Plan Detail
+#### Figure 7: Plan Home and Today's Plan Detail
 
-![Figure 6.3a: Basic Plan Home](wireframe-images/mobile-user/basic/basic-you-plan-page.png)
+![Figure 7a: Basic Plan Home](wireframe-images/mobile-user/basic/basic-you-plan-page.png)
 
-![Figure 6.3b: Basic Today's Plan](wireframe-images/mobile-user/basic/basic-todays-plan-page.png)
+![Figure 7b: Basic Today's Plan](wireframe-images/mobile-user/basic/basic-todays-plan-page.png)
 
-![Figure 6.3c: Premium Plan Home](wireframe-images/mobile-user/premium/premium-you-plan-page.png)
+![Figure 7c: Premium Plan Home](wireframe-images/mobile-user/premium/premium-you-plan-page.png)
 
-![Figure 6.3d: Premium Today's Plan Detail](wireframe-images/mobile-user/premium/premium-todays-plan-detail-page.png)
+![Figure 7d: Premium Today's Plan Detail](wireframe-images/mobile-user/premium/premium-todays-plan-detail-page.png)
 
-**Caption:** Figure 6.3 shows weekly plan progress, daily plan detail, session guidance, XP reward display, and start-run entry points.
+**Caption:** Figure 7 shows weekly plan progress, daily plan detail, session guidance, XP reward display, and start-run entry points.
 
-#### Figure 6.4: Edit Schedule
+#### Figure 8: Edit Schedule
 
-![Figure 6.4a: Basic Edit Schedule](wireframe-images/mobile-user/shared/basic-source-edit-plan-schedule-page.png)
+![Figure 8a: Basic Edit Schedule](wireframe-images/mobile-user/shared/basic-source-edit-plan-schedule-page.png)
 
-![Figure 6.4b: Premium Edit Schedule](wireframe-images/mobile-user/shared/premium-source-edit-plan-schedule-page.png)
+![Figure 8b: Premium Edit Schedule](wireframe-images/mobile-user/shared/premium-source-edit-plan-schedule-page.png)
 
-**Caption:** Figure 6.4 shows how users adjust plan timing while preserving backend-supported plan ownership and schedule consistency.
+**Caption:** Figure 8 shows how users adjust plan timing while preserving backend-supported plan ownership and schedule consistency.
 
-#### Figure 6.5: Run Start and Live Run
+#### Figure 9: Run Start and Live Run
 
-![Figure 6.5a: Run Landing](wireframe-images/mobile-user/shared/basic-source-run-landing-page.png)
+![Figure 9a: Run Landing](wireframe-images/mobile-user/shared/basic-source-run-landing-page.png)
 
-![Figure 6.5b: Run Guide](wireframe-images/mobile-user/shared/run-guide-page.png)
+![Figure 9b: Run Guide](wireframe-images/mobile-user/shared/run-guide-page.png)
 
-![Figure 6.5c: Live Run Tracking](wireframe-images/mobile-user/shared/basic-source-run-tracking-page.png)
+![Figure 9c: Live Run Tracking](wireframe-images/mobile-user/shared/basic-source-run-tracking-page.png)
 
-![Figure 6.5d: Paused Run Tracking](wireframe-images/mobile-user/shared/basic-source-paused-run-tracking-page.png)
+![Figure 9d: Paused Run Tracking](wireframe-images/mobile-user/shared/basic-source-paused-run-tracking-page.png)
 
-**Caption:** Figure 6.5 shows route/plan confirmation, pre-run guidance, active GPS tracking, pause, resume, and end-run controls.
+**Caption:** Figure 9 shows route/plan confirmation, pre-run guidance, active GPS tracking, pause, resume, and end-run controls.
 
-#### Figure 6.6: Cool Down and Run Summary
+#### Figure 10: Cool Down and Run Summary
 
-![Figure 6.6a: Cool Down Landing](wireframe-images/mobile-user/shared/cool-down-landing-page.png)
+![Figure 10a: Cool Down Landing](wireframe-images/mobile-user/shared/cool-down-landing-page.png)
 
-![Figure 6.6b: Cool Down Intro](wireframe-images/mobile-user/shared/cool-down-intro-page.png)
+![Figure 10b: Cool Down Intro](wireframe-images/mobile-user/shared/cool-down-intro-page.png)
 
-![Figure 6.6c: Basic Run Summary](wireframe-images/mobile-user/basic/basic-run-summary-page.png)
+![Figure 10c: Basic Run Summary](wireframe-images/mobile-user/basic/basic-run-summary-page.png)
 
-![Figure 6.6d: Premium Run Summary](wireframe-images/mobile-user/premium/premium-run-summary-page.png)
+![Figure 10d: Premium Run Summary](wireframe-images/mobile-user/premium/premium-run-summary-page.png)
 
-![Figure 6.6e: XP And Streak Update](wireframe-images/mobile-user/shared/basic-source-xp-streak-update-page.png)
+![Figure 10e: XP And Streak Update](wireframe-images/mobile-user/shared/basic-source-xp-streak-update-page.png)
 
-**Caption:** Figure 6.6 shows the post-run flow, including recovery guidance, run summary, XP/streak display after backend processing, and Premium run analysis.
+**Caption:** Figure 10 shows the post-run flow, including recovery guidance, run summary, XP/streak display after backend processing, and Premium run analysis.
 
 ### 6.2 Route, Leaderboard, and Profile Wireframes
 
-#### Figure 6.7: Explore Map and Route List
+#### Figure 11: Explore Map and Route List
 
-![Figure 6.7a: Basic Maps Landing](wireframe-images/mobile-user/shared/basic-source-maps-landing-page.png)
+![Figure 11a: Basic Maps Landing](wireframe-images/mobile-user/shared/basic-source-maps-landing-page.png)
 
-![Figure 6.7b: Shared Route List](wireframe-images/mobile-user/shared/basic-source-shared-route-list-page.png)
+![Figure 11b: Shared Route List](wireframe-images/mobile-user/shared/basic-source-shared-route-list-page.png)
 
-**Caption:** Figure 6.7 shows route discovery through map preview, search, nearby shared routes, filters, and route cards.
+**Caption:** Figure 11 shows route discovery through map preview, search, nearby shared routes, filters, and route cards.
 
-#### Figure 6.8: Route Detail and My Route
+#### Figure 12: Route Detail and My Route
 
-![Figure 6.8a: Basic Map Detail](wireframe-images/mobile-user/basic/basic-map-detail-page.png)
+![Figure 12a: Basic Map Detail](wireframe-images/mobile-user/basic/basic-map-detail-page.png)
 
-![Figure 6.8b: Route Selected](wireframe-images/mobile-user/shared/route-selected-page.png)
+![Figure 12b: Route Selected](wireframe-images/mobile-user/shared/route-selected-page.png)
 
-![Figure 6.8c: Basic My Route](wireframe-images/mobile-user/basic/basic-my-route-page.png)
+![Figure 12c: Basic My Route](wireframe-images/mobile-user/basic/basic-my-route-page.png)
 
-![Figure 6.8d: Route Report](wireframe-images/mobile-user/shared/basic-source-route-report-page.png)
+![Figure 12d: Route Report](wireframe-images/mobile-user/shared/basic-source-route-report-page.png)
 
-**Caption:** Figure 6.8 shows route details, route selection confirmation, saved-route management, and route reporting for administrator moderation.
+**Caption:** Figure 12 shows route details, route selection confirmation, saved-route management, and route reporting for administrator moderation.
 
 Route and GPS data are sensitive. Route sharing should require confirmation and use privacy-aware wording such as masking or avoiding unnecessary precise exposure where appropriate.
 
-#### Figure 6.9: Leaderboard
+#### Figure 13: Leaderboard
 
-![Figure 6.9a: Leaderboard Landing](wireframe-images/mobile-user/shared/basic-source-leaderboard-landing-page.png)
+![Figure 13a: Leaderboard Landing](wireframe-images/mobile-user/shared/basic-source-leaderboard-landing-page.png)
 
-![Figure 6.9b: Leaderboard Region](wireframe-images/mobile-user/shared/basic-source-leaderboard-region-page.png)
+![Figure 13b: Leaderboard Region](wireframe-images/mobile-user/shared/basic-source-leaderboard-region-page.png)
 
-![Figure 6.9c: Leaderboard League](wireframe-images/mobile-user/shared/basic-source-leaderboard-league-page.png)
+![Figure 13c: Leaderboard League](wireframe-images/mobile-user/shared/basic-source-leaderboard-league-page.png)
 
-![Figure 6.9d: Premium Leaderboard Sharing](wireframe-images/mobile-user/premium/premium-leaderboard-sharing-page.png)
+![Figure 13d: Premium Leaderboard Sharing](wireframe-images/mobile-user/premium/premium-leaderboard-sharing-page.png)
 
-**Caption:** Figure 6.9 shows territorial ranking, regional detail, league views, expanded rankings, and sharing templates.
+**Caption:** Figure 13 shows territorial ranking, regional detail, league views, expanded rankings, and sharing templates.
 
 Leaderboard values are precomputed by backend aggregation. Premium sharing templates provide presentation/status value only and must not affect ranking, XP, or leaderboard fairness.
 
-#### Figure 6.10: Profile / You
+#### Figure 14: Profile / You
 
-![Figure 6.10a: Basic Profile](wireframe-images/mobile-user/basic/basic-you-page.png)
+![Figure 14a: Basic Profile](wireframe-images/mobile-user/basic/basic-you-page.png)
 
-![Figure 6.10b: Premium Profile](wireframe-images/mobile-user/premium/premium-you-page.png)
+![Figure 14b: Premium Profile](wireframe-images/mobile-user/premium/premium-you-page.png)
 
-**Caption:** Figure 6.10 shows personal progress, calendar, recent runs, runner level display, and plan entry points.
+**Caption:** Figure 14 shows personal progress, calendar, recent runs, runner level display, and plan entry points.
 
-#### Figure 6.11: Premium Expert Plan Access
+#### Figure 15: Premium Expert Plan Access
 
-![Figure 6.11a: Explore Expert Goal Plan](wireframe-images/mobile-user/premium/explore-expert-goal-plan-page.png)
+![Figure 15a: Explore Expert Goal Plan](wireframe-images/mobile-user/premium/explore-expert-goal-plan-page.png)
 
-![Figure 6.11b: View Expert Plan Detail](wireframe-images/mobile-user/premium/view-expert-plan-detail-page.png)
+![Figure 15b: View Expert Plan Detail](wireframe-images/mobile-user/premium/view-expert-plan-detail-page.png)
 
-![Figure 6.11c: View Goal Plan Journey](wireframe-images/mobile-user/premium/view-goal-plan-journey-page.png)
+![Figure 15c: View Goal Plan Journey](wireframe-images/mobile-user/premium/view-goal-plan-journey-page.png)
 
-**Caption:** Figure 6.11 shows expert plan discovery, published plan details, goal-plan journey, and Premium plan progress.
+**Caption:** Figure 15 shows expert plan discovery, published plan details, goal-plan journey, and Premium plan progress.
 
 Premium Users can view and select only expert plans that have been approved and published by the Platform Administrator.
 
 ### 6.3 Admin/Expert Governance Flow Overview
 
-![Figure 6.12: Admin/Expert Governance Flow Overview](wireframe-images/shared-governance/admin-expert-governance-flow-overview.png)
+![Figure 16: Admin/Expert Governance Flow Overview](wireframe-images/shared-governance/admin-expert-governance-flow-overview.png)
 
-**Caption:** Figure 6.12 shows how expert plan content moves from Medical Trainer/Expert submission to Platform Administrator review and controlled publication.
+**Caption:** Figure 16 shows how expert plan content moves from Medical Trainer/Expert submission to Platform Administrator review and controlled publication.
 
 The governance flow separates content preparation from system publication. Medical Trainer/Expert submits and revises content only. Platform Administrator reviews, approves, publishes, rejects, and archives expert plans. Premium Users can view/select only approved and published expert plans.
 
 ### 6.4 Platform Administrator Wireframes
 
-#### Figure 6.13: Admin Dashboard
+#### Figure 17: Admin Dashboard
 
-![Figure 6.13: Admin Dashboard](wireframe-images/platform-admin/admin-dashboard.png)
+![Figure 17: Admin Dashboard](wireframe-images/platform-admin/admin-dashboard.png)
 
-**Caption:** Figure 6.13 shows governance workload, pending expert plans, reported routes, active notifications, quick actions, and recent activity.
+**Caption:** Figure 17 shows governance workload, pending expert plans, reported routes, active notifications, quick actions, and recent activity.
 
-#### Figure 6.14: User Management
+#### Figure 18: User Management
 
-![Figure 6.14: User Management](wireframe-images/platform-admin/user-management.png)
+![Figure 18: User Management](wireframe-images/platform-admin/user-management.png)
 
-**Caption:** Figure 6.14 shows account search, filters, user table, and View/Edit/Suspend actions while keeping Basic/Premium as `subscriptionStatus`.
+**Caption:** Figure 18 shows account search, filters, user table, and View/Edit/Suspend actions while keeping Basic/Premium as `subscriptionStatus`.
 
-#### Figure 6.15: User Detail / Role Control
+#### Figure 19: User Detail / Role Control
 
-![Figure 6.15: User Detail / Role Control](wireframe-images/platform-admin/user-detail-role-control.png)
+![Figure 19: User Detail / Role Control](wireframe-images/platform-admin/user-detail-role-control.png)
 
-**Caption:** Figure 6.15 shows profile, access information, read-only running summary, moderation notes, and administrator actions.
+**Caption:** Figure 19 shows profile, access information, read-only running summary, moderation notes, and administrator actions.
 
 Administrator screens may display trusted progression values, but they must not directly modify XP, level, streak, rank, or leaderboard score.
 
-#### Figure 6.16: Expert Plan Review
+#### Figure 20: Expert Plan Review
 
-![Figure 6.16: Expert Plan Review](wireframe-images/platform-admin/expert-plan-review.png)
+![Figure 20: Expert Plan Review](wireframe-images/platform-admin/expert-plan-review.png)
 
-**Caption:** Figure 6.16 shows submitted expert plan details, provider information, weekly schedule, safety notes, review checklist, administrator comments, and decision buttons.
+**Caption:** Figure 20 shows submitted expert plan details, provider information, weekly schedule, safety notes, review checklist, administrator comments, and decision buttons.
 
-#### Figure 6.17: Expert Plan Review Queue
+#### Figure 21: Expert Plan Review Queue
 
-![Figure 6.17: Expert Plan Review Queue](wireframe-images/platform-admin/expert-plan-review-queue.png)
+![Figure 21: Expert Plan Review Queue](wireframe-images/platform-admin/expert-plan-review-queue.png)
 
-**Caption:** Figure 6.17 shows pending expert plan submissions, review status, provider information, and administrator review actions.
+**Caption:** Figure 21 shows pending expert plan submissions, review status, provider information, and administrator review actions.
 
-#### Figure 6.18: Plan Management
+#### Figure 22: Plan Management
 
-![Figure 6.18: Plan Management](wireframe-images/platform-admin/plan-management.png)
+![Figure 22: Plan Management](wireframe-images/platform-admin/plan-management.png)
 
-**Caption:** Figure 6.18 shows system and expert plan records, lifecycle statuses, search filters, and View/Edit/Archive actions.
+**Caption:** Figure 22 shows system and expert plan records, lifecycle statuses, search filters, and View/Edit/Archive actions.
 
-#### Figure 6.19: Expert Plan Publish Confirmation
+#### Figure 23: Expert Plan Publish Confirmation
 
-![Figure 6.19: Expert Plan Publish Confirmation](wireframe-images/platform-admin/expert-plan-publish-confirmation.png)
+![Figure 23: Expert Plan Publish Confirmation](wireframe-images/platform-admin/expert-plan-publish-confirmation.png)
 
-**Caption:** Figure 6.19 shows administrator pre-publication checks before making an approved expert plan visible to Premium Users.
+**Caption:** Figure 23 shows administrator pre-publication checks before making an approved expert plan visible to Premium Users.
 
-#### Figure 6.20: Route Management
+#### Figure 24: Route Management
 
-![Figure 6.20: Route Management](wireframe-images/platform-admin/route-management.png)
+![Figure 24: Route Management](wireframe-images/platform-admin/route-management.png)
 
-**Caption:** Figure 6.20 shows shared route search, route table, map preview, report detail preview, and soft moderation actions.
+**Caption:** Figure 24 shows shared route search, route table, map preview, report detail preview, and soft moderation actions.
 
 Reported routes are handled by Platform Administrator moderation and should be reviewed for safety, privacy, and content quality.
 
-#### Figure 6.21: Notification / Report Management
+#### Figure 25: Notification / Report Management
 
-![Figure 6.21: Notification / Report Management](wireframe-images/platform-admin/notification-report-management.png)
+![Figure 25: Notification / Report Management](wireframe-images/platform-admin/notification-report-management.png)
 
-**Caption:** Figure 6.21 shows notification creation, notification history, report table, and moderation actions.
+**Caption:** Figure 25 shows notification creation, notification history, report table, and moderation actions.
 
 ### 6.5 Medical Trainer/Expert Wireframes
 
-#### Figure 6.22: Expert Plan Submission Form
+#### Figure 26: Expert Plan Submission Form
 
-![Figure 6.22: Expert Plan Submission Form](wireframe-images/medical-trainer-expert/expert-plan-submission-form.png)
+![Figure 26: Expert Plan Submission Form](wireframe-images/medical-trainer-expert/expert-plan-submission-form.png)
 
-**Caption:** Figure 6.22 shows expert credentials, plan details, weekly plan builder, safety guidance, and submission controls for administrator review.
+**Caption:** Figure 26 shows expert credentials, plan details, weekly plan builder, safety guidance, and submission controls for administrator review.
 
 The form must not include direct publication into the live Premium plan catalogue.
 
-#### Figure 6.23: Submitted Plan Status Page
+#### Figure 27: Submitted Plan Status Page
 
-![Figure 6.23: Submitted Plan Status Page](wireframe-images/medical-trainer-expert/submitted-plan-status-page.png)
+![Figure 27: Submitted Plan Status Page](wireframe-images/medical-trainer-expert/submitted-plan-status-page.png)
 
-**Caption:** Figure 6.23 shows submitted expert plans, review statuses, administrator comments, and revision-response actions.
+**Caption:** Figure 27 shows submitted expert plans, review statuses, administrator comments, and revision-response actions.
 
-#### Figure 6.24: Expert Plan Revision Response
+#### Figure 28: Expert Plan Revision Response
 
-![Figure 6.24: Expert Plan Revision Response](wireframe-images/medical-trainer-expert/expert-plan-revision-response.png)
+![Figure 28: Expert Plan Revision Response](wireframe-images/medical-trainer-expert/expert-plan-revision-response.png)
 
-**Caption:** Figure 6.24 shows how Medical Trainer/Expert responds to revision requests while approval and publication remain Platform Administrator responsibilities.
+**Caption:** Figure 28 shows how Medical Trainer/Expert responds to revision requests while approval and publication remain Platform Administrator responsibilities.
 
 ## 7. Appendix / Supporting Notes
 
 ### 7.1 Figure Numbering Note
 
-This assembled draft uses chapter-based numbering. Final Word/PDF formatting may require automatic numbering updates, especially if the report template inserts earlier figures before the PDD section.
+This assembled draft uses document-wide figure numbering. Final Word/PDF formatting may require automatic numbering updates, especially if the report template inserts earlier figures before the PDD section.
 
 ### 7.2 Final Formatting Notes
 
