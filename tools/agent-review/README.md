@@ -18,7 +18,7 @@ The workflow is local to this repository for now. Do not create a separate repo,
 
 ## Safety
 
-The runner uses subcommands instead of an automatic loop. It defaults to `DRY_RUN=1`; use `DRY_RUN=0` only when you intentionally want it to invoke Codex or Claude. It writes outputs under `implementation/traceability/` and refuses to overwrite existing output files.
+The runner uses subcommands instead of an automatic loop. It defaults to `DRY_RUN=1`; use `DRY_RUN=0` only when you intentionally want it to invoke Codex or Claude. In dry-run mode, if configured output directories do not exist, the runner prints the command preview to stdout instead of creating directories. Actual runs create configured output directories and refuse to overwrite existing output files.
 
 Command examples use read-only Codex execution for plan and decision steps:
 

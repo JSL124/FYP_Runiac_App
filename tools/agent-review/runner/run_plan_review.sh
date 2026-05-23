@@ -50,9 +50,10 @@ require_common_paths() {
   require_file "$(repo_path "$REVIEW_PROMPT")"
   require_file "$(repo_path "$DECISION_PROMPT")"
   require_file "$(repo_path "$IMPLEMENT_PROMPT")"
-  require_dir "$(repo_path "$PLAN_DIR")"
-  require_dir "$(repo_path "$REVIEW_DIR")"
-  require_dir "$(repo_path "$DECISION_DIR")"
+
+  if [ "$DRY_RUN" = "0" ]; then
+    mkdir -p "$(repo_path "$PLAN_DIR")" "$(repo_path "$REVIEW_DIR")" "$(repo_path "$DECISION_DIR")"
+  fi
 }
 
 require_agent_commands_for_actual_run() {
@@ -82,15 +83,13 @@ run_or_dry() {
   local command_text="$3"
   shift 3
 
-  ensure_new_file "$output_file"
-
   if [ "$DRY_RUN" != "0" ]; then
     write_dry_run "$output_file" "$description" "$command_text"
-    info "dry run written: $output_file"
     return
   fi
 
   # Output redirection is owned by the runner; agent commands must not overwrite files.
+  ensure_new_file "$output_file"
   "$@" > "$output_file"
   info "output written: $output_file"
 }
@@ -176,7 +175,6 @@ cmd_implement() {
 
   if [ "$DRY_RUN" != "0" ]; then
     write_dry_run "$output_file" "Interactive Codex implementation after user approval" "$command_text"
-    info "dry run written: $output_file"
     return
   fi
 

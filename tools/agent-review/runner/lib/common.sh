@@ -55,6 +55,23 @@ write_dry_run() {
   local path="$1"
   local description="$2"
   local command_text="$3"
+  local output_dir
+  output_dir="$(dirname "$path")"
+
+  if [ ! -d "$output_dir" ]; then
+    {
+      printf '# Dry Run: %s\n\n' "$description"
+      printf 'DRY_RUN=1, so no external agent command was invoked.\n\n'
+      printf 'Output file was not written because this directory does not exist:\n\n'
+      printf '```text\n%s\n```\n\n' "$output_dir"
+      printf 'Would-have-written output path:\n\n'
+      printf '```text\n%s\n```\n\n' "$path"
+      printf 'Command that would run:\n\n'
+      printf '```bash\n%s\n```\n' "$command_text"
+    }
+    return
+  fi
+
   ensure_new_file "$path"
   {
     printf '# Dry Run: %s\n\n' "$description"
@@ -62,4 +79,5 @@ write_dry_run() {
     printf 'Command that would run:\n\n'
     printf '```bash\n%s\n```\n' "$command_text"
   } > "$path"
+  info "dry run written: $path"
 }
