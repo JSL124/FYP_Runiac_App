@@ -29,15 +29,19 @@ DECISION_DIR="${DECISION_DIR:-implementation/traceability/decisions}"
 
 usage() {
   cat <<'USAGE'
-Usage: run_plan_review.sh <plan|review|decision|implement>
+Usage: run_plan_review.sh <plan|review|decision|implement|pipeline>
 
 Environment:
   DRY_RUN=1                 Default. Write the command that would run.
   DRY_RUN=0                 Actually invoke Codex or Claude.
   AGENT_REVIEW_CONFIG=PATH  Optional shell env file.
-  TASK_PROMPT=TEXT          Task prompt for plan/implement subcommands.
+  TASK_PROMPT=TEXT          Task prompt for plan/implement/pipeline subcommands.
+  TASK_PROMPT_FILE=PATH     Task prompt file for plan/implement/pipeline when TASK_PROMPT is unset.
   PLAN_FILE=PATH            Existing plan file for review/decision/implement.
   REVIEW_FILE=PATH          Existing Claude review file for decision.
+
+For pipeline, TASK_PROMPT is required unless TASK_PROMPT_FILE is set. If both are
+set, TASK_PROMPT is used and TASK_PROMPT_FILE is ignored.
 USAGE
 }
 
@@ -75,6 +79,40 @@ require_agent_commands_for_actual_run() {
   fi
 }
 
+resolve_task_prompt() {
+  local default_prompt="${1:-}"
+
+  if [ -n "${TASK_PROMPT:-}" ]; then
+    printf '%s' "$TASK_PROMPT"
+    return
+  fi
+
+  if [ -n "${TASK_PROMPT_FILE:-}" ]; then
+    require_file "$TASK_PROMPT_FILE"
+    cat "$TASK_PROMPT_FILE"
+    return
+  fi
+
+  if [ -n "$default_prompt" ]; then
+    printf '%s' "$default_prompt"
+    return
+  fi
+
+  die "TASK_PROMPT or TASK_PROMPT_FILE is required"
+}
+
+new_plan_output_file() {
+  repo_path "$PLAN_DIR/$(timestamp_utc)_codex_plan.md"
+}
+
+new_review_output_file() {
+  repo_path "$REVIEW_DIR/$(timestamp_utc)_claude_review.md"
+}
+
+new_decision_output_file() {
+  repo_path "$DECISION_DIR/$(timestamp_utc)_codex_decision.md"
+}
+
 run_or_dry() {
   local output_file="$1"
   local description="$2"
@@ -88,17 +126,15 @@ run_or_dry() {
 
   # Output redirection is owned by the runner; agent commands must not overwrite files.
   ensure_new_file "$output_file"
-  "$@" > "$output_file"
+  if ! "$@" > "$output_file"; then
+    return 1
+  fi
   info "output written: $output_file"
 }
 
-cmd_plan() {
-  require_common_paths
-  require_agent_commands_for_actual_run 1 0
-
-  local task_prompt="${TASK_PROMPT:-Create an inspect-only implementation plan for the requested Runiac task.}"
-  local output_file
-  output_file="$(repo_path "$PLAN_DIR/$(timestamp_utc)_codex_plan.md")"
+run_plan_step() {
+  local output_file="$1"
+  local task_prompt="$2"
 
   # Codex plan creation is read-only and cannot request approvals.
   local command_text
@@ -109,16 +145,9 @@ cmd_plan() {
     "$(cat "$(repo_path "$PLAN_PROMPT")"; printf '\n\nTask:\n%s\n' "$task_prompt")"
 }
 
-cmd_review() {
-  require_common_paths
-  require_agent_commands_for_actual_run 0 1
-
-  local plan_file="${PLAN_FILE:-}"
-  [ -n "$plan_file" ] || die "PLAN_FILE is required for review"
-  require_file "$plan_file"
-
-  local output_file
-  output_file="$(repo_path "$REVIEW_DIR/$(timestamp_utc)_claude_review.md")"
+run_review_step() {
+  local output_file="$1"
+  local plan_file="$2"
 
   # Claude review is restricted to read-only tools and plan permission mode.
   local command_text
@@ -132,6 +161,40 @@ cmd_review() {
     --append-system-prompt "$(cat "$(repo_path CLAUDE.md)")"
 }
 
+run_decision_step() {
+  local output_file="$1"
+  local plan_file="$2"
+  local review_file="$3"
+
+  # Codex final decision is read-only and evaluates the plan plus review.
+  local command_text
+  command_text="codex --sandbox read-only --ask-for-approval never -C . exec \"\$(cat $DECISION_PROMPT; printf '\\n\\nOriginal plan:\\n'; cat '$plan_file'; printf '\\n\\nClaude review:\\n'; cat '$review_file')\""
+
+  run_or_dry "$output_file" "Codex final review decision" "$command_text" \
+    codex --sandbox read-only --ask-for-approval never -C "." exec \
+    "$(cat "$(repo_path "$DECISION_PROMPT")"; printf '\n\nOriginal plan:\n'; cat "$plan_file"; printf '\n\nClaude review:\n'; cat "$review_file")"
+}
+
+cmd_plan() {
+  require_common_paths
+  require_agent_commands_for_actual_run 1 0
+
+  local task_prompt
+  task_prompt="$(resolve_task_prompt "Create an inspect-only implementation plan for the requested Runiac task.")"
+  run_plan_step "$(new_plan_output_file)" "$task_prompt"
+}
+
+cmd_review() {
+  require_common_paths
+  require_agent_commands_for_actual_run 0 1
+
+  local plan_file="${PLAN_FILE:-}"
+  [ -n "$plan_file" ] || die "PLAN_FILE is required for review"
+  require_file "$plan_file"
+
+  run_review_step "$(new_review_output_file)" "$plan_file"
+}
+
 cmd_decision() {
   require_common_paths
   require_agent_commands_for_actual_run 1 0
@@ -143,16 +206,7 @@ cmd_decision() {
   require_file "$plan_file"
   require_file "$review_file"
 
-  local output_file
-  output_file="$(repo_path "$DECISION_DIR/$(timestamp_utc)_codex_decision.md")"
-
-  # Codex final decision is read-only and evaluates the plan plus review.
-  local command_text
-  command_text="codex --sandbox read-only --ask-for-approval never -C . exec \"\$(cat $DECISION_PROMPT; printf '\\n\\nOriginal plan:\\n'; cat '$plan_file'; printf '\\n\\nClaude review:\\n'; cat '$review_file')\""
-
-  run_or_dry "$output_file" "Codex final review decision" "$command_text" \
-    codex --sandbox read-only --ask-for-approval never -C "." exec \
-    "$(cat "$(repo_path "$DECISION_PROMPT")"; printf '\n\nOriginal plan:\n'; cat "$plan_file"; printf '\n\nClaude review:\n'; cat "$review_file")"
+  run_decision_step "$(new_decision_output_file)" "$plan_file" "$review_file"
 }
 
 cmd_implement() {
@@ -184,6 +238,127 @@ Use this prompt with the approved plan file and do not run git add, commit, or p
 MESSAGE
 }
 
+print_pipeline_dry_run() {
+  local plan_file="$1"
+  local review_file="$2"
+  local decision_file="$3"
+
+  cat <<PIPELINE_DRY_RUN
+# Pipeline Dry Run Preview
+
+DRY_RUN=1, so Codex and Claude will not be invoked and no plan/review/decision
+artifacts will be written.
+
+Would run:
+
+1. Codex inspect-only plan
+
+   codex --sandbox read-only --ask-for-approval never -C . exec "<plan prompt + task>"
+
+   Would write PLAN_FILE:
+   $plan_file
+
+2. Claude read-only plan review
+
+   claude -p "<review prompt + PLAN_FILE>" --permission-mode plan --tools "Read,Grep,Glob" --append-system-prompt "\$(cat CLAUDE.md)"
+
+   Would read PLAN_FILE:
+   $plan_file
+
+   Would write REVIEW_FILE:
+   $review_file
+
+3. Codex final review decision
+
+   codex --sandbox read-only --ask-for-approval never -C . exec "<decision prompt + PLAN_FILE + REVIEW_FILE>"
+
+   Would read PLAN_FILE:
+   $plan_file
+
+   Would read REVIEW_FILE:
+   $review_file
+
+   Would write DECISION_FILE:
+   $decision_file
+
+Implementation, git staging, commit, push, tests, builds, deployment, Flutter,
+Firebase, and npm commands would not run.
+PIPELINE_DRY_RUN
+}
+
+pipeline_failed() {
+  local step="$1"
+  local output_file="${2:-}"
+
+  info "pipeline failed at step: $step"
+  if [ -n "$output_file" ] && [ -e "$output_file" ]; then
+    info "output path created before failure: $output_file"
+  elif [ -n "$output_file" ]; then
+    info "intended output path: $output_file"
+  fi
+  return 1
+}
+
+print_pipeline_summary() {
+  local plan_file="$1"
+  local review_file="$2"
+  local decision_file="$3"
+
+  cat <<PIPELINE_SUMMARY
+Pipeline complete.
+
+PLAN_FILE=$plan_file
+REVIEW_FILE=$review_file
+DECISION_FILE=$decision_file
+
+git status --short:
+PIPELINE_SUMMARY
+  git status --short
+  cat <<'PIPELINE_SUMMARY'
+
+Implementation was not run.
+Inspect DECISION_FILE before starting any implementation.
+PIPELINE_SUMMARY
+}
+
+cmd_pipeline() {
+  require_common_paths
+
+  local task_prompt
+  task_prompt="$(resolve_task_prompt)"
+
+  local plan_file
+  local review_file
+  local decision_file
+  plan_file="$(new_plan_output_file)"
+  review_file="$(new_review_output_file)"
+  decision_file="$(new_decision_output_file)"
+
+  if [ "$DRY_RUN" != "0" ]; then
+    print_pipeline_dry_run "$plan_file" "$review_file" "$decision_file"
+    return
+  fi
+
+  require_agent_commands_for_actual_run 1 1
+
+  if ! run_plan_step "$plan_file" "$task_prompt"; then
+    pipeline_failed "plan" "$plan_file" || true
+    return 1
+  fi
+
+  if ! run_review_step "$review_file" "$plan_file"; then
+    pipeline_failed "review" "$review_file" || true
+    return 1
+  fi
+
+  if ! run_decision_step "$decision_file" "$plan_file" "$review_file"; then
+    pipeline_failed "decision" "$decision_file" || true
+    return 1
+  fi
+
+  print_pipeline_summary "$plan_file" "$review_file" "$decision_file"
+}
+
 main() {
   local subcommand="${1:-}"
   case "$subcommand" in
@@ -191,6 +366,7 @@ main() {
     review) cmd_review ;;
     decision) cmd_decision ;;
     implement) cmd_implement ;;
+    pipeline) cmd_pipeline ;;
     -h|--help|help|"") usage ;;
     *) usage; die "unknown subcommand: $subcommand" ;;
   esac
