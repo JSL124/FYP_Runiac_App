@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./docs/submissions/**)",
+      "Read(./**/*.pdf)",
+      "Read(./**/*.png)",
+      "Read(./**/*.jpg)",
+      "Read(./**/*.jpeg)",
+      "Read(./**/*.svg)",
+      "Read(./**/build/**)",
+      "Read(./**/.dart_tool/**)",
+      "Read(./**/node_modules/**)",
+      "Read(./test-evidence/**)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./secrets/**)"
+    ]
+  }
+}
