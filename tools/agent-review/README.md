@@ -86,6 +86,48 @@ tools/agent-review/profiles/runiac/prompts/
 
 Codex plans must include a `Review Scope` section. This gives Claude a focused list of expected changes, files worth reading, out-of-scope paths, risk tags, and the recommended review mode so review does not require unnecessary repository scanning. Standard review is still risk-aware, but it should stay inside the Review Scope and return `DEFER` with requested additional paths when the scope is not enough.
 
+## Generic Context Selection Protocol
+
+The generic agent-review workflow should use progressive context selection:
+
+1. Cheap inventory first.
+2. User-declared context class when available.
+3. Conservative context class decision when not declared.
+4. `Plan Scope`.
+5. Codex inspect-only plan.
+6. Codex-generated `Review Scope`.
+7. Claude scope-limited review.
+8. Codex final decision based on plan and review.
+
+Context classes:
+
+- `workflow`: runner scripts, agent prompts, review workflow docs, `.claude/settings.json`, and repo process automation.
+- `docs`: documentation-only changes that do not affect implementation behavior.
+- `implementation_prep`: requirements maps, setup gates, scaffolding decisions, architecture mapping, and implementation planning.
+- `feature`: product feature planning or implementation work.
+- `security`: security rules, sensitive data, auth, permissions, entitlement, secrets, or privacy work.
+- `architecture`: system architecture, data ownership, module boundaries, deployment shape, or cross-component design.
+- `unknown`: insufficient information to choose safely.
+
+Prefer a user-declared context class when the user provides one. If none is provided, Codex may classify conservatively from the task text and must explain the classification in 1-2 sentences. `unknown` must not fall back to a broader class automatically; Codex must stop with a clarification/escalation note instead of doing a broad scan.
+
+Codex plans must include a `Context Class Decision`, `Plan Scope`, and `Review Scope`. Review Scope files must stay within Plan Scope allowed paths or explicit Allow paths. If Review Scope needs a file outside Plan Scope, the plan must flag that as an error and stop instead of silently expanding scope.
+
+For `workflow` context, do not read product requirements, submitted assessment docs, PDFs, images, diagrams, generated assets, Flutter/Firebase source, tests, or test evidence unless explicitly allowed by the user. If a workflow task explicitly asks for product-requirement alignment, require explicit Allow paths rather than auto-expanding.
+
+For `docs` context, read only directly relevant docs and local instructions. Avoid PDFs/images/generated assets unless explicitly allowed.
+
+For `implementation_prep` context, selectively read PRD/PDD markdown if needed, but avoid submitted PDFs/images/generated assets unless explicitly allowed.
+
+For `feature`, `security`, and `architecture` contexts, consult requirement and architecture references as needed while avoiding broad repo scans and large binary/generated assets. Include high-risk review mode guidance.
+
+DEFER recovery:
+
+- If the class is too restrictive, the user adds explicit Allow paths.
+- If the class is wrong, the user re-runs with the correct context class.
+- If the plan is too large, split it into smaller plans.
+- If additional sensitive/reference docs are needed, the user approves exact paths.
+
 `REVIEW_MODE` controls which Claude review prompt is selected when `REVIEW_PROMPT` is not explicitly set:
 
 ```bash
@@ -190,3 +232,5 @@ Do not use Claude `--bare` or `--append-system-prompt-file` for this runner.
 ## Future
 
 After 3-5 real planning tasks, review whether the runner logic is stable enough to externalize. Do not create a separate repo, Git submodule, package, or GitHub Actions workflow yet.
+
+Future generic distribution should add `context-policy.yml` with `schema_version`, cheap inventory size limits, a context packet builder, and a generic fixture repo smoke test. These are future work only and are not implemented in this batch.

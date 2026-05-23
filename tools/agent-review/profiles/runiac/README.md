@@ -13,6 +13,21 @@ This profile contains the Runiac-specific prompts and example settings used by t
 
 Plans created by `prompts/01_codex_create_plan.md` must include a `Review Scope` section. The scope lists expected changed files, likely review reads, out-of-scope files, risk tags, and a recommended review mode so Claude can review efficiently. Standard review should use that scope first and return `DEFER` with requested additional paths instead of scanning broadly when the scope is insufficient.
 
+## Context Selection
+
+Runiac uses the generic progressive context selection protocol: cheap inventory, user-declared or conservative context class, `Plan Scope`, inspect-only plan, `Review Scope`, scope-limited Claude review, and final Codex decision.
+
+Supported context classes are `workflow`, `docs`, `implementation_prep`, `feature`, `security`, `architecture`, and `unknown`. Prefer a user-declared class. If Codex infers the class, it must explain why in 1-2 sentences. `unknown` must stop with clarification/escalation instead of broad scanning.
+
+Runiac separates two layers:
+
+- Layer A: always-on Runiac invariants. XP/streak/level/rank/leaderboard stay backend-owned; Flutter may display trusted values but must not write official XP/rank/leaderboard values; `subscriptionStatus` controls Basic/Premium access; `userRole` controls operational/governance roles; Medical Trainer/Expert submits draft expert plans only; Platform Administrator approves/rejects/publishes/archives expert plans; AI/LLM must not become official XP/rank/leaderboard logic; no secrets, API keys, production project IDs, or precise private GPS data should be committed.
+- Layer B: class-specific context scope. For `workflow`, use runner scripts, agent prompts, workflow docs, `.claude/settings.json`, and process automation only; do not read PRD/PDD, submitted assessment docs, PDFs, images, diagrams, generated assets, Flutter/Firebase source, tests, or test evidence unless the user provides explicit Allow paths.
+
+For `docs`, read only directly relevant docs and local instructions. For `implementation_prep`, selectively read PRD/PDD markdown if needed. For `feature`, `security`, and `architecture`, consult requirement and architecture references as needed while avoiding broad scans and large/generated assets. Review Scope must stay inside Plan Scope allowed paths or explicit Allow paths.
+
+DEFER recovery: add explicit Allow paths when the class is too restrictive, re-run with the correct class when the class is wrong, split oversized plans, or approve exact sensitive/reference paths when needed.
+
 ## Usage
 
 The runner defaults to this profile:

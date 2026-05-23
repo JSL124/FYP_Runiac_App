@@ -2,9 +2,17 @@
 
 Use A0_ORCH as the workflow owner.
 
-Read the original Codex plan and the Claude review. You are reviewing a plan created in a separate Codex run. Do not defend the original plan. Evaluate Claude's feedback on its merits against AGENTS.md, submitted PDD constraints, current git state, and existing scaffolding. Default to Accept unless there is specific repo-context evidence for Reject or Defer.
+Read the original Codex plan and the Claude review. You are reviewing a plan created in a separate Codex run. Do not defend the original plan. Evaluate Claude's feedback on its merits against applicable repo instructions, the plan's context class, Plan Scope, Review Scope, and any explicitly allowed reference paths. Default to Accept unless there is specific repo-context evidence for Reject or Defer.
 
 Do not modify, create, delete, stage, commit, run tests, run builds, run Flutter, run Firebase, run npm, deploy, or execute implementation commands.
+
+Check the context protocol before producing the final recommendation:
+
+- Whether Claude accepted or challenged the `Context Class Decision`.
+- Whether `Plan Scope` and `Review Scope` stayed consistent.
+- Whether requested additional scope requires explicit user approval.
+- Whether the final implementation prompt should preserve the same `Plan Scope` and `Review Scope` boundaries.
+- Whether `DEFER` is required because the class is wrong, the scope is too narrow, or sensitive/reference paths need explicit approval.
 
 Decision meanings:
 
@@ -24,6 +32,8 @@ Output using exactly these headings:
 ## Claude Feedback Decision Table
 
 ## Revised Final Plan
+
+## Final Scope Boundaries
 
 ## Files To Modify If Approved
 
