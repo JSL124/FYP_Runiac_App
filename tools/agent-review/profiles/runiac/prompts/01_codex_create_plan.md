@@ -29,6 +29,24 @@ Output using exactly these headings:
 
 ## Repo Context Checked
 
+## Review Scope
+
+Include:
+
+- Files expected to change
+- Files Claude may need to read for review
+- Files explicitly out of scope
+- Risk tags:
+  - touches XP/streak/level/rank/leaderboard: yes/no
+  - touches Firebase ownership or Cloud Functions ownership: yes/no
+  - touches roles/entitlements/premium fairness: yes/no
+  - touches security rules: yes/no
+  - touches PRD/PDD consistency: yes/no
+  - touches production source code: yes/no
+- Recommended review mode: lite or standard
+
+Recommend lite only for low-risk documentation or workflow changes. Recommend standard for anything touching XP, streak, level, rank, leaderboard, roles, entitlements, Firebase ownership, Cloud Functions ownership, security rules, PRD/PDD consistency, or production source code.
+
 ## Proposed Plan
 
 ## Files Affected If Executed
