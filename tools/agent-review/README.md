@@ -37,7 +37,7 @@ The workflow forbids `danger-full-access` and forbids combining `workspace-write
 Claude plan review must use read-only tools:
 
 ```bash
-claude --bare -p "$(cat tools/agent-review/prompts/runiac/02_claude_review_plan.md)" \
+claude -p "$(cat tools/agent-review/prompts/runiac/02_claude_review_plan.md)" \
   --permission-mode plan \
   --tools "Read,Grep,Glob" \
   --append-system-prompt "$(cat CLAUDE.md)"
