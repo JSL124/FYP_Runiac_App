@@ -35,27 +35,43 @@ Implementation remains user-approved only. The pipeline may prepare plans, revie
   - Codex decision completed
   - implementation was not run
 - [x] `REVIEW_ENABLED=1` lite dry-run regression passed
-
-## Completed Recently
-
-- [x] Future context packet builder design drafted in documentation
+- [x] Future context packet builder design documented
 - [x] `inventory_limits` added to generic and Runiac `context-policy.yml` files
-- [x] Future `build_context_packet.sh` design documented in `tools/agent-review/README.md`
+- [x] Standalone `build_context_packet.sh` helper implemented and smoke-tested
+- [x] Future context packet runner integration design documented
+- [x] Opt-in `CONTEXT_PACKET_ENABLED` runner integration implemented:
+  - `CONTEXT_PACKET_ENABLED=0` is the default
+  - `CONTEXT_PACKET_ENABLED=1` calls `build_context_packet.sh` before Codex planning
+  - context packet is prepended to the Codex planning prompt
+  - packet size limit is enforced
+  - builder failure stops the pipeline with no broad repo scan fallback
+- [x] Context packet dry-run regression passed
+- [x] Actual `CONTEXT_PACKET_ENABLED=1` + `REVIEW_ENABLED=0` smoke test passed
+- [x] Smoke-test traceability artifact committed:
+  - `docs(traceability): record context packet integration smoke test`
 
 ## Current Important Limits
 
-- [ ] `build_context_packet.sh` is not implemented yet
-- [ ] `run_plan_review.sh` does not read `context-policy.yml` yet
-- [ ] Context packet runner integration has not started
+- [ ] High-risk auto-routing guard is not designed or implemented yet
+- [ ] TODO auto-updater is postponed
 - [ ] Flutter/Firebase implementation has not started
 
 ## Next Planned Steps
 
-- [ ] Commit `inventory_limits` YAML policy changes
-- [ ] Commit future context packet builder design documentation
-- [ ] Implement standalone `build_context_packet.sh`
-- [ ] Test standalone context packet builder
-- [ ] Only after standalone validation, consider runner integration
+- [ ] Design high-risk auto-routing guard
+- [ ] Implement high-risk guard only after explicit approval
+- [ ] Return to Runiac Phase 1 implementation preparation:
+  - `implementation/traceability/requirements-map.md`
+  - `implementation/traceability/setup-gates.md`
+- [ ] Do not start Flutter/Firebase scaffolding until setup gates approve it
+
+## Postponed TODO Automation
+
+- [ ] Do not implement TODO automation now
+- [ ] Prefer deterministic script first
+- [ ] Add marker-delimited TODO sections later if needed
+- [ ] Add optional Codex review later if useful
+- [ ] Git hooks or GitHub Actions should warn/check first, not auto-edit
 
 ## Later Efficiency Work
 
@@ -93,4 +109,4 @@ Implementation remains user-approved only. The pipeline may prepare plans, revie
 
 ## Next Codex Prompt Topic
 
-Commit current context policy/design documentation changes, then implement standalone `build_context_packet.sh` only after the committed documentation baseline is clean.
+Design the high-risk auto-routing guard, or return to Phase 1 implementation preparation by drafting `implementation/traceability/requirements-map.md` and `implementation/traceability/setup-gates.md`.
