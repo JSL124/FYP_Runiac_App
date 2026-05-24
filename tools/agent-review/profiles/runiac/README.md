@@ -18,9 +18,9 @@ Review mode controls review depth, not context breadth. Context breadth is contr
 
 ## Context Policy
 
-`context-policy.yml` documents Runiac-specific context policy. It is schema-only in this batch: no runner reads it yet, and no YAML parsing or context packet builder has been added.
+`context-policy.yml` documents Runiac-specific context policy. It is read by `build_context_packet.sh`; `run_plan_review.sh` does not parse YAML directly.
 
-Standalone context packet builder usage and future runner integration design are documented in the top-level README.
+`CONTEXT_PACKET_ENABLED` usage and context packet behavior are documented in the top-level README.
 
 The policy keeps Runiac always-on invariants in `non_negotiable_invariants`, including backend ownership for XP/streak/level/rank/leaderboard, Basic/Premium access through `subscriptionStatus`, operational/governance roles through `userRole`, expert-plan draft submission by Medical Trainer/Expert, Platform Administrator approval/publishing authority, and the rule that AI/LLM must not become official XP/rank/leaderboard logic.
 
@@ -30,9 +30,9 @@ Within each context class, `allowed_path_keys` may reference named `allowed_path
 
 Excluded paths document sensitive, large, and generated areas. Runiac policy excludes submitted artifacts, PDFs, images, SVGs, dependency/build folders, Dart tool output, test evidence, `.env` files, and `secrets/**` from default context breadth.
 
-Before any parser or context packet builder treats Runiac policy as authoritative, validate required top-level keys, `schema_version`, context class keys, `allowed_path_keys` references, `allowed_paths` groups, `excluded_paths` groups, `review_file_budgets`, `inventory_limits`, `unknown_context_behavior`, and `explicit_allow_behavior`.
+Schema validation must cover required top-level keys, `schema_version`, context class keys, `allowed_path_keys` references, `allowed_paths` groups, `excluded_paths` groups, `review_file_budgets`, `inventory_limits`, `unknown_context_behavior`, and `explicit_allow_behavior`.
 
-`context-policy.yml` remains schema-only until that parser or context packet builder is explicitly added.
+The context packet builder is the only component that should read this policy.
 
 External review on/off behavior is documented in the top-level README. For Runiac, `REVIEW_ENABLED=0` is an explicit skip, not approval, and should not be used for high-risk areas such as XP, leaderboard, roles, entitlements, Firebase/Cloud Functions ownership, security rules, production source code, or PRD/PDD consistency.
 

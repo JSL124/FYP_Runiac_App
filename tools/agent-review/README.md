@@ -96,9 +96,9 @@ Review mode controls review depth, not context breadth. Context breadth is contr
 
 ## Context Policy Files
 
-Profile `context-policy.yml` files are schema-only in this batch. No runner reads them yet, `run_plan_review.sh` does not parse YAML, and this change does not add a context packet builder.
+Profile `context-policy.yml` files are read by `build_context_packet.sh` only. `run_plan_review.sh` does not parse YAML directly; when `CONTEXT_PACKET_ENABLED=1`, it calls the builder and uses the generated Markdown packet.
 
-The intended future integration is a context packet builder that reads profile policy, applies the selected context class, and emits bounded planning/review context. Until that integration exists, prompts and human review remain authoritative. If runner integration is delayed, re-review the schema before treating any `context-policy.yml` as authoritative.
+With `CONTEXT_PACKET_ENABLED=0`, which is the default, prompts and human review remain authoritative and current runner behavior is preserved.
 
 The schema separates:
 
@@ -115,7 +115,7 @@ The generic profile must not contain project-specific invariants. Project profil
 
 ## build_context_packet.sh
 
-`tools/agent-review/runner/build_context_packet.sh` is a standalone context packet builder for generic agent-review context selection. It is not integrated into `run_plan_review.sh` yet, the pipeline does not use it yet, and its output is not injected into Codex prompts yet.
+`tools/agent-review/runner/build_context_packet.sh` is a standalone context packet builder for generic agent-review context selection. It can be run directly, and `run_plan_review.sh` can optionally call it before Codex inspect-only planning when `CONTEXT_PACKET_ENABLED=1`.
 
 The builder converts a task prompt plus a profile `context-policy.yml` into a bounded Markdown packet. It keeps context selection separate from review execution: the packet guides planning context, while `REVIEW_MODE` continues to control review depth and `REVIEW_ENABLED` continues to control whether external review runs.
 
@@ -148,9 +148,9 @@ If Ruby is unavailable, the script fails clearly. It does not require `yq`, npm,
 
 Design boundary:
 
-- This standalone batch implements packet generation only.
-- Do not add `PLAN_CONTEXT`, runner integration, automatic Codex prompt injection, high-risk auto-routing, review skip guards based on policy, context-policy schema migration, or implementation auto-run.
-- Do not change `run_plan_review.sh` or `runner/lib/common.sh` in this batch.
+- The builder remains standalone and may be used directly.
+- Runner integration is opt-in through `CONTEXT_PACKET_ENABLED=1`; `CONTEXT_PACKET_ENABLED=0` preserves current behavior.
+- Do not add `PLAN_CONTEXT`, high-risk auto-routing, review skip guards based on policy, context-policy schema migration, or implementation auto-run.
 
 The builder output is a Markdown packet with these schemas.
 
@@ -204,7 +204,7 @@ find . -maxdepth <max_directory_depth> -type f | head -<max_listed_files>
 - `max_directory_depth`: maximum directory depth for fallback `find` discovery.
 - `max_inventory_bytes`: maximum inventory bytes retained before truncation.
 
-The standalone builder uses these values for packet inventory limits. The runner must not use these values until a future runner integration batch explicitly wires them in.
+The standalone builder uses these values for packet inventory limits. The runner does not parse these values directly.
 
 Standalone partial failure behavior has three tiers.
 
@@ -249,7 +249,7 @@ Packet output format:
   - `## Review Budget Hint`
   - `## Forbidden Content Pattern Summary`
   - `## Inventory`
-- This packet is intended to be injected at the top of the Codex plan prompt in a future runner integration batch.
+- When `CONTEXT_PACKET_ENABLED=1`, the runner prepends this packet to the original task prompt before Codex inspect-only planning.
 
 Future tool-smoke-test artifacts should be stored at:
 
@@ -259,31 +259,24 @@ implementation/traceability/tool-smoke-tests/<timestamp>_context-packet-smoke.md
 
 Do not create that folder or artifact from the standalone builder by default.
 
-Future injection mechanism options are documented here, but the decision is deferred:
+## Context packet runner integration
 
-- Option A: prepend the packet to the task prompt string before passing to Codex.
-- Option B: write the packet to a temp file and reference it in the Codex prompt.
-- Option C: pass packet sections through environment variables.
-- Recommendation: Option A unless the packet exceeds about 2KB.
-- Final decision is deferred to the runner integration batch.
-
-## Future: context packet runner integration
-
-This section documents future runner integration design only. It does not change current pipeline behavior, does not auto-inject context packets, and does not add a high-risk auto-routing guard. `runner-integration-deferred`
+This section documents the implemented opt-in runner integration. It does not change default pipeline behavior and does not add a high-risk auto-routing guard.
 
 Opt-in behavior:
 
 - `CONTEXT_PACKET_ENABLED=0` by default. `context-packet-opt-in`
 - `CONTEXT_PACKET_ENABLED=0` preserves current pipeline behavior.
 - `CONTEXT_PACKET_ENABLED=1` enables context packet generation before the Codex plan step.
-- Context packet builder integration must remain opt-in until validated.
+- Supported values are only `1` and `0`; unsupported values fail clearly.
+- Context packet builder integration remains opt-in.
 
 Execution order when enabled:
 
 1. Validate task prompt. `context-packet-execution-order`
 2. Run `build_context_packet.sh`.
 3. Capture the Markdown packet.
-4. Check packet size.
+4. Check packet size against the 8000 byte limit.
 5. Combine the packet with the original task prompt.
 6. Run the existing Codex inspect-only plan step.
 7. Continue existing `REVIEW_ENABLED` / `REVIEW_MODE` behavior.
@@ -298,7 +291,7 @@ Task prompt validation boundary:
 YAML reader boundary:
 
 - `build_context_packet.sh` remains the only component that reads `context-policy.yml`. `yaml-reader-builder-only`
-- `run_plan_review.sh` should call the builder, not parse YAML directly.
+- `run_plan_review.sh` calls the builder and does not parse YAML directly.
 
 Failure behavior:
 
@@ -317,7 +310,7 @@ Packet size limit:
 
 Prompt capture and injection:
 
-- Recommended initial approach: capture `build_context_packet.sh` stdout to a shell variable.
+- The runner captures `build_context_packet.sh` stdout to a shell variable.
 - Combined prompt structure: `prompt-not-mutated`
 
 ```text
@@ -456,8 +449,8 @@ Batch sequencing:
 - Done: `REVIEW_ENABLED` on/off policy documentation.
 - Done: `REVIEW_ENABLED` runner integration.
 - Done: context packet builder design.
-- This batch: standalone context packet builder implementation.
-- Later: context packet builder runner integration.
+- Done: standalone context packet builder implementation.
+- This batch: opt-in context packet builder runner integration.
 - Later: high-risk auto-routing guard.
 - Each batch must remain independently committable.
 
@@ -630,4 +623,4 @@ Do not use Claude `--bare` or `--append-system-prompt-file` for this runner.
 
 After 3-5 real planning tasks, review whether the runner logic is stable enough to externalize. Do not create a separate repo, Git submodule, package, or GitHub Actions workflow yet.
 
-Future generic distribution should integrate the standalone context packet builder into the runner, define prompt injection behavior, and add a generic fixture repo smoke test. Runner integration remains future work and is not implemented in this batch.
+Future generic distribution should add broader fixture repo smoke tests and evaluate whether context packet traceability artifacts are useful. High-risk auto-routing remains future work and is not implemented in this batch.
