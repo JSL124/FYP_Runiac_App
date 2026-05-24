@@ -272,8 +272,8 @@ create_skipped_review_artifact() {
   {
     printf '# External Review Skipped\n\n'
     printf '## External Review Status\n\n'
-    printf '- Status: SKIPPED\n'
-    printf '- Reason: Claude review was not run because REVIEW_ENABLED=0.\n\n'
+    printf '%s\n' '- Status: SKIPPED'
+    printf '%s\n\n' "- Reason: $SKIP_REASON"
     printf '## Context Class at Time of Skip\n\n'
     printf '%s\n\n' "$context_class"
     printf '## Risk Tags at Time of Skip\n\n'
@@ -281,10 +281,10 @@ create_skipped_review_artifact() {
     printf '## Skip Justification\n\n'
     printf '%s\n\n' "$SKIP_REASON"
     printf '## Implications\n\n'
-    printf '- Claude review was not run.\n'
-    printf '- This is not approval.\n'
-    printf '- Codex decision proceeds without external validation.\n'
-    printf '- Implementation still requires explicit user approval.\n'
+    printf '%s\n' '- Claude review was not run.'
+    printf '%s\n' '- This skipped review is not approval.'
+    printf '%s\n' '- Implementation still requires explicit user approval.'
+    printf '%s\n' '- Codex final decision must treat this as an unreviewed plan and apply elevated self-critique.'
   } > "$output_file"
 
   info "skipped-review artifact written: $output_file"

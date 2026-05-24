@@ -150,13 +150,16 @@ Skipped-review artifact specification:
 - Required sections:
   - `External Review Status`
   - `Status: SKIPPED`
-  - `Reason`
+  - `Reason: <SKIP_REASON>`
   - `Context Class at Time of Skip`
   - `Risk Tags at Time of Skip`
   - `Skip Justification`
   - `Implications`
   - `Codex decision proceeds without external validation.`
   - `Implementation still requires explicit user approval.`
+  - `Claude review was not run.`
+  - `This skipped review is not approval.`
+  - `Codex final decision must treat this as an unreviewed plan and apply elevated self-critique.`
 
 Codex final decision behavior when review is skipped:
 

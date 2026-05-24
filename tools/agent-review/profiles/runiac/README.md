@@ -34,6 +34,8 @@ Before any parser or context packet builder treats Runiac policy as authoritativ
 
 External review on/off behavior is documented in the top-level README. For Runiac, `REVIEW_ENABLED=0` is an explicit skip, not approval, and should not be used for high-risk areas such as XP, leaderboard, roles, entitlements, Firebase/Cloud Functions ownership, security rules, production source code, or PRD/PDD consistency.
 
+Skipped-review artifacts must include `Status: SKIPPED`, the `SKIP_REASON`, and implications stating that Claude review was not run, the skip is not approval, implementation still requires explicit user approval, and Codex final decision must apply elevated self-critique.
+
 ## Context Selection
 
 Runiac uses the generic progressive context selection protocol: cheap inventory, user-declared or conservative context class, `Plan Scope`, inspect-only plan, `Review Scope`, scope-limited Claude review, and final Codex decision.
