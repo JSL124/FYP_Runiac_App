@@ -5,6 +5,7 @@ This profile contains the Runiac-specific prompts and example settings used by t
 ## Files
 
 - `agent-review.env.example` defines the default prompt and output artifact paths for Runiac.
+- `context-policy.yml` documents schema-only Runiac context selection policy for future integration.
 - `prompts/01_codex_create_plan.md` asks Codex to create an inspect-only plan.
 - `prompts/02_claude_review_plan.md` asks Claude to review that plan with read-only tools in standard mode.
 - `prompts/03_codex_final_review_decision.md` asks Codex to accept, reject, or defer Claude feedback.
@@ -14,6 +15,16 @@ This profile contains the Runiac-specific prompts and example settings used by t
 Plans created by `prompts/01_codex_create_plan.md` must include a `Review Scope` section. The scope lists expected changed files, likely review reads, out-of-scope files, risk tags, and a recommended review mode so Claude can review efficiently. Standard review should use that scope first and return `DEFER` with requested additional paths instead of scanning broadly when the scope is insufficient.
 
 Review mode controls review depth, not context breadth. Context breadth is controlled by Context Class, Plan Scope, Review Scope, and explicit Allow paths. Lite review is low-risk and plan-first; standard review is deeper within the approved scope.
+
+## Context Policy
+
+`context-policy.yml` documents Runiac-specific context policy. It is schema-only in this batch: no runner reads it yet, and no YAML parsing or context packet builder has been added.
+
+The policy keeps Runiac always-on invariants in `non_negotiable_invariants`, including backend ownership for XP/streak/level/rank/leaderboard, Basic/Premium access through `subscriptionStatus`, operational/governance roles through `userRole`, expert-plan draft submission by Medical Trainer/Expert, Platform Administrator approval/publishing authority, and the rule that AI/LLM must not become official XP/rank/leaderboard logic.
+
+Class-specific allowed paths live under `allowed_paths`. Workflow scope is limited to `tools/agent-review/**` and `.claude/settings.json`; docs scope is Markdown documentation; implementation preparation includes traceability, `PRD.md`, and PDD Markdown; feature/security/architecture scopes add the relevant implementation, Firebase, and PDD areas.
+
+Excluded paths document sensitive, large, and generated areas. Runiac policy excludes submitted artifacts, PDFs, images, SVGs, dependency/build folders, Dart tool output, test evidence, `.env` files, and `secrets/**` from default context breadth.
 
 ## Context Selection
 

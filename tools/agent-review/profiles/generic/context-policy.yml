@@ -1,0 +1,97 @@
+schema_version: 1
+
+context_classes:
+  workflow:
+    description: "Workflow automation, agent prompts, runner scripts, and process documentation."
+    default_review_mode: "lite"
+    allowed_path_keys: ["workflow", "always_read"]
+  docs:
+    description: "Documentation-only work that does not affect production behavior."
+    default_review_mode: "lite"
+    allowed_path_keys: ["docs", "always_read"]
+  implementation_prep:
+    description: "Requirements mapping, setup gates, architecture mapping, and implementation planning."
+    default_review_mode: "standard"
+    allowed_path_keys: ["implementation_prep", "docs", "always_read"]
+  feature:
+    description: "Feature planning or implementation work in application source areas."
+    default_review_mode: "standard"
+    allowed_path_keys: ["feature", "docs", "always_read"]
+  security:
+    description: "Security, privacy, auth, permissions, secrets, or sensitive-data work."
+    default_review_mode: "standard"
+    allowed_path_keys: ["security", "feature", "docs", "always_read"]
+  architecture:
+    description: "System architecture, boundaries, ownership, deployment shape, or cross-component design."
+    default_review_mode: "standard"
+    allowed_path_keys: ["architecture", "docs", "implementation_prep", "always_read"]
+  unknown:
+    description: "Insufficient information to choose a context class safely."
+    default_review_mode: "standard"
+    allowed_path_keys: []
+
+always_read:
+  - AGENTS.md
+  - README.md
+
+allowed_paths:
+  workflow:
+    - "tools/agent-review/**"
+    - .claude/settings.json
+  docs:
+    - "docs/**/*.md"
+    - README.md
+  implementation_prep:
+    - "docs/**/*.md"
+    - "requirements/**"
+    - "planning/**"
+  feature:
+    - "src/**"
+    - "app/**"
+    - "lib/**"
+    - "tests/**"
+  security:
+    - "src/**"
+    - "app/**"
+    - "lib/**"
+    - "security/**"
+    - .claude/settings.json
+  architecture:
+    - "docs/**/*.md"
+    - "architecture/**"
+    - "planning/**"
+
+excluded_paths:
+  large_or_expensive:
+    - "submissions/**"
+    - "**/*.pdf"
+    - "**/*.png"
+    - "**/*.jpg"
+    - "**/*.jpeg"
+    - "**/*.svg"
+  generated:
+    - "**/node_modules/**"
+    - "**/build/**"
+    - "dist/**"
+    - "coverage/**"
+  sensitive:
+    - .env
+    - .env.*
+    - "secrets/**"
+
+review_file_budgets:
+  lite: 3
+  standard: 8
+  default: 6
+
+unknown_context_behavior: "reject"
+
+explicit_allow_behavior:
+  enabled: true
+  syntax: "Allow: <path>"
+  max_allowed_paths_per_task: 5
+  requires_justification: true
+
+non_negotiable_invariants: []
+
+forbidden_content_patterns: []

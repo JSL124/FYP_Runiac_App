@@ -19,8 +19,12 @@ tools/agent-review/
     lib/
       common.sh
   profiles/
+    generic/
+      README.md
+      context-policy.yml
     runiac/
       README.md
+      context-policy.yml
       agent-review.env.example
       prompts/
         01_codex_create_plan.md
@@ -32,6 +36,7 @@ tools/agent-review/
 
 - `runner/` contains generic shell helpers and subcommands. It should not include Runiac PRD/PDD/business rules.
 - `profiles/<name>/` contains project-specific prompts and example settings.
+- `profiles/generic/` contains a reusable schema template with no project-specific invariants.
 - `profiles/runiac/` contains the Runiac prompt set and artifact path defaults.
 
 ## Runner Usage
@@ -87,6 +92,21 @@ tools/agent-review/profiles/runiac/prompts/
 Codex plans must include a `Review Scope` section. This gives Claude a focused list of expected changes, files worth reading, out-of-scope paths, risk tags, and the recommended review mode so review does not require unnecessary repository scanning. Standard review is still risk-aware, but it should stay inside the Review Scope and return `DEFER` with requested additional paths when the scope is not enough.
 
 Review mode controls review depth, not context breadth. Context breadth is controlled by Context Class, Plan Scope, Review Scope, and explicit Allow paths. Lite review is low-risk and plan-first; standard review is deeper within the approved scope, but it should not broaden context on its own.
+
+## Context Policy Files
+
+Profile `context-policy.yml` files are schema-only in this batch. No runner reads them yet, `run_plan_review.sh` does not parse YAML, and this change does not add a context packet builder.
+
+The intended future integration is a context packet builder that reads profile policy, applies the selected context class, and emits bounded planning/review context. Until that integration exists, prompts and human review remain authoritative. If runner integration is delayed, re-review the schema before treating any `context-policy.yml` as authoritative.
+
+The schema separates:
+
+- Layer A: `non_negotiable_invariants`, always-on domain rules.
+- Layer B: `allowed_paths` and `excluded_paths`, class-specific context scope.
+
+Review mode controls review depth, not context breadth. Context breadth is controlled by context class, allowed paths, excluded paths, and explicit `Allow: <path>` entries. `unknown_context_behavior: "reject"` means unknown context must not auto-expand into feature, security, or architecture scope.
+
+The generic profile must not contain project-specific invariants. Project profiles may add domain-specific invariants and forbidden content patterns.
 
 ## Generic Context Selection Protocol
 
@@ -257,4 +277,4 @@ Do not use Claude `--bare` or `--append-system-prompt-file` for this runner.
 
 After 3-5 real planning tasks, review whether the runner logic is stable enough to externalize. Do not create a separate repo, Git submodule, package, or GitHub Actions workflow yet.
 
-Future generic distribution should add `context-policy.yml` with `schema_version`, cheap inventory size limits, a context packet builder, and a generic fixture repo smoke test. These are future work only and are not implemented in this batch.
+Future generic distribution should integrate `context-policy.yml` through a context packet builder, cheap inventory size limits, and a generic fixture repo smoke test. These integrations are future work only and are not implemented in this batch.

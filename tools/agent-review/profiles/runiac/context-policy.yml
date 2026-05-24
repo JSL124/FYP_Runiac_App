@@ -1,0 +1,117 @@
+schema_version: 1
+
+context_classes:
+  workflow:
+    description: "Agent-review runner scripts, prompts, workflow docs, Claude settings, and process automation."
+    default_review_mode: "lite"
+    allowed_path_keys: ["workflow", "always_read"]
+  docs:
+    description: "Runiac documentation-only work that does not change implementation behavior."
+    default_review_mode: "lite"
+    allowed_path_keys: ["docs", "always_read"]
+  implementation_prep:
+    description: "Runiac requirements mapping, setup gates, traceability, architecture mapping, and implementation planning."
+    default_review_mode: "standard"
+    allowed_path_keys: ["implementation_prep", "docs", "always_read"]
+  feature:
+    description: "Runiac feature planning or implementation work in Flutter, Firebase, or related source areas."
+    default_review_mode: "standard"
+    allowed_path_keys: ["feature", "docs", "always_read"]
+  security:
+    description: "Runiac security, privacy, auth, role, entitlement, Firebase, or sensitive-data work."
+    default_review_mode: "standard"
+    allowed_path_keys: ["security", "feature", "docs", "always_read"]
+  architecture:
+    description: "Runiac system architecture, ownership, data model, deployment shape, or cross-component design."
+    default_review_mode: "standard"
+    allowed_path_keys: ["architecture", "docs", "implementation_prep", "always_read"]
+  unknown:
+    description: "Insufficient information to choose a Runiac context class safely."
+    default_review_mode: "standard"
+    allowed_path_keys: []
+
+always_read:
+  - AGENTS.md
+  - CLAUDE.md
+
+allowed_paths:
+  workflow:
+    - "tools/agent-review/**"
+    - .claude/settings.json
+  docs:
+    - "docs/**/*.md"
+    - README.md
+  implementation_prep:
+    - "implementation/traceability/**"
+    - PRD.md
+    - "docs/pdd/**/*.md"
+  feature:
+    - "implementation/**"
+    - "firebase/**"
+    - PRD.md
+    - "docs/pdd/**/*.md"
+  security:
+    - "firebase/**"
+    - .claude/settings.json
+    - "implementation/**"
+  architecture:
+    - "docs/pdd/**/*.md"
+    - "implementation/traceability/**"
+
+excluded_paths:
+  large_or_expensive:
+    - "docs/submissions/**"
+    - "**/*.pdf"
+    - "**/*.png"
+    - "**/*.jpg"
+    - "**/*.jpeg"
+    - "**/*.svg"
+  generated:
+    - "**/node_modules/**"
+    - "**/build/**"
+    - "**/.dart_tool/**"
+    - "test-evidence/**"
+  sensitive:
+    - .env
+    - .env.*
+    - "secrets/**"
+
+review_file_budgets:
+  lite: 3
+  standard: 8
+  default: 6
+
+unknown_context_behavior: "reject"
+
+explicit_allow_behavior:
+  enabled: true
+  syntax: "Allow: <path>"
+  max_allowed_paths_per_task: 5
+  requires_justification: true
+
+non_negotiable_invariants:
+  - "XP/streak/level/rank/leaderboard are backend-owned."
+  - "Flutter may display trusted values but must not directly write official XP/rank/leaderboard values."
+  - "subscriptionStatus controls Basic/Premium access."
+  - "userRole controls operational/governance roles."
+  - "Medical Trainer/Expert submits draft expert plans only."
+  - "Platform Administrator approves/rejects/publishes/archives expert plans."
+  - "AI/LLM must not become official XP/rank/leaderboard logic."
+
+forbidden_content_patterns:
+  - description: "No secrets/API keys"
+    patterns:
+      - "api_key"
+      - "API_KEY"
+      - "secret"
+      - "BEGIN PRIVATE KEY"
+  - description: "No production project IDs"
+    patterns:
+      - "productionProjectId"
+      - "prod_project_id"
+      - "firebase_project_id"
+  - description: "No precise GPS coordinates committed as fixture/static data"
+    patterns:
+      - "latitude"
+      - "longitude"
+      - "gpsCoordinates"
