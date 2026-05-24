@@ -267,6 +267,84 @@ Future injection mechanism options are documented here, but the decision is defe
 - Recommendation: Option A unless the packet exceeds about 2KB.
 - Final decision is deferred to the runner integration batch.
 
+## Future: context packet runner integration
+
+This section documents future runner integration design only. It does not change current pipeline behavior, does not auto-inject context packets, and does not add a high-risk auto-routing guard. `runner-integration-deferred`
+
+Opt-in behavior:
+
+- `CONTEXT_PACKET_ENABLED=0` by default. `context-packet-opt-in`
+- `CONTEXT_PACKET_ENABLED=0` preserves current pipeline behavior.
+- `CONTEXT_PACKET_ENABLED=1` enables context packet generation before the Codex plan step.
+- Context packet builder integration must remain opt-in until validated.
+
+Execution order when enabled:
+
+1. Validate task prompt. `context-packet-execution-order`
+2. Run `build_context_packet.sh`.
+3. Capture the Markdown packet.
+4. Check packet size.
+5. Combine the packet with the original task prompt.
+6. Run the existing Codex inspect-only plan step.
+7. Continue existing `REVIEW_ENABLED` / `REVIEW_MODE` behavior.
+
+Task prompt validation boundary:
+
+- The task prompt must be non-empty. `task-prompt-validation-boundary`
+- The runner should not duplicate context class detection logic.
+- Missing context class failure should be handled inside `build_context_packet.sh` through `unknown_context_behavior=reject`.
+- The runner validates only basic task prompt presence before calling the builder.
+
+YAML reader boundary:
+
+- `build_context_packet.sh` remains the only component that reads `context-policy.yml`. `yaml-reader-builder-only`
+- `run_plan_review.sh` should call the builder, not parse YAML directly.
+
+Failure behavior:
+
+- If `CONTEXT_PACKET_ENABLED=1` and the builder fails, the pipeline stops. `broad-scan-fallback-forbidden`
+- Do not fall back to broad repo scanning.
+- Do not silently continue without the packet.
+- Missing context class should fail through the builder unless the user provides `CONTEXT_CLASS` or the task prompt contains `Context Class`.
+
+Packet size limit:
+
+- Recommended maximum packet size: 8000 bytes. `packet-size-limit`
+- Rationale: the packet should guide planning, not dominate the task prompt.
+- If the packet exceeds 8000 bytes, fail clearly and tell the user to reduce scope with a narrower `CONTEXT_CLASS` or fewer `ALLOW_PATHS`.
+- Do not silently truncate the Codex prompt.
+- Future configuration via `context-policy.yml` may be added later.
+
+Prompt capture and injection:
+
+- Recommended initial approach: capture `build_context_packet.sh` stdout to a shell variable.
+- Combined prompt structure: `prompt-not-mutated`
+
+```text
+[Context Packet Markdown]
+---
+[Original Task Prompt]
+```
+
+- Both parts must be present.
+- The Codex plan phase receives the combined prompt.
+- The original task prompt must not be mutated, overwritten, or dropped.
+
+Review variable separation:
+
+- `CONTEXT_PACKET_ENABLED` controls planning context. `review-variable-separation`
+- `REVIEW_ENABLED` controls external review on/off.
+- `REVIEW_MODE` controls review depth only when review is enabled.
+- These variables must remain separate.
+
+Future smoke tests:
+
+- F1: `CONTEXT_PACKET_ENABLED=0` dry-run regression. `dry-run-integration-matrix`
+- F2: `CONTEXT_PACKET_ENABLED=1` dry-run integration.
+- F3a: `CONTEXT_PACKET_ENABLED=1` + `REVIEW_ENABLED=0` + `DRY_RUN=1` integrated dry-run.
+- F3b: `CONTEXT_PACKET_ENABLED=1` + `REVIEW_ENABLED=0` + `DRY_RUN=0` actual smoke test.
+- F4: missing context class failure test.
+
 ## External Review On/Off Policy
 
 The runner supports `REVIEW_ENABLED` for explicitly running or skipping the external Claude review step. There is no `REVIEW_PROVIDER=none`, there is no `REVIEW_MODE=off`, and implementation is not auto-run from this policy.

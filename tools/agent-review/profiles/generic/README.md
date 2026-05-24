@@ -20,7 +20,7 @@ The schema fields are:
 - `non_negotiable_invariants`: Layer A always-on domain rules.
 - `forbidden_content_patterns`: content patterns that should trigger caution or rejection.
 
-Standalone context packet builder usage is documented in the top-level README section `build_context_packet.sh`.
+Standalone context packet builder usage and future runner integration design are documented in the top-level README.
 
 Within each context class, `allowed_path_keys` may reference named `allowed_paths` groups or the top-level `always_read` list. Future schema validation must reject unknown references instead of silently broadening context.
 
