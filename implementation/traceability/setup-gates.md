@@ -24,7 +24,7 @@ Allowed statuses:
 
 | Gate | Current Status | Approval Evidence Required | Notes |
 | --- | --- | --- | --- |
-| Gate-00: Git State Baseline | Drafted | Clean status, push baseline confirmation, no unrelated untracked/staged files, no failed traceability artifacts | Not scaffold approval. |
+| Gate-00: Git State Baseline | Under Review | Clean status, push baseline confirmation, no unrelated untracked/staged files, no failed traceability artifacts, explicit human/project approval evidence | Not scaffold approval; under review only. |
 | Flutter Scaffold Gate | Not Started | Human/project approval to create Flutter scaffold and package metadata | No `flutter create` yet. |
 | Firebase Project and Config Gate | Not Started | Human/project approval for Firebase project/config approach | No `firebase init`, config files, or project IDs yet. |
 | Firestore Data Model Gate | Not Started | Approved collection/access model and traceability to requirements | No collections/rules created yet. |
@@ -40,7 +40,7 @@ Allowed statuses:
 
 ## 4. Gate-00: Git State Baseline
 
-Status: `Drafted`
+Status: `Under Review`
 
 Purpose: confirm repository hygiene before any execution gate changes from `Drafted` to `Under Review` or before any scaffold/setup action is requested.
 
@@ -53,11 +53,14 @@ Required checks:
 - No pending failed traceability artifacts.
 - Manual staging, if later approved, must name exact files and must not use `git add .`.
 
-Current creation-time note:
+Current review-time note:
 
 - `git status --short` produced no output before this document was created.
-- Push state to `origin/main` was not verified in this documentation task.
-- This gate does not approve scaffolding; it confirms baseline repository hygiene only.
+- On 2026-05-24, `git status --short` produced no output for this documentation update.
+- On 2026-05-24, `git status -sb` showed `main...origin/main`, confirming local `main` was aligned with `origin/main`.
+- Latest traceability setup commit `30c55b5 docs(traceability): add phase 1 implementation prep gates` was present locally.
+- Gate-00 is under review only. This is not approval.
+- Gate-00 still requires explicit human/project approval evidence before it can move to `Approved`.
 
 Evidence needed for `Approved`:
 
@@ -182,14 +185,66 @@ Blocked until approved:
 - No production Firebase project IDs.
 - No map provider keys.
 - No AI/LLM provider keys.
+- No Android/iOS signing material.
+- No native iOS/Android build configuration containing real keys, passwords, protected local paths, provider identifiers, or production project identifiers.
 
 Required `.gitignore`/handling checks:
 
 - `.env*` excluded or documented with safe examples only.
 - Service account JSON files excluded.
-- Mobile platform config files excluded unless explicitly approved as non-sensitive demo config.
+- Firebase mobile config files excluded unless explicitly approved as non-sensitive demo config.
 - Production Firebase project IDs excluded from committed docs/code unless explicitly approved.
 - Secret examples use placeholder values only.
+
+Sensitive configuration categories to split and review before approval:
+
+- Firebase project/config identifiers.
+- Firebase mobile config files, including `google-services.json` and `GoogleService-Info.plist`.
+- Map provider keys.
+- AI/LLM provider keys.
+- Service account credentials.
+- Android/iOS signing material.
+- Native iOS/Android build configuration.
+- Local developer-only environment variables.
+- Future CI/CD environment variables.
+
+Forbidden path and file examples unless separately approved with safe placeholder/demo content:
+
+- `.env*`.
+- `google-services.json`.
+- `GoogleService-Info.plist`.
+- Service account JSON files.
+- `android/key.properties`.
+- `android/local.properties` with real local/protected config.
+- `android/gradle.properties` or Android Gradle files with real keys, signing passwords, or provider identifiers.
+- `*.jks`.
+- `*.keystore`.
+- Future iOS signing material such as `*.p12`, `*.cer`, `*.mobileprovision`, and `*.p8`.
+- `ios/**/Info.plist` with real keys.
+- `ios/**/AppDelegate.swift` with real keys.
+- `android/**/AndroidManifest.xml` with real keys.
+- Android Gradle files with real keys.
+
+Clarifications:
+
+- `GoogleService-Info.plist` is Firebase iOS mobile configuration.
+- `ios/**/Info.plist` is native iOS app metadata where keys may accidentally be hardcoded.
+
+Configuration injection strategy requirement before scaffolding:
+
+- Choose and document a config injection strategy before Flutter/Firebase scaffolding begins.
+- Compare only at a high level for now: `--dart-define`, `--dart-define-from-file`, `flutter_dotenv`, native placeholder substitution, and CI/CD environment variables.
+- Do not choose the final strategy in this gate until explicit approval evidence exists.
+- Client-side injection strategies do not prevent reverse-engineering of compiled binaries.
+- Any value shipped inside the mobile app must be treated as potentially discoverable.
+- This reinforces the strict Runiac requirement that sensitive logic and trusted values such as XP, streak, level, rank, weekly XP, monthly XP, and leaderboard scores remain backend-owned and must not be trusted from Flutter client input.
+
+Guardrail reverse-mapping requirement before approval:
+
+- Future setup work must align secret/config guardrails across `.gitignore`, `classify_high_risk_task.sh`, `.agents/skills/runiac-review-flow/SKILL.md`, `tools/agent-review/profiles/runiac/context-policy.yml`, and legacy `.claude/settings.json`.
+- `classify_high_risk_task.sh` is a task/prompt classifier, not a git commit hook.
+- Git-level enforcement is optional future work and must be handled in a separate task.
+- LLM/agent-generated decisions alone are not approval.
 
 Approval evidence required:
 
@@ -319,7 +374,7 @@ Still forbidden until relevant gates are approved:
 
 ## 18. Explicit Approval Evidence Log
 
-| Date | Gate | Status Change | Approval Evidence / Linked Decision | Approved By | Notes |
-| --- | --- | --- | --- | --- | --- |
-| 2026-05-24 | Gate-00: Git State Baseline | Drafted | Creation-time `git status --short` produced no output before this document was created | N/A | Drafted only; not approval. |
-| 2026-05-24 | Phase 1 traceability docs | Drafted | User approved creation of `requirements-map.md` and `setup-gates.md` only | User | Does not approve scaffolding or implementation. |
+| Date | Gate Name | Status Change | Evidence/Actor | Notes |
+| --- | --- | --- | --- | --- |
+| 2026-05-24 | Gate-00: Git State Baseline | `Drafted` to `Under Review` | A0_ORCH based on `git status --short` clean output, `git status -sb` showing `main...origin/main`, and latest traceability setup commit `30c55b5 docs(traceability): add phase 1 implementation prep gates` present locally | This is not approval. Gate-00 still requires explicit human/project approval evidence before `Approved`. |
+| 2026-05-24 | Phase 1 traceability docs | Created as `Drafted` | User approved creation of `requirements-map.md` and `setup-gates.md` only | Does not approve scaffolding or implementation. LLM/agent-generated decisions alone are not approval. |
