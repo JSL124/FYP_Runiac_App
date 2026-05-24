@@ -13,15 +13,17 @@ Implementation tasks must not start until IMPLEMENTATION_MODE is explicitly requ
 | Area | Status | Notes |
 | --- | --- | --- |
 | PRD | Completed | `PRD.md` is the requirements baseline and contains F1-F10 functional requirements, non-functional requirements, methodology, timeline, platform, database, architecture, and risks. |
-| PDD | In progress | `docs/pdd/` contains active PDD design work, including application architecture, physical architecture, component diagram, class diagram, and wireframe descriptions. |
-| Implementation | Not started | No Flutter, Firebase, backend, or test implementation should be created until IMPLEMENTATION_MODE is explicitly requested. |
+| PDD | Submitted | Submitted PDD under `docs/submissions/pdd/` is the official frozen assessment snapshot. `docs/pdd/` is internal/reference only. |
+| Phase 1 implementation preparation | Under review | `implementation/traceability/requirements-map.md` and `implementation/traceability/setup-gates.md` were added and committed. Gate-00 is `Under Review`, not `Approved`. |
+| Implementation | Not started | No Flutter, Firebase, backend, source/config, or test implementation should be created until explicit human/project approval exists for the relevant setup gates. |
 
 ## 3. Phase Overview
 
 | Phase | Primary Output | Status |
 | --- | --- | --- |
 | PRD Completed | Requirements baseline | Completed |
-| PDD In Progress | Design document sections and figures | In progress |
+| PDD Submitted | Official frozen assessment snapshot | Completed |
+| Phase 1 Traceability Preparation | Requirements map and setup gates | Under review |
 | PTD / Project Progress Report | Technical report and progress explanation | Future |
 | PUM / Preliminary User Manual | Role-based user manual | Future |
 | User Stories / Product Backlog | Implementable backlog traced to PRD F1-F10 | Future |
@@ -70,10 +72,10 @@ Confirm that Runiac has a stable requirements baseline before continuing design 
 - Do not change PRD requirements through this roadmap.
 - Do not add new app features during later planning unless the PRD is explicitly updated through a separate approved task.
 
-## 6. PDD In Progress
+## 6. PDD Submitted
 
 ### Purpose
-Complete the Project Design Document based on the current PRD and teacher sample expectations for architecture, diagrams, user interface, and entity/data design coverage.
+Record that the Project Design Document has been submitted and now has a frozen assessment snapshot.
 
 ### TODO Checklist
 - [x] Prepare application architecture design.
@@ -81,11 +83,13 @@ Complete the Project Design Document based on the current PRD and teacher sample
 - [x] Prepare component diagram and component responsibilities.
 - [x] Prepare class diagram and data model explanation.
 - [x] Prepare mobile, admin, and expert wireframe descriptions.
-- [ ] Complete consistency review across PDD sections.
-- [ ] Complete output readiness check before commit or submission packaging.
-- [ ] Confirm figure references, image paths, captions, and support files are aligned.
+- [x] Submit PDD.
+- [x] Treat `docs/submissions/pdd/` as the official frozen assessment snapshot.
+- [x] Treat `docs/pdd/` as internal/reference-only material after submission.
+- [ ] Use submitted PDD only as a frozen reference during later implementation preparation.
 
 ### Related Repo Files/Folders
+- `docs/submissions/pdd/`
 - `docs/pdd/01-application-architecture.md`
 - `docs/pdd/02-physical-architecture.md`
 - `docs/pdd/03-component-diagram.md`
@@ -107,18 +111,69 @@ Complete the Project Design Document based on the current PRD and teacher sample
 - A14_ERROR_TRIAGE only for concrete detected errors.
 
 ### Exit Criteria
-- PDD sections are complete enough for academic submission.
+- PDD submission is complete and frozen for assessment reference.
 - Diagrams, wireframes, terminology, role rules, and architecture assumptions are consistent.
 - No implementation code is placed inside `docs/`.
 
 ### Risks And Boundaries
 - PDD must not become implementation code.
+- Submitted PDD is the official frozen assessment snapshot.
+- `docs/pdd/` is internal/reference only.
 - Basic User and Premium User must not be modelled as separate subclasses.
 - `subscriptionStatus` controls Basic/Premium access.
 - `userRole` controls Platform Administrator and Medical Trainer/Expert governance access.
 - XP, streak, level, rank, leaderboard score, weekly XP, and monthly XP remain backend-owned.
 
-## 7. PTD / Project Progress Report
+## 7. Phase 1 Implementation Preparation
+
+### Purpose
+Prepare traceability and setup gates before any Flutter/Firebase scaffold or production source/config work starts.
+
+### TODO Checklist
+- [x] Add and commit `implementation/traceability/requirements-map.md`.
+- [x] Add and commit `implementation/traceability/setup-gates.md`.
+- [x] Review Gate-00 readiness.
+- [x] Move Gate-00 to `Under Review`.
+- [x] Harden the Secret / API Key / Environment Handling Gate.
+- [ ] Obtain formal human/project approval for Gate-00 before it becomes `Approved`.
+- [ ] Obtain formal human/project approval for Secret / API Key / Environment Handling Gate before it becomes `Approved`.
+- [ ] Run future guardrail reverse-mapping / sync review across `.gitignore`, `classify_high_risk_task.sh`, `.agents/skills/runiac-review-flow/SKILL.md`, `tools/agent-review/profiles/runiac/context-policy.yml`, and legacy `.claude/settings.json`.
+- [ ] Decide config injection strategy before scaffolding.
+- [ ] Decide Firebase config boundary before `firebase init`.
+- [ ] Decide Flutter scaffold target path before `flutter create`.
+- [ ] Prepare Firebase Project and Config Gate.
+- [ ] Prepare Flutter Scaffold Gate.
+
+### Related Repo Files/Folders
+- `implementation/traceability/requirements-map.md`
+- `implementation/traceability/setup-gates.md`
+- `docs/submissions/pdd/`
+- `docs/pdd/`
+
+### Relevant Agent / Workflow Owner
+- A0_ORCH for workflow sequencing.
+- A6_REVIEW for safety and boundary review.
+- A8_OUTPUT_CHECKER for completeness and readiness.
+- A9_TRACE for requirement traceability.
+
+### Exit Criteria
+- Gate-00 has explicit human/project approval evidence before `Approved`.
+- Secret/config handling has explicit human/project approval evidence before `Approved`.
+- Flutter and Firebase scaffold gates are prepared but no scaffold command has run.
+- Config and guardrail decisions are documented before implementation starts.
+
+### Risks And Boundaries
+- TODO status is not approval.
+- Gate status `Under Review` is not approval.
+- Codex/LLM-generated artifacts are not human/project approval.
+- Human/project approval evidence is required before any setup gate becomes `Approved`.
+- `classify_high_risk_task.sh` is a task/prompt classifier, not a git commit hook.
+- Git-level enforcement is optional future work and must be handled separately.
+- Client-side injection strategies do not prevent reverse-engineering; any value shipped inside the mobile app is potentially discoverable.
+- XP, streak, level, rank, weekly XP, monthly XP, and leaderboard scores remain backend-owned.
+- Do not run `flutter create` or `firebase init` until explicit approval exists.
+
+## 8. PTD / Project Progress Report
 
 ### Purpose
 Prepare the technical and progress report expected after preliminary design. Based on the teacher sample, this phase should explain implementation rationale, platforms, proposed plan, functional requirements, user stories, use cases, workflow, architecture design, database design, data flow, sequence diagrams, UI design, non-functional requirements, schedule, team organization, and risks.
@@ -157,7 +212,7 @@ Prepare the technical and progress report expected after preliminary design. Bas
 - Do not create production implementation files while writing PTD.
 - Do not introduce database fields, APIs, or implementation details that conflict with PRD/PDD.
 
-## 8. PUM / Preliminary User Manual
+## 9. PUM / Preliminary User Manual
 
 ### Purpose
 Prepare a role-based preliminary user manual that explains how intended users interact with Runiac screens and workflows.
@@ -195,7 +250,7 @@ Prepare a role-based preliminary user manual that explains how intended users in
 - Do not expose sensitive data, private GPS route details, or admin-only operations as normal user actions.
 - Do not imply Medical Trainer/Expert can directly publish expert plans.
 
-## 9. User Stories / Product Backlog
+## 10. User Stories / Product Backlog
 
 ### Purpose
 Convert PRD requirements into implementable backlog items that can guide development without changing the agreed project scope.
@@ -232,13 +287,20 @@ Convert PRD requirements into implementable backlog items that can guide develop
 - Do not allow Premium stories to create XP, rank, leaderboard score, or competitive advantages.
 - Do not allow client-side stories to write backend-owned trusted values.
 
-## 10. Implementation Planning
+## 11. Implementation Planning
 
 ### Purpose
 Plan the build sequence before implementation begins, so Flutter, Firebase, backend logic, access control, and QA work are coordinated.
 
 ### TODO Checklist
 - [ ] Confirm IMPLEMENTATION_MODE has been explicitly requested before creating production code.
+- [ ] Confirm Gate-00 is `Approved` with explicit human/project approval evidence.
+- [ ] Confirm Secret / API Key / Environment Handling Gate is `Approved` with explicit human/project approval evidence.
+- [ ] Decide config injection strategy before scaffolding.
+- [ ] Decide Firebase config boundary before `firebase init`.
+- [ ] Decide Flutter scaffold target path before `flutter create`.
+- [ ] Prepare Firebase Project and Config Gate.
+- [ ] Prepare Flutter Scaffold Gate.
 - [ ] Decide initial Flutter project structure when implementation starts.
 - [ ] Decide Firebase setup sequence when implementation starts.
 - [ ] Plan authentication, user profile, subscription, and role enforcement.
@@ -268,16 +330,20 @@ Plan the build sequence before implementation begins, so Flutter, Firebase, back
 
 ### Risks And Boundaries
 - Do not start implementation without explicit IMPLEMENTATION_MODE.
+- Do not run `flutter create` until explicit human/project approval exists for the Flutter Scaffold Gate.
+- Do not run `firebase init` until explicit human/project approval exists for the Firebase Project and Config Gate.
+- Do not create production Firebase config, `google-services.json`, `GoogleService-Info.plist`, `.env` files with real values, Android/iOS signing material, API keys, or service account files.
 - Do not treat UI hiding as the only Premium enforcement.
 - Do not place production source code inside `docs/`.
 
-## 11. Flutter/Firebase Implementation
+## 12. Flutter/Firebase Implementation
 
 ### Purpose
 Build the Runiac mobile app and backend services according to PRD, PDD, PTD, and backlog scope.
 
 ### TODO Checklist
 - [ ] Start only after the user explicitly requests IMPLEMENTATION_MODE.
+- [ ] Start only after relevant setup gates are `Approved` with explicit human/project approval evidence.
 - [ ] Create Flutter app structure and navigation.
 - [ ] Implement authentication and profile setup.
 - [ ] Implement Basic/Premium feature presentation with backend-backed entitlement checks.
@@ -307,12 +373,13 @@ Build the Runiac mobile app and backend services according to PRD, PDD, PTD, and
 - Implementation remains traceable to PRD/PDD/backlog.
 
 ### Risks And Boundaries
+- Flutter scaffold, Firebase init, Firestore rules, Storage rules, Cloud Functions source, production Firebase config, `google-services.json`, `GoogleService-Info.plist`, `.env` files with real values, Android/iOS signing material, API keys, and service account files remain blocked until explicit approval.
 - Do not let Flutter directly write trusted progression or ranking values.
 - Do not let Premium users gain competitive scoring advantages.
 - Do not let Medical Trainer/Expert publish expert plans directly.
 - Do not add production implementation files during documentation-only phases.
 
-## 12. Testing / QA Evidence
+## 13. Testing / QA Evidence
 
 ### Purpose
 Produce evidence that the implemented Runiac system works against requirements, access rules, core workflows, and project constraints.
@@ -347,7 +414,7 @@ Produce evidence that the implemented Runiac system works against requirements, 
 - Do not mark testing complete without clear evidence.
 - Do not use tests to justify adding new features outside PRD scope.
 
-## 13. Prototype Presentation
+## 14. Prototype Presentation
 
 ### Purpose
 Prepare a presentation that explains the project scope, learning objectives, research findings, development tools, prototype demonstration, and future development direction.
@@ -386,7 +453,7 @@ Prepare a presentation that explains the project scope, learning objectives, res
 - Do not expose private user data in demo screenshots or logs.
 - Do not present UI wireframes as implemented screens unless the prototype matches them.
 
-## 14. Final Submission
+## 15. Final Submission
 
 ### Purpose
 Prepare the final submission package with all required documents, source code, test evidence, presentation material, and any required appendices.
@@ -421,25 +488,37 @@ Prepare the final submission package with all required documents, source code, t
 - Do not stage or submit unrelated files.
 - Do not include secrets, private data, or sensitive location traces.
 
-## 15. Cross-Phase Risks And Boundaries
+## 16. Cross-Phase Risks And Boundaries
 
 - PRD is the requirements baseline; roadmap items must trace back to PRD F1-F10 or documented non-functional requirements.
 - PDD describes design; it must not become production implementation.
+- Submitted PDD under `docs/submissions/pdd/` is the official frozen assessment snapshot.
+- `docs/pdd/` is internal/reference only.
 - PTD and PUM should reference PRD/PDD rather than silently changing scope.
 - Product backlog items must not invent new features.
 - Implementation requires explicit IMPLEMENTATION_MODE.
+- Flutter/Firebase scaffolding is not approved.
+- `flutter create` and `firebase init` remain forbidden until explicit human/project approval evidence exists.
+- LLM/agent-generated decisions alone are not approval.
 - Flutter client must not directly write XP, streak, level, rank, leaderboard score, weekly XP, or monthly XP.
+- Client-side injection strategies do not prevent reverse-engineering of values shipped inside the mobile app.
+- Secret handling must cover Firebase project/config identifiers, Firebase mobile config files, map provider keys, AI/LLM provider keys, service account credentials, Android/iOS signing material, native iOS/Android build configuration, local developer-only env vars, and future CI/CD env vars.
 - Premium features must add value without giving competitive scoring advantages.
 - Medical Trainer/Expert must not directly publish expert plans.
 - Platform Administrator remains the governance role for expert plan approval and publication.
 - Sensitive route, activity, profile, and running metric data must be handled carefully in documentation, testing evidence, and demos.
 
-## 16. Next Immediate TODO
+## 17. Next Immediate TODO
 
-The immediate priority is completing the current PDD phase before starting PTD, PUM, backlog, or implementation work.
+The immediate priority is completing Phase 1 implementation-preparation approval work without starting Flutter/Firebase scaffolding or production implementation.
 
-- [ ] Finish any remaining PDD wireframe, figure, or prompt planning work.
-- [ ] Run A6_REVIEW for PDD consistency where recent changes affect PDD support files.
-- [ ] Run A8_OUTPUT_CHECKER before declaring PDD deliverables ready.
+- [ ] Obtain formal human/project approval for Gate-00 before `Approved`.
+- [ ] Obtain formal human/project approval for Secret / API Key / Environment Handling Gate before `Approved`.
+- [ ] Decide config injection strategy before scaffolding.
+- [ ] Decide Firebase config boundary before `firebase init`.
+- [ ] Decide Flutter scaffold target path before `flutter create`.
+- [ ] Prepare Firebase Project and Config Gate.
+- [ ] Prepare Flutter Scaffold Gate.
+- [ ] Run future guardrail reverse-mapping / sync review.
 - [ ] Keep implementation planning as documentation only until IMPLEMENTATION_MODE is explicitly requested.
-- [ ] After PDD readiness, plan PTD / Project Progress Report structure using PRD and PDD as sources.
+- [ ] Plan PTD / Project Progress Report structure using PRD and the submitted PDD snapshot as sources.

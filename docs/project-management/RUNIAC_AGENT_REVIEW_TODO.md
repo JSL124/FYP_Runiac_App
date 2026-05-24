@@ -68,12 +68,18 @@ Implementation remains user-approved only. The pipeline may prepare plans, revie
 
 - [ ] TODO auto-updater is postponed
 - [ ] Flutter/Firebase implementation has not started
+- [ ] TODO status is not approval.
+- [ ] Gate status `Under Review` is not approval.
+- [ ] Codex/LLM-generated artifacts are not human/project approval.
+- [ ] Human/project approval evidence is required before any setup gate becomes `Approved`.
 
 ## Next Planned Steps
 
-- [ ] Return to Runiac Phase 1 implementation preparation:
-  - `implementation/traceability/requirements-map.md`
-  - `implementation/traceability/setup-gates.md`
+- [ ] Continue Phase 1 implementation preparation review and approval:
+  - formal human/project approval for Gate-00
+  - formal human/project approval for Secret / API Key / Environment Handling Gate
+  - prepare Firebase Project and Config Gate
+  - prepare Flutter Scaffold Gate
 - [ ] Do not start Flutter/Firebase scaffolding until setup gates approve it
 
 ## Postponed TODO Automation
@@ -90,13 +96,39 @@ Implementation remains user-approved only. The pipeline may prepare plans, revie
 
 ## Phase 1 Runiac Implementation Preparation
 
-- [ ] Create `implementation/traceability/requirements-map.md` later
-- [ ] Create `implementation/traceability/setup-gates.md` later
-- [ ] Verify submitted PDD PDF readable text first
-- [ ] Compare submitted PDD baseline with `docs/pdd/` only for implementation-relevant deltas
-- [ ] Map MVP features F1, F2, F3, F4, F6, F9
+- [x] PRD complete.
+- [x] PDD submitted.
+- [x] Submitted PDD under `docs/submissions/pdd/` is the official frozen assessment snapshot.
+- [x] `docs/pdd/` retained as internal/reference-only material.
+- [x] Codex-only review flow simplification completed.
+- [x] Phase 1 traceability docs added and committed:
+  - `implementation/traceability/requirements-map.md`
+  - `implementation/traceability/setup-gates.md`
+- [x] `requirements-map.md` created.
+- [x] `setup-gates.md` created.
+- [x] Gate-00 readiness reviewed.
+- [x] Gate-00 moved to `Under Review`.
+- [x] Secret / API Key / Environment Handling Gate hardened.
+- [x] MVP features and implementation-preparation boundaries mapped in `requirements-map.md`.
+- [ ] Formal human/project approval for Gate-00.
+- [ ] Formal human/project approval for Secret / API Key / Environment Handling Gate.
+- [ ] Future guardrail reverse-mapping / sync review across:
+  - `.gitignore`
+  - `classify_high_risk_task.sh`
+  - `.agents/skills/runiac-review-flow/SKILL.md`
+  - `tools/agent-review/profiles/runiac/context-policy.yml`
+  - legacy `.claude/settings.json`
+- [ ] Decide config injection strategy before scaffolding.
+- [ ] Decide Firebase config boundary before `firebase init`.
+- [ ] Decide Flutter scaffold target path before `flutter create`.
+- [ ] Prepare Firebase Project and Config Gate.
+- [ ] Prepare Flutter Scaffold Gate.
 - [ ] Mark deferred features F5, F7, F8, F10 unless user decides otherwise
 - [ ] Clarify expert/admin governance scope
+
+Secret gate coverage now includes Firebase project/config identifiers, Firebase mobile config files, map provider keys, AI/LLM provider keys, service account credentials, Android/iOS signing material, native iOS/Android build configuration, local developer-only env vars, and future CI/CD env vars. Client-side injection strategies do not prevent reverse-engineering; any value shipped inside the mobile app is potentially discoverable. XP, streak, level, rank, weekly XP, monthly XP, and leaderboard scores remain backend-owned.
+
+`classify_high_risk_task.sh` is a task/prompt classifier, not a git commit hook. Git-level enforcement is optional future work and must be handled separately.
 
 ## Do Not Do Yet
 
@@ -115,7 +147,13 @@ Implementation remains user-approved only. The pipeline may prepare plans, revie
 - [ ] Do not create Storage rules
 - [ ] Do not create GitHub Actions
 - [ ] Do not create production source code
+- [ ] Do not create production Firebase config.
+- [ ] Do not add `google-services.json`.
+- [ ] Do not add `GoogleService-Info.plist`.
+- [ ] Do not add `.env` files with real values.
+- [ ] Do not add Android/iOS signing material.
+- [ ] Do not add API keys or service account files.
 
 ## Next Codex Prompt Topic
 
-Return to Phase 1 implementation preparation by drafting `implementation/traceability/requirements-map.md` and `implementation/traceability/setup-gates.md`.
+Continue Phase 1 implementation preparation by collecting explicit human/project approval evidence for Gate-00 and preparing the Firebase Project and Config Gate / Flutter Scaffold Gate without running scaffold commands.
