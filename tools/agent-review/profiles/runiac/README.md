@@ -13,6 +13,8 @@ This profile contains the Runiac-specific prompts and example settings used by t
 
 Plans created by `prompts/01_codex_create_plan.md` must include a `Review Scope` section. The scope lists expected changed files, likely review reads, out-of-scope files, risk tags, and a recommended review mode so Claude can review efficiently. Standard review should use that scope first and return `DEFER` with requested additional paths instead of scanning broadly when the scope is insufficient.
 
+Review mode controls review depth, not context breadth. Context breadth is controlled by Context Class, Plan Scope, Review Scope, and explicit Allow paths. Lite review is low-risk and plan-first; standard review is deeper within the approved scope.
+
 ## Context Selection
 
 Runiac uses the generic progressive context selection protocol: cheap inventory, user-declared or conservative context class, `Plan Scope`, inspect-only plan, `Review Scope`, scope-limited Claude review, and final Codex decision.
@@ -31,6 +33,16 @@ For `docs`, read only directly relevant docs and local instructions. For `implem
 Token/Context Discipline: avoid reading long files unless directly required, avoid dumping large file contents into the plan, summarize findings, and keep inspect-only workflow plans concise.
 
 Review Scope is not an inventory list. `Files Claude may need to read for review` should be minimal. For `workflow` context, include at most 6 review files unless explicit expanded review is allowed. Inspect-only workflow smoke tests should use representative files only, not every prompt/config/runner file.
+
+Compact workflow smoke-test plan:
+
+- Use concise bullets.
+- Avoid long explanatory sections.
+- Summarize evidence instead of expanding every detail.
+- Avoid repeating the same excluded paths in multiple sections.
+- Avoid listing more than 3 representative files under `Files actually read` unless necessary.
+- Avoid listing more than 3 representative files under `Files Claude may need to read for review` for lite review.
+- If more files are needed, recommend standard review or `DEFER`.
 
 DEFER recovery: add explicit Allow paths when the class is too restrictive, re-run with the correct class when the class is wrong, split oversized plans, or approve exact sensitive/reference paths when needed.
 
@@ -68,6 +80,8 @@ tools/agent-review/runner/run_plan_review.sh pipeline
 If `REVIEW_PROMPT` is set in the environment or a config file, it takes precedence over `REVIEW_MODE`.
 
 Use standard mode instead of lite mode for changes touching XP, streak, level, rank, leaderboard, roles, entitlements, premium fairness, Firebase ownership, Cloud Functions ownership, security rules, or submitted PDD / PRD consistency.
+
+Lite review reads the Codex plan first, prefers judging from plan content only, and reads project files only when needed to identify a `MUST_FIX` issue. For workflow smoke tests, lite review should read at most 2-3 representative files besides the plan and must return `DEFER` with standard mode recommended when broader validation is needed.
 
 ## Claude Review Cost Caps
 

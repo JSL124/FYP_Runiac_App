@@ -86,6 +86,8 @@ tools/agent-review/profiles/runiac/prompts/
 
 Codex plans must include a `Review Scope` section. This gives Claude a focused list of expected changes, files worth reading, out-of-scope paths, risk tags, and the recommended review mode so review does not require unnecessary repository scanning. Standard review is still risk-aware, but it should stay inside the Review Scope and return `DEFER` with requested additional paths when the scope is not enough.
 
+Review mode controls review depth, not context breadth. Context breadth is controlled by Context Class, Plan Scope, Review Scope, and explicit Allow paths. Lite review is low-risk and plan-first; standard review is deeper within the approved scope, but it should not broaden context on its own.
+
 ## Generic Context Selection Protocol
 
 The generic agent-review workflow should use progressive context selection:
@@ -121,8 +123,17 @@ Token/Context Discipline:
 - Avoid dumping large file contents into the plan.
 - Summarize findings instead of reproducing file content.
 - Keep inspect-only workflow plans concise.
+- For workflow smoke tests, use compact plan output with concise bullets and no long explanatory sections.
 
 Review Scope is not an inventory list. `Files Claude may need to read for review` must be the minimum review set, not every possibly relevant file. For `workflow` context, include at most 6 review files unless the user explicitly allows expanded review. For inspect-only workflow smoke tests, choose representative files only. If more than 6 review files seem necessary, return `DEFER` instead of silently expanding Review Scope.
+
+Compact workflow smoke-test plan:
+
+- Use concise bullets.
+- Avoid repeating the same excluded paths in multiple sections.
+- Avoid listing more than 3 representative files under `Files actually read` unless necessary.
+- Avoid listing more than 3 representative files under `Files Claude may need to read for review` for lite review.
+- If more files are needed, recommend standard review or `DEFER`.
 
 For `workflow` context, do not read product requirements, submitted assessment docs, PDFs, images, diagrams, generated assets, Flutter/Firebase source, tests, or test evidence unless explicitly allowed by the user. If a workflow task explicitly asks for product-requirement alignment, require explicit Allow paths rather than auto-expanding.
 
@@ -149,6 +160,8 @@ REVIEW_MODE=lite     # uses 05_claude_review_plan_lite.md
 `REVIEW_PROMPT` remains an override. If it is set in the environment or a config file, the runner uses that prompt regardless of `REVIEW_MODE`.
 
 Use standard mode instead of lite mode for changes touching XP, streak, level, rank, leaderboard, roles, entitlements, premium fairness, Firebase ownership, Cloud Functions ownership, security rules, or submitted PDD / PRD consistency.
+
+Lite review should read the Codex plan first, prefer judging from plan content only, and read project files only when needed to identify a `MUST_FIX` issue. For workflow smoke tests, lite review should read at most 2-3 representative files besides the plan. It must not perform broad validation; if broad validation is needed, return `DEFER` and recommend standard mode.
 
 Claude review has two safety caps that apply only to the Claude review step:
 

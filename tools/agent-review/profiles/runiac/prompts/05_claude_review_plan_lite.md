@@ -1,8 +1,10 @@
 # Claude Lite Review Codex Plan
 
-Review the Codex-generated plan only. Do not edit files. Do not propose implementation patches. Do not run commands. Do not use Bash, Edit, Write, or filesystem-modifying tools.
+Read the Codex-generated plan first. Prefer judging from the plan content only. Do not edit files. Do not propose implementation patches. Do not run commands. Do not use Bash, Edit, Write, or filesystem-modifying tools.
 
-Use this lite review only for small, low-risk planning checks.
+Use this lite review only for small, low-risk planning checks. Lite review is plan-first and minimal-read.
+
+Read project files only if needed to identify a MUST_FIX issue. For workflow smoke tests, read at most 2-3 representative files besides the plan. Do not use lite review to perform broad validation. If broader validation is needed, return DEFER and recommend standard mode.
 
 Escalate to standard mode instead of lite mode for changes touching:
 
@@ -18,6 +20,7 @@ Escalate to standard mode instead of lite mode for changes touching:
 - Cloud Functions ownership
 - security rules
 - submitted PDD / PRD consistency
+- production source code
 
 Focus on concrete blockers, unsafe operations, missing approval gates, and whether the plan should be reviewed in standard mode.
 

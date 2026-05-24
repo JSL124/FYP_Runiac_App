@@ -12,6 +12,7 @@ Token/Context Discipline:
 - Avoid dumping large file contents into the plan.
 - Summarize findings instead of reproducing file content.
 - Keep inspect-only workflow plans concise.
+- For workflow smoke tests, keep the plan short, use concise bullets, and do not produce long explanatory sections.
 
 Generic context classes:
 
@@ -63,9 +64,19 @@ Layer B: class-specific context scope controls what files should be read:
 
 - For `workflow`, use runner scripts, agent prompts, review workflow docs, `.claude/settings.json`, and repo process automation. Do not read product requirements, submitted assessment docs, PDFs, images, diagrams, generated assets, Flutter/Firebase source, tests, or test evidence unless explicitly allowed by the user. If the workflow task explicitly asks for product-requirement alignment, require explicit Allow paths rather than auto-expanding.
 - For inspect-only workflow smoke tests, select representative files only, not every prompt/config/runner file.
+- For inspect-only workflow smoke tests, summarize evidence instead of expanding every detail.
 - For `docs`, read only directly relevant docs and local instructions. Avoid PDFs/images/generated assets unless explicitly allowed.
 - For `implementation_prep`, selectively read PRD/PDD markdown if needed. Avoid submitted PDFs/images/generated assets unless explicitly allowed.
 - For `feature`, `security`, and `architecture`, consult requirement and architecture references as needed, avoid broad repo scans and large binary/generated assets, and include high-risk review mode guidance.
+
+Compact workflow smoke-test plan rule:
+
+- Use concise bullets.
+- Avoid repeating the same excluded paths in multiple sections.
+- Avoid listing more than 3 representative files under `Files actually read` unless necessary.
+- Avoid listing more than 3 representative files under `Files Claude may need to read for review` for lite review.
+- If more files are needed, recommend standard review or `DEFER`.
+- Still include Planning Evidence Read, Context Class Decision, Plan Scope, Review Scope, risk tags, recommended review mode, Proposed Plan, and Approval Gate.
 
 Output using exactly these headings:
 
@@ -80,6 +91,8 @@ Include:
 - Files actually read
 - Files intentionally skipped
 - Reason for skipping large/reference/irrelevant files
+
+For inspect-only workflow smoke tests, list no more than 3 representative files actually read unless more are necessary; summarize the rest by category.
 
 ## Context Class Decision
 
@@ -117,6 +130,8 @@ Include:
 - Recommended review mode: lite or standard
 
 Review Scope is not an inventory list. `Files Claude may need to read for review` must be the minimum review set needed to assess the plan. For `workflow` context, include at most 6 files unless the user explicitly allows expanded review. For inspect-only workflow smoke tests, choose representative files only. If more than 6 review files seem necessary, return a DEFER/escalation note instead of silently expanding Review Scope.
+
+For workflow smoke tests using lite review, list no more than 3 representative files under `Files Claude may need to read for review`. If lite review would need more, recommend standard review or `DEFER`.
 
 Recommend lite only for low-risk documentation or workflow changes. Recommend standard for anything touching XP, streak, level, rank, leaderboard, roles, entitlements, Firebase ownership, Cloud Functions ownership, security rules, PRD/PDD consistency, or production source code.
 
