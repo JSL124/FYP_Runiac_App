@@ -84,6 +84,11 @@ review_file_budgets:
   standard: 8
   default: 6
 
+inventory_limits:
+  max_listed_files: 200
+  max_directory_depth: 3
+  max_inventory_bytes: 50000
+
 unknown_context_behavior: "reject"
 
 explicit_allow_behavior:
