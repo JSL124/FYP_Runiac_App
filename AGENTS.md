@@ -101,3 +101,18 @@
 - Implementation role details: `implementation/AGENT_ROLES.md`
 - Firebase/backend work: `firebase/AGENTS.md`
 - Tests and QA: `tests/AGENTS.md`
+
+## Roadmap Context Protocol
+
+When starting any task:
+
+1. Read `implementation/roadmap/CURRENT.md` first (always).
+2. Read the active phase doc referenced in CURRENT.md.
+3. Read relevant ADRs referenced in CURRENT.md.
+4. Read `implementation/roadmap/snapshots/latest.md` for current state.
+
+Do not load:
+- `roadmap-stretch.md` unless explicitly instructed.
+- archived snapshots unless explicitly instructed.
+- future phase docs unless explicitly instructed.
+- full `roadmap-summary.md` unless planning cross-phase work.
