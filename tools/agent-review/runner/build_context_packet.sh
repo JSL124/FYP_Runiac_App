@@ -12,6 +12,10 @@ warn() {
   printf 'WARNING: %s\n' "$*" >&2
 }
 
+trim() {
+  printf '%s' "$1" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//'
+}
+
 require_ruby() {
   if ! command -v ruby >/dev/null 2>&1; then
     die "Ruby is required to parse context-policy.yml. Install Ruby or run this tool in an environment with Ruby stdlib YAML available."
@@ -61,6 +65,23 @@ elif [ "${TASK_PROMPT_FILE+x}" = x ]; then
   task_prompt="$(<"$TASK_PROMPT_FILE")"
 else
   task_prompt=""
+fi
+
+allow_justification="$(trim "${ALLOW_JUSTIFICATION:-}")"
+if [ "${ALLOW_PATHS+x}" = x ] && [ -n "$ALLOW_PATHS" ]; then
+  allow_path_count=0
+  IFS=',' read -r -a allow_path_items_for_policy <<<"$ALLOW_PATHS"
+  for raw_path in "${allow_path_items_for_policy[@]}"; do
+    path="$(trim "$raw_path")"
+    [ -n "$path" ] || continue
+    allow_path_count=$((allow_path_count + 1))
+  done
+  if [ "$allow_path_count" -gt 5 ]; then
+    die "ALLOW_PATHS has $allow_path_count non-empty entries; maximum is 5."
+  fi
+  if [ "$allow_path_count" -gt 0 ] && [ -z "$allow_justification" ]; then
+    die "ALLOW_JUSTIFICATION is required when ALLOW_PATHS is non-empty."
+  fi
 fi
 
 selected_class=""
@@ -196,9 +217,20 @@ forbidden_summary_from_policy() {
 }
 
 appears_excluded() {
-  local path="$1"
+  local path
+  path="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
   case "$path" in
-    .env|.env.*|secrets/*|*/secrets/*|docs/submissions/*|*/docs/submissions/*) return 0 ;;
+    .env|.env.*|*/.env|*/.env.*) return 0 ;;
+    secrets/*|*/secrets/*|docs/submissions/*|*/docs/submissions/*) return 0 ;;
+    test-evidence/*|*/test-evidence/*) return 0 ;;
+    google-services.json|*/google-services.json) return 0 ;;
+    googleservice-info.plist|*/googleservice-info.plist) return 0 ;;
+    *service-account*.json|*serviceaccount*.json|*-service-account.json|*.credentials.json) return 0 ;;
+    .firebase/*|*/.firebase/*|.firebaserc|*/.firebaserc|.runtimeconfig.json|*/.runtimeconfig.json) return 0 ;;
+    firebase-export-*/*|*/firebase-export-*/*) return 0 ;;
+    android/local.properties|*/android/local.properties|android/key.properties|*/android/key.properties) return 0 ;;
+    *.jks|*.keystore|*.p12|*.cer|*.mobileprovision|*.p8) return 0 ;;
+    *gps-private*|*private-gps*|*route-private*|*private-route*|*location-private*|*private-location*) return 0 ;;
     *node_modules/*|*/build/*|build/*|*.dart_tool/*|*/.dart_tool/*|.git/*|*/.git/*) return 0 ;;
     *.pdf|*.png|*.jpg|*.jpeg|*.svg) return 0 ;;
   esac
@@ -209,7 +241,7 @@ allowed_paths_output=""
 if [ "${ALLOW_PATHS+x}" = x ] && [ -n "$ALLOW_PATHS" ]; then
   IFS=',' read -r -a allow_path_items <<<"$ALLOW_PATHS"
   for raw_path in "${allow_path_items[@]}"; do
-    path="$(printf '%s' "$raw_path" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+    path="$(trim "$raw_path")"
     [ -n "$path" ] || continue
     if appears_excluded "$path"; then
       warn "Allow path appears to match excluded_paths and is marked as override: $path"
@@ -231,16 +263,16 @@ if [ -z "$inventory_status" ]; then
   inventory_status="(clean)"
 fi
 
-broad_exclusions="node_modules, build, .dart_tool, .git, docs/submissions, secrets, .env files, PDFs, images, SVGs"
+broad_exclusions="node_modules, build, .dart_tool, .git, docs/submissions, test-evidence, secrets, .env files, PDFs, images, SVGs"
 
 if cd "$repo_root" && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   file_list="$(cd "$repo_root" && git ls-files \
-    | grep -Ev '(^|/)(node_modules|build|\.dart_tool|\.git|secrets)(/|$)|^docs/submissions/|(^|/)\.env(\.|$)|\.(pdf|png|jpg|jpeg|svg)$' \
+    | grep -Eiv '(^|/)(node_modules|build|\.dart_tool|\.git|secrets|test-evidence|\.firebase)(/|$)|^docs/submissions/|(^|/)\.env(\.|$)|(^|/)google-services\.json$|(^|/)googleservice-info\.plist$|(^|/).*service-?account.*\.json$|(^|/)serviceaccount.*\.json$|(^|/).*\.credentials\.json$|(^|/)\.firebaserc$|(^|/)\.runtimeconfig\.json$|(^|/)firebase-export-[^/]+/|(^|/)android/(local|key)\.properties$|\.(jks|keystore|p12|cer|mobileprovision|p8)$|gps-private|private-gps|route-private|private-route|location-private|private-location|\.(pdf|png|jpg|jpeg|svg)$' \
     | head -n "$max_listed_files")"
   inventory_source="git ls-files"
 else
   file_list="$(cd "$repo_root" && find . -maxdepth "$max_directory_depth" -type f \
-    | grep -Ev '(^|/)(node_modules|build|\.dart_tool|\.git|secrets)(/|$)|^\./docs/submissions/|(^|/)\.env(\.|$)|\.(pdf|png|jpg|jpeg|svg)$' \
+    | grep -Eiv '(^|/)(node_modules|build|\.dart_tool|\.git|secrets|test-evidence|\.firebase)(/|$)|^\./docs/submissions/|(^|/)\.env(\.|$)|(^|/)google-services\.json$|(^|/)googleservice-info\.plist$|(^|/).*service-?account.*\.json$|(^|/)serviceaccount.*\.json$|(^|/).*\.credentials\.json$|(^|/)\.firebaserc$|(^|/)\.runtimeconfig\.json$|(^|/)firebase-export-[^/]+/|(^|/)android/(local|key)\.properties$|\.(jks|keystore|p12|cer|mobileprovision|p8)$|gps-private|private-gps|route-private|private-route|location-private|private-location|\.(pdf|png|jpg|jpeg|svg)$' \
     | head -n "$max_listed_files")"
   inventory_source="find -maxdepth $max_directory_depth"
 fi

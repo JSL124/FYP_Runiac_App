@@ -29,6 +29,24 @@ positive_contains() {
   esac
 }
 
+is_sensitive_path() {
+  local path
+  path="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
+  case "$path" in
+    .env|.env.*|*/.env|*/.env.*) return 0 ;;
+    secrets/*|*/secrets/*) return 0 ;;
+    google-services.json|*/google-services.json) return 0 ;;
+    googleservice-info.plist|*/googleservice-info.plist) return 0 ;;
+    *service-account*.json|*serviceaccount*.json|*-service-account.json|*.credentials.json) return 0 ;;
+    .firebase/*|*/.firebase/*|.firebaserc|*/.firebaserc|.runtimeconfig.json|*/.runtimeconfig.json) return 0 ;;
+    firebase-export-*/*|*/firebase-export-*/*) return 0 ;;
+    android/local.properties|*/android/local.properties|android/key.properties|*/android/key.properties) return 0 ;;
+    *.jks|*.keystore|*.p12|*.cer|*.mobileprovision|*.p8) return 0 ;;
+    *gps-private*|*private-gps*|*route-private*|*private-route*|*location-private*|*private-location*) return 0 ;;
+  esac
+  return 1
+}
+
 add_signal() {
   local signal="$1"
   case ",$signals," in
@@ -118,6 +136,18 @@ for negated_phrase in \
   "do not add an api key" \
   "do not add secret" \
   "do not add token" \
+  "do not read .env" \
+  "do not inspect .env" \
+  "do not show .env" \
+  "do not print .env" \
+  "do not read secrets" \
+  "do not expose secrets" \
+  "do not expose api key" \
+  "do not access private gps" \
+  "do not read private gps" \
+  "do not inspect private gps" \
+  "do not bypass review" \
+  "do not skip approval" \
   "do not create .env" \
   "do not modify .env" \
   "do not run flutter create" \
@@ -129,7 +159,10 @@ for negated_phrase in \
   "must not modify prd.md" \
   "without running firebase init" \
   "without creating firebase config" \
-  "without modifying prd.md"
+  "without modifying prd.md" \
+  "without reading .env" \
+  "without reading secrets" \
+  "without accessing private gps"
 do
   positive_input="${positive_input//$negated_phrase/ }"
 done
@@ -151,6 +184,56 @@ esac
 positive_risky_action=0
 if positive_contains "run firebase init" || positive_contains "create firebase.json" || positive_contains "create .firebaserc" || positive_contains "create firestore.rules" || positive_contains "create storage.rules" || positive_contains "modify prd.md" || positive_contains "edit prd.md" || positive_contains "modify docs/pdd" || positive_contains "edit docs/pdd" || positive_contains "edit submitted pdd" || positive_contains "modify submitted pdd" || positive_contains "add api key" || positive_contains "add an api key" || positive_contains "add secret" || positive_contains "add token" || positive_contains "create .env" || positive_contains "modify .env" || positive_contains "implement client-side xp" || positive_contains "client writes xp" || positive_contains "write rank from flutter" || positive_contains "llm awards xp" || positive_contains "ai awards xp" || positive_contains "firebase deploy" || positive_contains "flutter create" || positive_contains "flutter build" || positive_contains "npm install" || positive_contains "rm -rf"; then
   positive_risky_action=1
+fi
+
+for risky_mutation_verb in create edit modify write add update; do
+  for risky_mutation_target in \
+    "firebase.json" \
+    ".firebaserc" \
+    ".runtimeconfig.json" \
+    "google-services.json" \
+    "googleservice-info.plist" \
+    "service-account json" \
+    "service account json" \
+    "serviceaccount" \
+    "credentials.json" \
+    ".env" \
+    ".env*" \
+    "secrets/" \
+    "secrets/**" \
+    ".jks" \
+    ".keystore" \
+    ".p12" \
+    ".mobileprovision" \
+    "private gps" \
+    "private location" \
+    "private route" \
+    "gps-private" \
+    "location-private" \
+    "route-private"
+  do
+    if positive_contains "$risky_mutation_verb $risky_mutation_target"; then
+      positive_risky_action=1
+    fi
+  done
+done
+
+positive_guardrail_blocker=0
+if positive_contains "read .env" || positive_contains "inspect .env" || positive_contains "show .env" || positive_contains "cat .env" || positive_contains "print .env" || positive_contains "expose api key" || positive_contains "show api key" || positive_contains "read api key" || positive_contains "add api key" || positive_contains "add an api key" || positive_contains "add secret" || positive_contains "read secret" || positive_contains "show secret" || positive_contains "expose secret" || positive_contains "read token" || positive_contains "show token" || positive_contains "read private key" || positive_contains "show private key" || positive_contains "read service account" || positive_contains "show service account" || positive_contains "read google-services.json" || positive_contains "show google-services.json" || positive_contains "read googleservice-info.plist" || positive_contains "show googleservice-info.plist" || positive_contains "read private gps" || positive_contains "inspect private gps" || positive_contains "show private gps" || positive_contains "review private gps route coordinates" || positive_contains "read raw route coordinates" || positive_contains "show raw route coordinates" || positive_contains "exact location history" || positive_contains "skip approval" || positive_contains "bypass review" || positive_contains "ignore guard" || positive_contains "implement without approval"; then
+  positive_guardrail_blocker=1
+fi
+
+sensitive_allow_path_blocker=0
+if [ -n "$allow_paths" ]; then
+  IFS=',' read -r -a allow_path_items <<<"$allow_paths"
+  for raw_path in "${allow_path_items[@]}"; do
+    path="$(trim "$raw_path")"
+    [ -n "$path" ] || continue
+    if is_sensitive_path "$path"; then
+      sensitive_allow_path_blocker=1
+      add_signal "sensitive_allow_path_override"
+    fi
+  done
 fi
 
 if contains "docs/submissions" || contains "submitted pdd" || contains "official frozen snapshot"; then
@@ -210,7 +293,7 @@ if [ -n "$signals" ]; then
   message="High-risk guard signals detected: $signals"
 fi
 
-if [ "$level" = "block" ] && { [ "$design_only" = "1" ] || [ "$negated_risky_action" = "1" ]; } && [ "$positive_risky_action" = "0" ]; then
+if [ "$level" = "block" ] && { [ "$design_only" = "1" ] || [ "$negated_risky_action" = "1" ]; } && [ "$positive_risky_action" = "0" ] && [ "$positive_guardrail_blocker" = "0" ] && [ "$sensitive_allow_path_blocker" = "0" ]; then
   level="warning"
   message="Risk keywords appear in design-only, inspect-only, or negated context."
 fi

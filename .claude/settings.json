@@ -13,7 +13,32 @@
       "Read(./test-evidence/**)",
       "Read(./.env)",
       "Read(./.env.*)",
-      "Read(./secrets/**)"
+      "Read(./secrets/**)",
+      "Read(./**/secrets/**)",
+      "Read(./**/google-services.json)",
+      "Read(./**/GoogleService-Info.plist)",
+      "Read(./**/*service-account*.json)",
+      "Read(./**/serviceAccount*.json)",
+      "Read(./**/*-service-account.json)",
+      "Read(./**/*.credentials.json)",
+      "Read(./**/.firebase/**)",
+      "Read(./**/.firebaserc)",
+      "Read(./**/.runtimeconfig.json)",
+      "Read(./**/firebase-export-*/**)",
+      "Read(./**/android/local.properties)",
+      "Read(./**/android/key.properties)",
+      "Read(./**/*.jks)",
+      "Read(./**/*.keystore)",
+      "Read(./**/*.p12)",
+      "Read(./**/*.cer)",
+      "Read(./**/*.mobileprovision)",
+      "Read(./**/*.p8)",
+      "Read(./**/*gps-private*.json)",
+      "Read(./**/*route-private*.json)",
+      "Read(./**/*location-private*.json)",
+      "Read(./**/*private-gps*.json)",
+      "Read(./**/*private-route*.json)",
+      "Read(./**/*private-location*.json)"
     ]
   }
 }
