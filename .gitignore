@@ -1,1 +1,73 @@
+# OS artifacts
 .DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE/editor local files
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+
+# Environment and local configuration
+.env
+.env.*
+!.env.example
+!.env.*.example
+secrets/
+
+# Service accounts and credentials
+*service-account*.json
+serviceAccount*.json
+*-service-account.json
+*.credentials.json
+
+# Firebase local/generated/sensitive files
+.firebase/
+.firebaserc
+.runtimeconfig.json
+firebase-debug.log
+firestore-debug.log
+database-debug.log
+storage-debug.log
+pubsub-debug.log
+ui-debug.log
+firebase-export-*/
+**/firebase-export-*/
+google-services.json
+GoogleService-Info.plist
+
+# Flutter/Dart generated files and caches
+.dart_tool/
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+build/
+coverage/
+
+# Mobile local config and signing material
+android/local.properties
+android/key.properties
+*.jks
+*.keystore
+*.p12
+*.cer
+*.mobileprovision
+*.p8
+
+# Logs, temp, and cache files
+*.log
+tmp/
+temp/
+.cache/
+
+# Private GPS, route, and test evidence artifacts
+test-evidence/
+**/*gps-private*.json
+**/*route-private*.json
+**/*location-private*.json
+**/*private-gps*.json
+**/*private-route*.json
+**/*private-location*.json
