@@ -3,10 +3,10 @@
 ## Snapshot Metadata
 
 - Last updated phase: Phase 01 - Governance CI
-- Last updated capsule: Repository Workflow Record closure
-- Latest verified commit: `93fff5e ci(governance): add workflow memory drift check`
+- Last updated capsule: Repository Workflow Record closure and schema refresh
+- Latest verified commit: `9f2c832 docs(meta): standardize workflow memory schema`
 - Routing commit: `04e0972 docs(roadmap): route repository workflow record`
-- Closure context: Phase 01 Governance CI is closed at `f917aab`; Artifact Inventory Schema persistence is complete; Repository Workflow Record capsule is closed; no active implementation capsule is selected.
+- Closure context: Phase 01 Governance CI is closed at `f917aab`; Artifact Inventory Schema persistence is complete; Repository Workflow Record capsule is closed; workflow memory schema migration is pushed and verified; no active implementation capsule is selected.
 
 ## Current Implementation State
 
@@ -25,6 +25,8 @@ Pre-scaffold governance state. Worktree inspection found no committed Flutter ap
 - Repository Workflow Record created at `docs/meta/REPOSITORY_WORKFLOW_RECORD.md` in `04e0972 docs(roadmap): route repository workflow record`.
 - Workflow memory checkpoints pushed in `0eb37c8 docs(meta): add workflow memory checkpoints`.
 - Workflow Memory Drift Check pushed in `93fff5e ci(governance): add workflow memory drift check`.
+- Workflow memory schema migration pushed in `9f2c832 docs(meta): standardize workflow memory schema`.
+- `docs/meta/REPOSITORY_WORKFLOW_RECORD.md` now uses the standardized 7-field workflow memory checkpoint schema and deterministic confidence labels.
 - Workflow Memory Drift Check is detection-only, WARN-only local Governance CI support. It does not automatically update workflow memory, snapshots, CURRENT.md, or capsules.
 - Repository Workflow Record capsule is closed.
 
@@ -71,4 +73,4 @@ Pre-scaffold governance state. Worktree inspection found no committed Flutter ap
 
 ## Current Active Milestone
 
-Phase 01 - Governance CI is closed at `f917aab`. Artifact Inventory Schema persistence is complete at `7aaacf1`. Repository Workflow Record capsule is closed after `04e0972`, `0eb37c8`, and `93fff5e`. No active implementation capsule is selected; next work requires explicit routing. Phase 02 implementation, Flutter scaffold execution, Firebase setup, dependency installation, build, init, deploy, source changes, tests, and production implementation remain unauthorized until separate explicit approval exists.
+Phase 01 - Governance CI is closed at `f917aab`. Artifact Inventory Schema persistence is complete at `7aaacf1`. Repository Workflow Record capsule is closed after `04e0972`, `0eb37c8`, `93fff5e`, and schema refresh commit `9f2c832`. No active implementation capsule is selected; next work requires explicit routing. Phase 02 implementation, Flutter scaffold execution, Firebase setup, dependency installation, build, init, deploy, source changes, tests, and production implementation remain unauthorized until separate explicit approval exists.
