@@ -26,6 +26,7 @@ Start with the smallest checks that reduce real risk. Avoid broad CI, dependency
 
 ## Implementation Status
 
+- Phase 01 - Governance CI is closed.
 - Capsule 2 - Governance CI implementation is complete.
 - Local Governance CI shell checks were committed and pushed in `50be93e chore(ci): add local governance CI checks`.
 - Capsule 3 - Governance CI hardening is complete.
@@ -56,5 +57,7 @@ Update `implementation/roadmap/CURRENT.md` immediately when the next phase becom
 
 ## Exit Criteria
 
-- [ ] snapshots/latest.md updated
-- [ ] CURRENT.md updated to next phase
+- [x] snapshots/latest.md updated
+  - Evidence: Capsule 2 commit `50be93e`, Capsule 3 commit `7ed7f27`, Governance CI runner pass state, and pre-scaffold state are recorded.
+- [x] CURRENT.md moved to post-Phase-01 planning gate
+  - Evidence: CURRENT.md routes to the Post-Phase-01 planning gate and does not approve Phase 02 implementation, scaffold execution, Flutter work, Firebase setup, or production implementation.

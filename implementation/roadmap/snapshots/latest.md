@@ -5,7 +5,7 @@
 - Last updated phase: Phase 01 - Governance CI
 - Last updated capsule: Capsule 3 - Governance CI hardening
 - Last verified commit hash: `7ed7f275f8738b56b84c1ba65cfc52779a044da2`
-- Closure context: Capsule 3 Governance CI hardening committed; Phase 01 closure review is the next gate.
+- Closure context: Phase 01 Governance CI is closed; Post-Phase-01 planning gate is active.
 
 ## Current Implementation State
 
@@ -17,6 +17,7 @@ Pre-scaffold governance state. Worktree inspection found no committed Flutter ap
 - Local Governance CI shell checks committed at `tools/governance-ci/` in `50be93e chore(ci): add local governance CI checks`.
 - Governance CI routing hardening committed in `7ed7f27 chore(ci): harden governance CI routing`.
 - `tools/governance-ci/check-roadmap-routing.sh` is generalized and `tools/governance-ci/run-all-checks.sh` is available as the local runner.
+- Governance CI runner passed for Phase 01 closure review.
 
 ## Not Implemented
 
@@ -54,4 +55,4 @@ Pre-scaffold governance state. Worktree inspection found no committed Flutter ap
 
 ## Current Active Milestone
 
-Phase 01 - Governance CI is active. Capsule 3 - Governance CI hardening is complete. The next expected milestone is A6_REVIEW and A8_OUTPUT_CHECKER Phase 01 closure review. Phase 1 implementation preparation remains approved for scaffold execution review only; actual scaffold execution remains blocked until a separate explicit execution prompt and required approvals exist.
+Phase 01 - Governance CI is closed. Post-Phase-01 planning gate is active. Phase 02 implementation, Flutter scaffold execution, Firebase setup, build, init, deploy, and production implementation remain unauthorized until separate explicit approval exists.

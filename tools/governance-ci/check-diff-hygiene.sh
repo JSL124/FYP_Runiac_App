@@ -33,7 +33,7 @@ while IFS= read -r line; do
   esac
 
   case "$path" in
-    implementation/roadmap/ci/*|tools/governance-ci/*)
+    implementation/roadmap/CURRENT.md|implementation/roadmap/phases/phase-01-governance-ci.md|implementation/roadmap/snapshots/latest.md|implementation/roadmap/ci/*|tools/governance-ci/*)
       ;;
     *)
       fail "Unrelated modified path is outside Governance CI scope: $path"
