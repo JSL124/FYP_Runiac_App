@@ -3,9 +3,10 @@
 ## Snapshot Metadata
 
 - Last updated phase: Phase 01 - Governance CI
-- Last updated capsule: Capsule 3 - Governance CI hardening
-- Last verified Governance CI hardening/check commit hash: `7ed7f275f8738b56b84c1ba65cfc52779a044da2`
-- Closure context: Phase 01 Governance CI is closed at `f917aab`; Post-Phase-01 planning gate is active.
+- Last updated capsule: Artifact Inventory Schema persistence
+- Latest verified commit: `7aaacf1 docs(meta): add artifact inventory schema`
+- Routing commit: `ce8a2d9 docs(roadmap): route artifact inventory schema persistence capsule`
+- Closure context: Phase 01 Governance CI is closed at `f917aab`; Artifact Inventory Schema persistence is complete; no active implementation capsule is selected.
 
 ## Current Implementation State
 
@@ -18,6 +19,8 @@ Pre-scaffold governance state. Worktree inspection found no committed Flutter ap
 - Governance CI routing hardening committed in `7ed7f27 chore(ci): harden governance CI routing`.
 - `tools/governance-ci/check-roadmap-routing.sh` is generalized and `tools/governance-ci/run-all-checks.sh` is available as the local runner.
 - Governance CI runner passed for Phase 01 closure review.
+- Artifact Inventory Schema persisted at `docs/meta/ARTIFACT_INVENTORY_SCHEMA.md` in `7aaacf1 docs(meta): add artifact inventory schema`.
+- Artifact Inventory Schema remains non-operational and schema-only.
 
 ## Not Implemented
 
@@ -27,6 +30,9 @@ Pre-scaffold governance state. Worktree inspection found no committed Flutter ap
 - Cloud Functions source.
 - Production app source code.
 - Production tests/build/deploy pipeline.
+- Artifact inventory entries.
+- Repository history reconstruction.
+- Timelines, Genesis material, retrospectives, or autonomous archive systems.
 
 ## Current Architecture Assumptions
 
@@ -46,6 +52,8 @@ Pre-scaffold governance state. Worktree inspection found no committed Flutter ap
 - Root roadmap context protocol is active in `AGENTS.md`.
 - `docs/pdd/diagrams/` is the canonical PDD diagram source; root `diagrams/` is legacy/reference-only.
 - Claude deny rules and `.gitignore` cover nested `.env`, Firebase config, service account, signing, private GPS/location/route, and test-evidence artifact patterns.
+- Operational authority remains with `implementation/roadmap/CURRENT.md`, active phase/capsule documents, ADRs, and validated snapshots.
+- `docs/meta` remains non-operational and must not override operational-authority sources.
 
 ## Known Limitations
 
@@ -55,4 +63,4 @@ Pre-scaffold governance state. Worktree inspection found no committed Flutter ap
 
 ## Current Active Milestone
 
-Phase 01 - Governance CI is closed at `f917aab`. Post-Phase-01 planning gate is active. Phase 02 implementation, Flutter scaffold execution, Firebase setup, dependency installation, build, init, deploy, and production implementation remain unauthorized until separate explicit approval exists.
+Phase 01 - Governance CI is closed at `f917aab`. Artifact Inventory Schema persistence is complete at `7aaacf1`. No active implementation capsule is selected; next work requires explicit routing. Phase 02 implementation, Flutter scaffold execution, Firebase setup, dependency installation, build, init, deploy, source changes, tests, and production implementation remain unauthorized until separate explicit approval exists.
