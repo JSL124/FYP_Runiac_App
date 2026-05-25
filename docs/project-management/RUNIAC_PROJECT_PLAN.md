@@ -14,7 +14,7 @@ Implementation tasks must not start until IMPLEMENTATION_MODE is explicitly requ
 | --- | --- | --- |
 | PRD | Completed | `PRD.md` is the requirements baseline and contains F1-F10 functional requirements, non-functional requirements, methodology, timeline, platform, database, architecture, and risks. |
 | PDD | Submitted | Submitted PDD under `docs/submissions/pdd/` is the official frozen assessment snapshot. `docs/pdd/` is internal/reference only. |
-| Phase 1 implementation preparation | Under review | `implementation/traceability/requirements-map.md` and `implementation/traceability/setup-gates.md` were added and committed. Gate-00 is `Under Review`, not `Approved`. |
+| Phase 1 implementation preparation | Approved for scaffold execution review | `implementation/traceability/setup-gates.md` is the source of truth. Gate-00 is `APPROVED`; Flutter Scaffold Gate is `APPROVED FOR SCAFFOLD EXECUTION REVIEW`. Actual scaffold execution is not yet authorized. |
 | Implementation | Not started | No Flutter, Firebase, backend, source/config, or test implementation should be created until explicit human/project approval exists for the relevant setup gates. |
 
 ## 3. Phase Overview
@@ -23,7 +23,7 @@ Implementation tasks must not start until IMPLEMENTATION_MODE is explicitly requ
 | --- | --- | --- |
 | PRD Completed | Requirements baseline | Completed |
 | PDD Submitted | Official frozen assessment snapshot | Completed |
-| Phase 1 Traceability Preparation | Requirements map and setup gates | Under review |
+| Phase 1 Traceability Preparation | Requirements map and setup gates | Approved for scaffold execution review |
 | PTD / Project Progress Report | Technical report and progress explanation | Future |
 | PUM / Preliminary User Manual | Role-based user manual | Future |
 | User Stories / Product Backlog | Implementable backlog traced to PRD F1-F10 | Future |
@@ -133,16 +133,17 @@ Prepare traceability and setup gates before any Flutter/Firebase scaffold or pro
 - [x] Add and commit `implementation/traceability/requirements-map.md`.
 - [x] Add and commit `implementation/traceability/setup-gates.md`.
 - [x] Review Gate-00 readiness.
-- [x] Move Gate-00 to `Under Review`.
+- [x] Record Gate-00 as `APPROVED` in `implementation/traceability/setup-gates.md`.
+- [x] Record Flutter Scaffold Gate as `APPROVED FOR SCAFFOLD EXECUTION REVIEW` in `implementation/traceability/setup-gates.md`.
 - [x] Harden the Secret / API Key / Environment Handling Gate.
-- [ ] Obtain formal human/project approval for Gate-00 before it becomes `Approved`.
 - [ ] Obtain formal human/project approval for Secret / API Key / Environment Handling Gate before it becomes `Approved`.
 - [ ] Run future guardrail reverse-mapping / sync review across `.gitignore`, `classify_high_risk_task.sh`, `.agents/skills/runiac-review-flow/SKILL.md`, `tools/agent-review/profiles/runiac/context-policy.yml`, and legacy `.claude/settings.json`.
 - [ ] Decide config injection strategy before scaffolding.
 - [ ] Decide Firebase config boundary before `firebase init`.
-- [ ] Decide Flutter scaffold target path before `flutter create`.
+- [x] Decide Flutter scaffold target path before `flutter create`.
 - [ ] Prepare Firebase Project and Config Gate.
-- [ ] Prepare Flutter Scaffold Gate.
+- [x] Prepare Flutter Scaffold Gate for scaffold execution review.
+- [ ] Run final Flutter scaffold preflight review before any execution prompt.
 
 ### Related Repo Files/Folders
 - `implementation/traceability/requirements-map.md`
@@ -157,9 +158,10 @@ Prepare traceability and setup gates before any Flutter/Firebase scaffold or pro
 - A9_TRACE for requirement traceability.
 
 ### Exit Criteria
-- Gate-00 has explicit human/project approval evidence before `Approved`.
+- Gate-00 approval evidence is recorded in `implementation/traceability/setup-gates.md`.
+- Flutter Scaffold Gate approval for scaffold execution review is recorded in `implementation/traceability/setup-gates.md`.
 - Secret/config handling has explicit human/project approval evidence before `Approved`.
-- Flutter and Firebase scaffold gates are prepared but no scaffold command has run.
+- Flutter scaffold execution still requires a separate explicit execution prompt; no scaffold command has run.
 - Config and guardrail decisions are documented before implementation starts.
 
 ### Risks And Boundaries
@@ -171,7 +173,8 @@ Prepare traceability and setup gates before any Flutter/Firebase scaffold or pro
 - Git-level enforcement is optional future work and must be handled separately.
 - Client-side injection strategies do not prevent reverse-engineering; any value shipped inside the mobile app is potentially discoverable.
 - XP, streak, level, rank, weekly XP, monthly XP, and leaderboard scores remain backend-owned.
-- Do not run `flutter create` or `firebase init` until explicit approval exists.
+- Do not run `flutter create`; the current Flutter Scaffold Gate state authorizes scaffold execution review only.
+- Do not run Firebase setup, `firebase init`, `flutterfire configure`, dependency resolution, source generation, builds, tests, or deployment.
 
 ## 8. PTD / Project Progress Report
 
@@ -294,13 +297,15 @@ Plan the build sequence before implementation begins, so Flutter, Firebase, back
 
 ### TODO Checklist
 - [ ] Confirm IMPLEMENTATION_MODE has been explicitly requested before creating production code.
-- [ ] Confirm Gate-00 is `Approved` with explicit human/project approval evidence.
+- [x] Confirm Gate-00 is `Approved` with explicit human/project approval evidence in `implementation/traceability/setup-gates.md`.
+- [x] Confirm Flutter Scaffold Gate is `APPROVED FOR SCAFFOLD EXECUTION REVIEW` in `implementation/traceability/setup-gates.md`.
 - [ ] Confirm Secret / API Key / Environment Handling Gate is `Approved` with explicit human/project approval evidence.
 - [ ] Decide config injection strategy before scaffolding.
 - [ ] Decide Firebase config boundary before `firebase init`.
-- [ ] Decide Flutter scaffold target path before `flutter create`.
+- [x] Decide Flutter scaffold target path before `flutter create`.
 - [ ] Prepare Firebase Project and Config Gate.
-- [ ] Prepare Flutter Scaffold Gate.
+- [x] Prepare Flutter Scaffold Gate for scaffold execution review.
+- [ ] Run final Flutter scaffold preflight review before any execution prompt.
 - [ ] Decide initial Flutter project structure when implementation starts.
 - [ ] Decide Firebase setup sequence when implementation starts.
 - [ ] Plan authentication, user profile, subscription, and role enforcement.
@@ -330,7 +335,7 @@ Plan the build sequence before implementation begins, so Flutter, Firebase, back
 
 ### Risks And Boundaries
 - Do not start implementation without explicit IMPLEMENTATION_MODE.
-- Do not run `flutter create` until explicit human/project approval exists for the Flutter Scaffold Gate.
+- Do not run `flutter create`; the Flutter Scaffold Gate is approved for scaffold execution review only and a separate explicit execution prompt is still required.
 - Do not run `firebase init` until explicit human/project approval exists for the Firebase Project and Config Gate.
 - Do not create production Firebase config, `google-services.json`, `GoogleService-Info.plist`, `.env` files with real values, Android/iOS signing material, API keys, or service account files.
 - Do not treat UI hiding as the only Premium enforcement.
@@ -497,8 +502,8 @@ Prepare the final submission package with all required documents, source code, t
 - PTD and PUM should reference PRD/PDD rather than silently changing scope.
 - Product backlog items must not invent new features.
 - Implementation requires explicit IMPLEMENTATION_MODE.
-- Flutter/Firebase scaffolding is not approved.
-- `flutter create` and `firebase init` remain forbidden until explicit human/project approval evidence exists.
+- Flutter scaffold execution review is approved in `implementation/traceability/setup-gates.md`; actual scaffold execution is not yet authorized.
+- `flutter create`, Firebase setup, `firebase init`, `flutterfire configure`, dependency resolution, source generation, builds, tests, and deploys remain deferred.
 - LLM/agent-generated decisions alone are not approval.
 - Flutter client must not directly write XP, streak, level, rank, leaderboard score, weekly XP, or monthly XP.
 - Client-side injection strategies do not prevent reverse-engineering of values shipped inside the mobile app.
@@ -510,15 +515,15 @@ Prepare the final submission package with all required documents, source code, t
 
 ## 17. Next Immediate TODO
 
-The immediate priority is completing Phase 1 implementation-preparation approval work without starting Flutter/Firebase scaffolding or production implementation.
+The immediate priority is running final Flutter scaffold preflight review without starting Flutter/Firebase scaffolding or production implementation.
 
-- [ ] Obtain formal human/project approval for Gate-00 before `Approved`.
 - [ ] Obtain formal human/project approval for Secret / API Key / Environment Handling Gate before `Approved`.
 - [ ] Decide config injection strategy before scaffolding.
 - [ ] Decide Firebase config boundary before `firebase init`.
-- [ ] Decide Flutter scaffold target path before `flutter create`.
+- [x] Decide Flutter scaffold target path before `flutter create`.
 - [ ] Prepare Firebase Project and Config Gate.
-- [ ] Prepare Flutter Scaffold Gate.
+- [x] Prepare Flutter Scaffold Gate for scaffold execution review.
+- [ ] Run final Flutter scaffold preflight review before any execution prompt.
 - [ ] Run future guardrail reverse-mapping / sync review.
 - [ ] Keep implementation planning as documentation only until IMPLEMENTATION_MODE is explicitly requested.
 - [ ] Plan PTD / Project Progress Report structure using PRD and the submitted PDD snapshot as sources.

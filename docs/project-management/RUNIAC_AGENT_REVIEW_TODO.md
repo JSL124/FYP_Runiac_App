@@ -71,16 +71,19 @@ Implementation remains user-approved only. The pipeline may prepare plans, revie
 - [ ] TODO status is not approval.
 - [ ] Gate status `Under Review` is not approval.
 - [ ] Codex/LLM-generated artifacts are not human/project approval.
-- [ ] Human/project approval evidence is required before any setup gate becomes `Approved`.
+- [ ] `implementation/traceability/setup-gates.md` is the source of truth for setup-gate approval state.
+- [ ] Human/project approval evidence is still required before any remaining setup gate becomes `Approved`.
 
 ## Next Planned Steps
 
 - [ ] Continue Phase 1 implementation preparation review and approval:
-  - formal human/project approval for Gate-00
+  - Gate-00 is `APPROVED` in `implementation/traceability/setup-gates.md`
+  - Flutter Scaffold Gate is `APPROVED FOR SCAFFOLD EXECUTION REVIEW` in `implementation/traceability/setup-gates.md`
   - formal human/project approval for Secret / API Key / Environment Handling Gate
   - prepare Firebase Project and Config Gate
-  - prepare Flutter Scaffold Gate
-- [ ] Do not start Flutter/Firebase scaffolding until setup gates approve it
+  - run final Flutter scaffold preflight review before requesting execution
+- [ ] Do not run `flutter create`; scaffold execution still requires a separate explicit execution prompt.
+- [ ] Do not run Firebase setup, `firebase init`, `flutterfire configure`, dependency resolution, source generation, builds, tests, or deployment.
 
 ## Postponed TODO Automation
 
@@ -107,10 +110,11 @@ Implementation remains user-approved only. The pipeline may prepare plans, revie
 - [x] `requirements-map.md` created.
 - [x] `setup-gates.md` created.
 - [x] Gate-00 readiness reviewed.
-- [x] Gate-00 moved to `Under Review`.
+- [x] Gate-00 is `APPROVED` in `implementation/traceability/setup-gates.md`.
+- [x] Flutter Scaffold Gate is `APPROVED FOR SCAFFOLD EXECUTION REVIEW` in `implementation/traceability/setup-gates.md`.
 - [x] Secret / API Key / Environment Handling Gate hardened.
 - [x] MVP features and implementation-preparation boundaries mapped in `requirements-map.md`.
-- [ ] Formal human/project approval for Gate-00.
+- [x] Formal human/project approval for Gate-00 recorded in `implementation/traceability/setup-gates.md`.
 - [ ] Formal human/project approval for Secret / API Key / Environment Handling Gate.
 - [ ] Future guardrail reverse-mapping / sync review across:
   - `.gitignore`
@@ -120,9 +124,10 @@ Implementation remains user-approved only. The pipeline may prepare plans, revie
   - legacy `.claude/settings.json`
 - [ ] Decide config injection strategy before scaffolding.
 - [ ] Decide Firebase config boundary before `firebase init`.
-- [ ] Decide Flutter scaffold target path before `flutter create`.
+- [x] Decide Flutter scaffold target path before `flutter create`.
 - [ ] Prepare Firebase Project and Config Gate.
-- [ ] Prepare Flutter Scaffold Gate.
+- [x] Prepare Flutter Scaffold Gate for scaffold execution review.
+- [ ] Run final Flutter scaffold preflight review before any execution prompt.
 - [ ] Mark deferred features F5, F7, F8, F10 unless user decides otherwise
 - [ ] Clarify expert/admin governance scope
 
@@ -156,4 +161,4 @@ Secret gate coverage now includes Firebase project/config identifiers, Firebase 
 
 ## Next Codex Prompt Topic
 
-Continue Phase 1 implementation preparation by collecting explicit human/project approval evidence for Gate-00 and preparing the Firebase Project and Config Gate / Flutter Scaffold Gate without running scaffold commands.
+Run final Flutter scaffold preflight review only, using `implementation/traceability/setup-gates.md` as the source of truth. Do not run scaffold commands.
