@@ -13,7 +13,7 @@ Topic 3 places class diagrams in the UML Logical View. For Runiac, this means th
 | --- | --- |
 | Class diagrams model the system in the logical view. | Show domain objects such as user accounts, activities, plans, routes, leaderboard entries, summaries, notifications, and subscriptions. |
 | The basic class symbol is a box with the class name. | Start with class names first; add attributes and operations only where they make the design clearer. |
-| A class can include attributes, data types, and methods. | Use attributes for key stored state and operations for important domain behavior such as `calculateXP()` or `generateSummary()`. |
+| A class can include attributes, data types, and methods. | Use attributes for key stored state and operations for important domain behavior such as `generateSummary()` or `requestActivityValidation()`. XP, streak, level, rank, and leaderboard calculation operations belong to backend logic, not client/domain classes. |
 | Detail level depends on the diagram purpose. | Keep the PDD class diagram design-level, not full source-code-level. |
 | Object diagrams explain class relationships through instances. | Do not use object symbols in the main PDD class diagram unless an example instance is needed separately. |
 | Package diagrams group related class diagrams. | If the class model is too dense, split or group it by account, running, training, social, competition, and notification packages. |
@@ -40,7 +40,7 @@ Rules:
 - Operation syntax should be `visibility methodName(): ReturnType`.
 - Use `+` for public, `-` for private, and `#` for protected.
 - Use `{read only}` for constants or immutable values.
-- Underline static attributes or methods if the final drawing tool supports it.
+- Underline static attributes or methods if the drawing tool supports it.
 - Avoid adding getters and setters unless they are important to explain the design. Topic 3 shows them as valid UML operations, but the PDD should stay readable.
 
 ## 3. Relationship Rules
@@ -81,15 +81,15 @@ Exclude from the class diagram:
 - UI screens such as Home Page, Login Page, or Run Summary Page.
 - Firebase physical services such as Firestore, Firebase Auth, Cloud Functions, and FCM. These belong in architecture/component diagrams.
 - Firestore collections as database tables. Those belong in the Semantic Data Diagram.
-- Basic/Premium as user subclasses unless the implementation genuinely treats them as different class types. Prefer `Subscription` and `EntitlementPolicy`.
+- Basic/Premium as user subclasses unless the implementation genuinely treats them as different class types. Prefer `Subscription`, `subscriptionStatus`, and `EntitlementPolicy`.
 
 ## 5. Candidate Class Details
 
-Keep only the most meaningful attributes and operations in the final diagram.
+Keep only the most meaningful attributes and operations in the diagram.
 
 | Class | Key Attributes | Key Operations |
 | --- | --- | --- |
-| `UserAccount` | `userID`, `email`, `subscriptionTier`, `createdAt` | `authenticate()`, `updateSubscription()` |
+| `UserAccount` | `userID`, `email`, `subscriptionStatus`, `createdAt` | `authenticateWithFirebase()`, `requestSubscriptionUpdate()` |
 | `UserProfile` | `displayName`, `fitnessLevel`, `goals`, `healthDeclarations` | `updateProfile()` |
 | `Subscription` | `subscriptionID`, `tier`, `status`, `renewalDate` | `isPremiumActive()` |
 | `EntitlementPolicy` | `featureKey`, `requiredTier` | `canAccessFeature()` |
@@ -101,13 +101,13 @@ Keep only the most meaningful attributes and operations in the final diagram.
 | `TrainingPlan` | `planID`, `goalType`, `startDate`, `endDate`, `status` | `generatePlan()`, `rescheduleSession()` |
 | `PlanSession` | `sessionID`, `scheduledDateTime`, `targetDistance`, `completionStatus` | `markCompleted()` |
 | `Reminder` | `reminderID`, `reminderType`, `scheduledAt`, `sentStatus` | `schedule()`, `markSent()` |
-| `XPRecord` | `xpRecordID`, `xpAmount`, `reason`, `createdAt` | `awardXP()` |
-| `UserProgression` | `totalXP`, `level`, `streakCount`, `leagueDivision` | `updateLevel()`, `updateStreak()` |
+| `XPRecord` | `xpRecordID`, `xpAmount`, `reason`, `createdAt` | `recordBackendAward()` |
+| `UserProgression` | `totalXP`, `level`, `streakCount`, `leagueDivision` | `displayProgressionState()` |
 | `SharedRoute` | `routeID`, `title`, `distance`, `difficulty`, `visibilityStatus` | `publishRoute()`, `reportRoute()` |
 | `RouteFavorite` | `favoriteID`, `createdAt` | `saveRoute()`, `removeRoute()` |
 | `RouteReport` | `reportID`, `reason`, `description`, `status` | `submitReport()`, `resolveReport()` |
 | `LeaderboardRegion` | `regionID`, `name`, `type`, `boundaryReference` | `mapCoordinatesToRegion()` |
-| `LeaderboardEntry` | `entryID`, `weeklyXP`, `monthlyXP`, `rank`, `updatedAt` | `recalculateRank()` |
+| `LeaderboardEntry` | `entryID`, `weeklyXP`, `monthlyXP`, `rank`, `updatedAt` | `displayRankState()` |
 | `Notification` | `notificationID`, `title`, `body`, `readStatus` | `markRead()` |
 
 ## 6. Candidate Relationships
@@ -127,14 +127,14 @@ Use these as the first draft of the diagram:
 | `UserAccount` | owns | `TrainingPlan` | Association |
 | `TrainingPlan` | contains | `PlanSession` | Composition |
 | `PlanSession` | schedules | `Reminder` | Association |
-| `Activity` | awards | `XPRecord` | Association |
+| `Activity` | triggers backend award record | `XPRecord` | Association |
 | `UserAccount` | has progression | `UserProgression` | Composition |
 | `UserProgression` | has streak | `Streak` | Composition |
 | `UserAccount` | publishes | `SharedRoute` | Association |
 | `UserAccount` | saves route through | `RouteFavorite` | Association |
 | `SharedRoute` | receives reports | `RouteReport` | Association |
 | `LeaderboardRegion` | contains | `LeaderboardEntry` | Composition |
-| `LeaderboardEntry` | ranks | `UserAccount` | Association |
+| `LeaderboardEntry` | references ranked user | `UserAccount` | Association |
 | `UserAccount` | receives | `Notification` | Association |
 | `Activity` | uses | `MapServiceAdapter` | Association |
 | `PremiumRunSummary` | uses | `AIServiceAdapter` | Association |
@@ -165,20 +165,20 @@ Drawing guidance:
 - Keep composition lines close to their owner class so filled diamonds are easy to read.
 - Put inheritance vertically, with `RunSummary` above `PremiumRunSummary`.
 - Put external adapter classes at the edge of the diagram.
-- Use short relationship labels such as `records`, `contains`, `generates`, `uses`, `ranks`, and `receives`.
+- Use short relationship labels such as `records`, `contains`, `generates`, `uses`, `references`, and `receives`.
 
 ## 8. Mermaid Draft For Internal Review
 
-This is only a review draft. The final PDD diagram may be cleaner in draw.io because UML diamonds and labels are easier to control visually.
+This is only a review draft. The PDD diagram may be cleaner in draw.io because UML diamonds and labels are easier to control visually.
 
 ```mermaid
 classDiagram
   class UserAccount {
     -String userID
     -String email
-    -String subscriptionTier
+    -String subscriptionStatus
     +authenticate()
-    +updateSubscription()
+    +requestSubscriptionUpdate()
   }
 
   class UserProfile {
@@ -243,7 +243,7 @@ classDiagram
   class LeaderboardEntry {
     -int weeklyXP
     -int rank
-    +recalculateRank()
+    +displayRankState()
   }
 
   UserAccount *-- UserProfile : has
@@ -255,5 +255,5 @@ classDiagram
   UserAccount --> TrainingPlan : owns
   TrainingPlan *-- PlanSession : contains
   UserAccount --> SharedRoute : publishes
-  LeaderboardEntry --> UserAccount : ranks
+  LeaderboardEntry --> UserAccount : references ranked user
 ```

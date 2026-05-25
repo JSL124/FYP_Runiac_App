@@ -28,10 +28,10 @@ Recommended PDD diagram set for Runiac:
 | Priority | Diagram | Include In PDD? | Reason |
 | --- | --- | --- | --- |
 | P1 | Physical Architecture Diagram | Yes | Required to show Flutter client, Firebase backend, GPS/wearable/mobile services, mapping services, notification services, and AI summary service at a deployment/system level. |
-| P1 | Application Architecture Diagram | Yes | Required to show how Runiac app modules interact with Firebase, Cloud Functions, Firestore, maps, leaderboard aggregation, XP, reminders, and AI summary processing. |
+| P1 | Application Architecture Diagram | Yes | Required to show how Runiac app modules interact with Firebase, Cloud Functions, Firestore, maps, backend leaderboard aggregation, backend-managed XP, reminders, and AI summary processing. |
 | P1 | Class Diagram | Yes | Required by the PDD preparation schedule. Use Topic 3 UML class notation to show the static logical model: domain classes, attributes, operations, and relationships. |
-| P1 | Component Diagram | Yes | Required to show major software components and responsibility boundaries: account, run tracking, plan, analytics, route sharing, leaderboard, XP, reminders, notifications, data layer. |
-| P1 | Semantic Data Diagram | Yes | Required to describe Firestore collections, key fields, references, and relationships between users, activities, plans, routes, leaderboard entries, XP, summaries, notifications, and subscriptions. |
+| P1 | Component Diagram | Yes | Required to show major software components and responsibility boundaries: account, run tracking, plan, analytics, route sharing, leaderboard display, backend XP processing, reminders, notifications, data layer. |
+| P1 | Semantic Data Diagram | Yes | Required to describe Firestore collections, key fields, references, and relationships between users, activities, plans, routes, leaderboard entries, backend-managed XP summaries, notifications, and subscriptions. |
 | P1 | User Interface Wireframe Catalogue | Yes | Required because the sample PDD has a large UI section. Use saved Basic and Premium wireframes. |
 | P2 | Basic User Screen Flow Diagram | Recommended | Useful because Basic flow image already exists and helps explain navigation between screens. Add as a supporting UI-flow diagram before or after Basic UI screens. |
 | P2 | Premium User Screen Flow Diagram | Recommended | Useful because Premium has many unlocked branches. Add as a supporting UI-flow diagram once a local exported PNG is available. |
@@ -85,7 +85,7 @@ Runiac content to include:
 | Frontend | Flutter Mobile Application |
 | Backend / BaaS | Firebase Authentication, Cloud Firestore, Cloud Functions, Firebase Cloud Messaging |
 | External Services | Google Maps or Mapbox, geocoding/location service, OS Share Sheet/social media platforms, AI/LLM service for premium post-run summary |
-| Data / Storage | Firestore collections for users, activities, routes, plans, leaderboards, XP, summaries, notifications |
+| Data / Storage | Firestore collections for users, activities, routes, plans, leaderboards, backend-managed XP summaries, notifications |
 
 Sample style to match:
 
@@ -130,7 +130,7 @@ Runiac frontend modules:
 | Training Plan | weekly plan, today's plan, schedule edit, expert goal plan for Premium |
 | Analysis and Summary | pace/distance/calorie metrics, premium analysis, post-run summary |
 | Reminder and Notification UI | run reminders, rest reminders, streak-risk reminders |
-| XP and Streak | XP update, level display, streak/consistency progress |
+| XP and Streak Display | Shows backend-managed XP, level, streak, and consistency progress; does not calculate or write those values in the client |
 | Route Sharing | explore map, route detail, selected route, favorite routes, route upload, route report |
 | Territorial Leaderboard | map ranking, region ranking, league division, share rank |
 | Subscription / Entitlement | Basic vs Premium feature gating |
@@ -141,7 +141,7 @@ Runiac backend modules:
 | --- | --- |
 | Firebase Authentication | account identity and session handling |
 | Cloud Firestore | persistent records and real-time synchronization |
-| Cloud Functions | activity validation, metric derivation, XP calculation, leaderboard aggregation, reminder checks, AI-summary preparation |
+| Cloud Functions | activity validation, metric derivation, XP calculation, streak update, level update, rank update, leaderboard aggregation, reminder checks, AI-summary preparation |
 | Firebase Cloud Messaging | push notifications |
 | Map / Geocoding API | route rendering, coordinate-to-region mapping |
 | AI/LLM Service | premium post-run summary and richer analysis text |
@@ -156,7 +156,7 @@ Sample style to match:
 
 Main flows to show:
 
-- Run Tracking -> local buffer -> Firestore -> Cloud Functions -> Activities / XP / Summary / Leaderboard.
+- Run Tracking -> local buffer -> Firestore -> Cloud Functions validation/calculation -> backend-managed Activities / XP / Summary / Leaderboard outputs.
 - Training Plan -> Firestore -> Reminder Checks -> FCM.
 - Route Sharing -> Map API / Firestore routes / Report processing.
 - Leaderboard -> region aggregation -> Firestore leaderboard entries -> mobile UI.
@@ -181,7 +181,7 @@ Topic 3 UML class notation to follow:
 | --- | --- |
 | Class box | Use a rectangle with the class name at the top. Add attributes and operations only when they clarify the design. |
 | Attribute format | Use `visibility name: Type`, for example `- email: String`. |
-| Operation format | Use `visibility methodName(): ReturnType`, for example `+ calculateXP(): int`. |
+| Operation format | Use `visibility methodName(): ReturnType`, for example `+ requestActivityValidation(): void`. Do not place XP, streak, level, rank, or leaderboard calculation/write operations on client-owned classes. |
 | Visibility | `+` public, `-` private, `#` protected. |
 | Read-only value | Use `{read only}` for constants or immutable values. |
 | Static member | Underline static attributes or operations if the drawing tool supports it. |
@@ -208,7 +208,7 @@ Recommended relationship rules:
 - Use composition for strong lifecycle ownership, such as `Activity` composed of `RoutePoint`, `TrainingPlan` composed of `PlanSession`, and `Activity` composed of `RunSummary`.
 - Use aggregation for weaker part-of relationships where the part may remain meaningful independently.
 - Use association for most service/data interactions, such as `UserAccount` records `Activity`, `SharedRoute` is saved by `RouteFavorite`, or `LeaderboardEntry` references `LeaderboardRegion`.
-- Use inheritance sparingly. `PremiumRunSummary` may specialize `RunSummary`; do not model `BasicUser` and `PremiumUser` as subclasses unless the implementation truly treats them as different user types. Prefer `Subscription` or `EntitlementPolicy` for tier behavior.
+- Use inheritance sparingly. `PremiumRunSummary` may specialize `RunSummary`; do not model `BasicUser` and `PremiumUser` as subclasses unless the implementation truly treats them as different user types. Prefer `Subscription`, `subscriptionStatus`, or `EntitlementPolicy` for feature access behavior.
 
 Recommended drawing shape:
 
@@ -238,9 +238,9 @@ Recommended components:
 | Running | Run Tracking, Activity Validation, GPS Route Recorder, Wearable Data Adapter |
 | Planning | Training Plan Generator, Schedule Editor, Expert Goal Plan, Reminder Scheduler |
 | Analysis | Metric Calculator, Premium Run Analysis, AI Post-Run Summary |
-| Motivation | XP Calculator, Streak Tracker, Level Manager |
+| Motivation | Backend XP Calculator, Streak Tracker, Level Manager |
 | Social / Route | Route Sharing, Route Repository, Favorite Routes, Route Report |
-| Competition | Territorial Leaderboard, Region Mapper, League Division Manager, Rank Sharing |
+| Competition | Territorial Leaderboard, Region Mapper, League Division Manager, Backend Rank Aggregator, Rank Sharing |
 | Notification | Notification Inbox, Push Notification Dispatcher |
 | Data / External | Firestore Database, Firebase Auth, Cloud Functions, FCM, Maps API, AI/LLM Service, OS Share Sheet |
 
@@ -319,7 +319,7 @@ Recommended Runiac entities / collections:
 
 | Entity / Collection | Key Fields |
 | --- | --- |
-| UserAccount | userID, email, passwordHash/authProvider, role, subscriptionTier, createdAt |
+| UserAccount | userID, email, firebaseAuthUID, userRole, subscriptionStatus, createdAt |
 | UserProfile | userID, displayName, fitnessLevel, runningExperience, goals, injuryHistory, healthDeclarations |
 | Subscription | subscriptionID, userID, tier, status, startDate, renewalDate |
 | Activity | activityID, userID, routeID, startTime, endTime, distance, duration, avgPace, calories, heartRateAvg, status, validationStatus |
@@ -330,10 +330,10 @@ Recommended Runiac entities / collections:
 | TrainingPlan | planID, userID, goalType, startDate, endDate, currentWeek, status, premiumPlanID |
 | PlanSession | sessionID, planID, scheduledDateTime, targetDistance, targetDuration, intensity, completionStatus |
 | Reminder | reminderID, userID, sessionID, reminderType, scheduledAt, sentStatus |
-| XPRecord | xpRecordID, userID, activityID, xpAmount, reason, createdAt |
-| UserProgression | userID, totalXP, level, leagueDivision, streakCount, weeklyXP, monthlyXP |
+| XPRecord | xpRecordID, userID, activityID, xpAmount, reason, createdAt, createdByFunction |
+| UserProgression | userID, totalXP, level, leagueDivision, streakCount, weeklyXP, monthlyXP, updatedByFunction |
 | LeaderboardRegion | regionID, name, type, parentRegionID, boundaryReference |
-| LeaderboardEntry | entryID, regionID, userID, leagueDivision, weeklyXP, monthlyXP, rank, updatedAt |
+| LeaderboardEntry | entryID, regionID, userID, leagueDivision, weeklyXP, monthlyXP, rank, updatedAt, updatedByFunction |
 | RunSummary | summaryID, activityID, userID, summaryType, text, recommendation, generatedAt |
 | Notification | notificationID, userID, title, body, notificationType, readStatus, createdAt |
 
@@ -354,7 +354,7 @@ Important relationships:
 - UserAccount 1:1 UserProgression.
 - Activity 1:N RoutePoint.
 - Activity 1:1 RunSummary.
-- Activity 1:N XPRecord.
+- Activity 1:N XPRecord through backend validation and Cloud Functions XP calculation.
 - SharedRoute 1:N RouteFavorite.
 - SharedRoute 1:N RouteReport.
 - LeaderboardRegion 1:N LeaderboardEntry.
@@ -384,7 +384,7 @@ Class diagram:
 - Keep class names singular and implementation-neutral.
 - Use `+`, `-`, and `#` visibility prefixes consistently when attributes or operations are shown.
 - Use association as the default relationship, and use aggregation, composition, or inheritance only when the meaning matches Topic 3.
-- Avoid turning Basic/Premium subscription tiers, UI screens, Firebase services, or Firestore collections into classes unless they are actual logical domain objects.
+- Avoid turning Basic/Premium subscription states, UI screens, Firebase services, or Firestore collections into classes unless they are actual logical domain objects.
 - Split into packages or multiple diagrams if the class model becomes too dense for one A4 page.
 
 Component diagram:
