@@ -4,16 +4,16 @@
 
 - Current track: Track A - Governance and implementation readiness
 - Current phase: `implementation/roadmap/phases/phase-01-governance-ci.md`
-- Current active capsule: `implementation/roadmap/capsules/repository-workflow-record.md`
-- Most recent completed capsule: `implementation/roadmap/capsules/artifact-inventory-schema-persistence.md`
-- Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record documentation/governance routing active; repository remains pre-scaffold
-- Current state: Active bounded documentation/governance patch for a non-operational Repository Workflow Record
-- Current active milestone: Repository Workflow Record routing and documentation
+- Current active capsule: None selected
+- Most recent completed capsule: `implementation/roadmap/capsules/repository-workflow-record.md`
+- Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; repository remains pre-scaffold
+- Current state: Post-workflow-record governance state; next work requires explicit routing
+- Current active milestone: None selected
 
 ## Required Reading Order
 
 1. `implementation/roadmap/CURRENT.md`
-2. Active phase document: `implementation/roadmap/phases/phase-01-governance-ci.md` (closed); active capsule: `implementation/roadmap/capsules/repository-workflow-record.md`
+2. Active phase document: `implementation/roadmap/phases/phase-01-governance-ci.md` (closed); no active capsule is selected
 3. Relevant ADRs listed below
 4. `implementation/roadmap/snapshots/latest.md`
 
@@ -31,7 +31,7 @@ Do not load future phase documents unless explicitly requested.
 - Maintain root `AGENTS.md` roadmap context protocol when required.
 - Update `snapshots/latest.md` from confirmed repository state only.
 - Update CURRENT.md immediately when active phase, active capsule, gate status, or forbidden scope changes.
-- Maintain `docs/meta/REPOSITORY_WORKFLOW_RECORD.md` only as a non-operational, artifact-backed workflow record while this capsule is active.
+- Use Workflow Memory Drift Check output only as detection-only local Governance CI support; it must not automatically mutate workflow memory, snapshots, CURRENT.md, or capsules.
 
 ## Forbidden Work
 
@@ -45,9 +45,9 @@ Do not load future phase documents unless explicitly requested.
 
 ## Next Gate
 
-Complete the active Repository Workflow Record documentation/governance patch, then run A6_REVIEW and A8_OUTPUT_CHECKER before any readiness claim.
+Select the next work item explicitly before any further governance or implementation task.
 
-Do not infer Phase 02 implementation, Flutter scaffold execution, Firebase setup, dependency installation, build, init, deploy, tests, source changes, or production implementation from this active capsule.
+Run A6_REVIEW and A8_OUTPUT_CHECKER on any proposed next-phase routing.
 
 Artifact Inventory Schema persistence is complete:
 
@@ -59,4 +59,14 @@ No active implementation capsule should be inferred from this completed work.
 
 This post-completion state does not approve Phase 02 implementation, Flutter scaffold execution, Firebase setup, dependency installation, build, init, deploy, tests, source changes, or production implementation.
 
-The active Repository Workflow Record capsule is documentation/governance-only. `docs/meta` remains non-operational and cannot override `CURRENT.md`, active roadmap capsules, ADRs, setup gates, validated snapshots, or active `AGENTS.md` instructions.
+Repository Workflow Record capsule is complete:
+
+- Routing and record commit: `04e0972 docs(roadmap): route repository workflow record`
+- Workflow memory checkpoints commit: `0eb37c8 docs(meta): add workflow memory checkpoints`
+- Workflow Memory Drift Check commit: `93fff5e ci(governance): add workflow memory drift check`
+- Created record: `docs/meta/REPOSITORY_WORKFLOW_RECORD.md`
+- Capsule: `implementation/roadmap/capsules/repository-workflow-record.md` (closed)
+
+Workflow Memory Drift Check is detection-only and WARN-only local Governance CI support. It does not approve, close, refresh, or update records automatically.
+
+`docs/meta` remains non-operational and cannot override `CURRENT.md`, active roadmap capsules, ADRs, setup gates, validated snapshots, or active `AGENTS.md` instructions.
