@@ -10,6 +10,7 @@ checks=(
   "tools/governance-ci/check-pre-scaffold-scope.sh"
   "tools/governance-ci/check-roadmap-routing.sh"
   "tools/governance-ci/check-sensitive-paths.sh"
+  "tools/governance-ci/check-workflow-memory-drift.sh"
 )
 
 failures=0
