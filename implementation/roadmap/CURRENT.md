@@ -3,8 +3,8 @@
 ## Current Routing
 
 - Current track: Track A - Governance and implementation readiness
-- Current phase: `implementation/roadmap/phases/phase-00-governance-freeze.md`
-- Current status: Roadmap/context architecture initialization
+- Current phase: `implementation/roadmap/phases/phase-01-governance-ci.md`
+- Current status: Phase 00 governance freeze closed; Phase 01 governance CI active
 - Current active capsule: None
 
 ## Required Reading Order
@@ -38,4 +38,4 @@ Do not load future phase documents unless explicitly requested.
 
 ## Next Gate
 
-Complete Phase 00 governance freeze review, update `snapshots/latest.md`, then update CURRENT.md to the next active phase.
+Define minimal governance CI checks without Flutter, Firebase, scaffold, build, deploy, dependency installation, or production source/config creation.

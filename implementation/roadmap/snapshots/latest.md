@@ -4,7 +4,8 @@
 
 - Last updated phase: Phase 00 - Governance Freeze
 - Last updated capsule: None
-- Last verified commit hash: `5e82faae25fea8026538ac67fa457fe3922b6e5a`
+- Last verified commit hash: `1c3a3a45c688f3b91fa7cdf7c62ab27e4c490928`
+- Closure context: Phase 00 governance freeze closed after roadmap protocol initialization and governance hardening commits.
 
 ## Current Implementation State
 
@@ -38,6 +39,9 @@ Implemented: None — pre-scaffold governance state
 - Firebase Project and Config Gate is `Not Started`.
 - Secret / API Key / Environment Handling Gate is `Not Started`.
 - Human/project approval evidence is required before remaining setup gates become `Approved`.
+- Root roadmap context protocol is active in `AGENTS.md`.
+- `docs/pdd/diagrams/` is the canonical PDD diagram source; root `diagrams/` is legacy/reference-only.
+- Claude deny rules and `.gitignore` cover nested `.env`, Firebase config, service account, signing, private GPS/location/route, and test-evidence artifact patterns.
 
 ## Known Limitations
 
@@ -47,4 +51,4 @@ Implemented: None — pre-scaffold governance state
 
 ## Current Active Milestone
 
-Phase 1 implementation preparation remains approved for scaffold execution review only; actual scaffold execution remains blocked until a separate explicit execution prompt and required approvals exist.
+Phase 01 - Governance CI is active. Phase 1 implementation preparation remains approved for scaffold execution review only; actual scaffold execution remains blocked until a separate explicit execution prompt and required approvals exist.

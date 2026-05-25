@@ -57,5 +57,5 @@ Update `implementation/roadmap/CURRENT.md` immediately when the next phase becom
 
 ## Exit Criteria
 
-- [ ] snapshots/latest.md updated
-- [ ] CURRENT.md updated to next phase
+- [x] snapshots/latest.md updated
+- [x] CURRENT.md updated to next phase
