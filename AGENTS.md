@@ -22,7 +22,7 @@
 - Firebase Authentication handles identity.
 - Firestore stores users, plans, activities, routes, XP summaries, and leaderboard data.
 - Cloud Functions handle XP calculation, activity validation, streak update, level update, rank update, and leaderboard aggregation.
-- The client must not directly calculate or write XP, level, rank, streak, leaderboard score, weekly XP, or monthly XP.
+- The client must not directly calculate or write XP, level, rank, streak, leaderboard score, weekly XP, monthly XP, subscription privilege state, or expert plan publication state.
 - Premium features must not rely only on hiding UI.
 - Premium users must not receive XP, rank, leaderboard score, or competitive advantages.
 - Basic/Premium feature access uses `subscriptionStatus`.
@@ -56,6 +56,8 @@
 - A0 to A16 are role profiles and review lenses by default.
 - Do not assume real parallel Codex subagents are available unless the user explicitly asks Codex to spawn subagents.
 - If subagents are not explicitly requested, A0_ORCH should emulate specialist checks sequentially.
+- Agent-chain depth scales with risk and scope. Routine documentation/governance edits do not require every specialist role; use deeper review roles when risk, architecture, security, closure, traceability, entitlement, XP/leaderboard, Firebase/backend, or user-facing implementation boundaries are affected.
+- Output depth scales with task size. Tiny tasks may use short evidence reports, normal implementation uses medium reports with validation, and critical or risky tasks use full governance reports.
 - Stop only when Ready for commit, Committed, or Blocked by missing information.
 
 ## Short Agent Role Index
@@ -105,17 +107,22 @@
 - Firebase/backend work: `firebase/AGENTS.md`
 - Tests and QA: `tests/AGENTS.md`
 
-## Roadmap Context Protocol
+## Layered Context Protocol
 
-When starting any task:
+Use the smallest context set that can safely answer or execute the task.
 
-1. Read `implementation/roadmap/CURRENT.md` first (always).
-2. Read the active phase doc referenced in CURRENT.md.
-3. Read relevant ADRs referenced in CURRENT.md.
-4. Read `implementation/roadmap/snapshots/latest.md` for current state.
+Hot path, read by default:
 
-Do not load:
-- `roadmap-stretch.md` unless explicitly instructed.
-- archived snapshots unless explicitly instructed.
-- future phase docs unless explicitly instructed.
-- full `roadmap-summary.md` unless planning cross-phase work.
+1. `implementation/roadmap/CURRENT.md`
+2. Active capsule document, if CURRENT.md selects one.
+3. `implementation/roadmap/snapshots/latest.md`
+
+Warm path, read only when triggered by the task or hot-path context:
+
+- Active phase document, when routing, phase selection, capsule selection/closure, gate status, or phase policy is involved.
+- Relevant ADRs, when the task touches their decision boundary or when CURRENT.md/capsule scope makes them relevant.
+- Traceability, setup gates, review templates, validation registries, or `implementation/mobile/AGENTS.md`, when the task touches those areas.
+
+Cold path, do not load during normal tasks unless explicitly requested or routed:
+
+- `docs/meta/*`, workflow records, retrospective/history files, old review outputs, archived snapshots, `roadmap-stretch.md`, future phase documents, and broad historical planning documents.

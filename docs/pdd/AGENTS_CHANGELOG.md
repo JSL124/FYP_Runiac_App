@@ -1,5 +1,29 @@
 # Runiac AGENTS.md Changelog
 
+## 2026-05-27 - Streamline Context Loading
+
+### Files modified
+- `AGENTS.md`
+- `implementation/roadmap/CURRENT.md`
+- `docs/pdd/AGENTS_CHANGELOG.md`
+
+### Reason
+Clarified the governance/context-loading workflow so routine tasks use a lean hot path while phase docs, ADRs, traceability, review templates, meta records, and historical files remain conditional or cold-path context.
+
+### Summary of changes
+- Replaced the root mandatory roadmap context protocol with a hot/warm/cold layered context protocol.
+- Updated CURRENT.md to keep CURRENT and snapshots on the default hot path, keep active capsules mandatory only when selected, and move phase docs, ADRs, traceability, setup gates, review templates, mobile instructions, meta records, and historical files to trigger-based loading.
+- Clarified output report scaling and agent-chain scaling so routine governance/documentation work does not require every specialist role or full governance-report shape.
+- Preserved CURRENT.md authority, active capsule scope isolation, validation-before-commit, no scaffold/build/init/deploy without approval, explicit staging, and backend-owned value restrictions.
+- Added no PDD deliverable content, implementation code, Firebase files, test files, roadmap phase advancement, speculative capsules, future phase documents, generated assets, or production code.
+
+### Review required
+- A6_REVIEW: verify the lean loading model does not weaken CURRENT.md authority, active capsule isolation, ADR/setup gate boundaries, role/subscription/backend-owned progression constraints, or no-scaffold/no-init/no-deploy restrictions.
+- A8_OUTPUT_CHECKER: verify the changed files are governance/context documentation only, the changelog entry exists, validation is reported, and no product/source/scaffold/Firebase/test files were modified.
+
+### Final status
+Ready for commit.
+
 ## 2026-05-26 - Add Documentation Scope Instructions
 
 ### Files modified

@@ -10,13 +10,25 @@
 - Current state: Scaffold-baseline governance state with the static Flutter mobile UI split into a feature-first-lite source structure; Phase 02 remains unselected; hosted GitHub Actions now runs `git diff --check`, `./tools/governance-ci/run-all-checks.sh`, Flutter SDK setup, `flutter pub get`, `flutter analyze --no-pub`, and `flutter test`; hosted GitHub Actions for `8074092` was manually confirmed PASS by the user; the Leaderboard information affordance opens a centered static Tips popup/dialog; frontend hygiene cleanup is complete and closed.
 - Current active milestone: none selected; `flutter-frontend-hygiene-cleanup` is closed and no next capsule is selected.
 
-## Required Reading Order
+## Layered Reading Order
+
+Use minimal context loading. CURRENT.md remains the operational source of truth, and active capsule scope isolation remains mandatory.
+
+Hot path, read by default:
 
 1. `implementation/roadmap/CURRENT.md`
-2. Active phase document: `implementation/roadmap/phases/phase-01-governance-ci.md` (closed)
-3. Active capsule document: none selected
-4. Relevant ADRs listed below
-5. `implementation/roadmap/snapshots/latest.md`
+2. Active capsule document: none selected
+3. `implementation/roadmap/snapshots/latest.md`
+
+Warm path, read only when triggered by routing, scope, risk, or a direct task request:
+
+4. Active phase document: `implementation/roadmap/phases/phase-01-governance-ci.md` (closed)
+5. Relevant ADRs listed below
+6. Traceability, setup gates, validation/review templates, or implementation/mobile instructions when the task touches those boundaries.
+
+Cold path, do not load during normal tasks unless explicitly requested or routed:
+
+- `docs/meta/*`, workflow records, retrospective/history files, old review outputs, archived snapshots, `roadmap-stretch.md`, future phase documents, and broad historical planning documents.
 
 Do not load future phase documents unless explicitly requested.
 

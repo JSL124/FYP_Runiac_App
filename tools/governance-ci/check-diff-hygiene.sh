@@ -28,7 +28,7 @@ is_allowed_path() {
       return 0
       ;;
     # Approved: scaffold-baseline and Codex-only review instruction cleanup
-    AGENTS.md|.agents/skills/runiac-review-flow/SKILL.md|tools/agent-review/profiles/runiac/context-policy.yml|tools/agent-review/profiles/runiac/prompts/01_codex_create_plan.md)
+    AGENTS.md|docs/pdd/AGENTS_CHANGELOG.md|.agents/skills/runiac-review-flow/SKILL.md|tools/agent-review/profiles/runiac/context-policy.yml|tools/agent-review/profiles/runiac/prompts/01_codex_create_plan.md)
       return 0
       ;;
     # Approved: reusable agent-review reference templates only
