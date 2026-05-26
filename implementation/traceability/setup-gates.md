@@ -2,9 +2,9 @@
 
 ## 1. Purpose and Scope
 
-This document is a pre-scaffolding approval checklist for Phase 1 implementation preparation. It records gate state and required evidence before any Flutter, Firebase, Firestore, Cloud Functions, rules, secrets, API keys, or production source setup begins.
+This document is a setup approval checklist and scaffold-baseline record for Phase 1 implementation preparation. It records gate state and required evidence before Firebase, Firestore, Cloud Functions, rules, secrets, API keys, production feature implementation, build, deploy, or custom test setup begins.
 
-This document does not approve scaffolding. It does not authorize `flutter create`, `firebase init`, production source creation, builds, tests, deployment, staging, commits, or pushes.
+This document does not approve new setup or feature work. The bounded stock Flutter scaffold baseline has already been separately approved and executed. This document does not authorize another `flutter create`, `firebase init`, `flutterfire configure`, production feature creation, custom tests, builds, deployment, staging, commits, or pushes.
 
 A0_ORCH owns the workflow. A6_REVIEW checks consistency and high-risk boundaries. A8_OUTPUT_CHECKER checks completeness and deliverable readiness. These workflow roles do not replace explicit human/project approval.
 
@@ -25,7 +25,7 @@ Allowed statuses:
 | Gate | Current Status | Approval Evidence Required | Notes |
 | --- | --- | --- | --- |
 | Gate-00: Git State Baseline | APPROVED | Clean status, push baseline confirmation, no unrelated untracked/staged files, no failed traceability artifacts, explicit human/project approval evidence | Baseline readiness approved only; not scaffold execution approval. |
-| Flutter Scaffold Gate | APPROVED FOR SCAFFOLD EXECUTION REVIEW | Human/project approval to create Flutter scaffold and package metadata | No `flutter create` yet. |
+| Flutter Scaffold Gate | EXECUTED FOR STOCK SCAFFOLD BASELINE | Human/project approval to create Flutter scaffold and package metadata | Stock scaffold baseline exists at `implementation/mobile/runiac_app/`; no Firebase setup or feature implementation is authorized. |
 | Firebase Project and Config Gate | Not Started | Human/project approval for Firebase project/config approach | No `firebase init`, config files, or project IDs yet. |
 | Firestore Data Model Gate | Not Started | Approved collection/access model and traceability to requirements | No collections/rules created yet. |
 | Cloud Functions Boundary Gate | Not Started | Approved backend ownership boundaries | No functions source, package files, or TypeScript config yet. |
@@ -71,14 +71,27 @@ Approval evidence recorded:
 
 ## 5. Flutter Scaffold Gate
 
-Status: `APPROVED FOR SCAFFOLD EXECUTION REVIEW`
+Status: `EXECUTED FOR STOCK SCAFFOLD BASELINE`
 
-Blocked until approved:
+Executed baseline:
 
-- No `flutter create`.
-- No `pubspec.yaml`.
-- No production Dart source files.
-- No generated mobile platform folders.
+- Stock Flutter scaffold baseline exists at `implementation/mobile/runiac_app/`.
+- Scaffold command used `--no-pub`.
+- `pubspec.yaml`, `lib/main.dart`, Android platform files, iOS platform files, and template baseline tests exist as generated scaffold files.
+- No `flutter pub get` was run.
+- No `firebase init` was run.
+- `flutterfire configure` has not been run.
+- Firebase config/secrets remain absent.
+- Production Runiac feature implementation has not started.
+
+Still blocked until separately approved:
+
+- No additional `flutter create`.
+- No custom production Dart source beyond scaffold baseline.
+- No custom production tests beyond scaffold baseline.
+- No dependency resolution or dependency changes.
+- No build or deploy.
+- No Firebase configuration or setup.
 
 Required evidence before approval:
 
@@ -348,9 +361,9 @@ Approval evidence required:
 
 - Explicit human/project approval or linked decision artifact for the initial test/evidence plan.
 
-## 17. Final Pre-Scaffold Approval Checklist
+## 17. Final Setup Approval Checklist
 
-Before any scaffold/setup action is requested:
+Before any further setup or implementation action is requested:
 
 - Gate-00 has fresh clean repository evidence.
 - Required gates for the requested scaffold/setup action are `Approved`.
@@ -358,12 +371,13 @@ Before any scaffold/setup action is requested:
 - The requested action names exact paths and commands.
 - No protected PRD/PDD/submission/diagram/wireframe file is modified.
 - No secrets, API keys, production project IDs, private GPS data, or service accounts are introduced.
-- No implementation starts without explicit user approval.
+- No implementation expansion starts without explicit user approval.
 
 Still forbidden until relevant gates are approved:
 
 - No `flutter create`.
 - No `firebase init`.
+- No `flutterfire configure`.
 - No `pubspec.yaml`.
 - No `firebase.json`.
 - No `.firebaserc`.
@@ -371,7 +385,7 @@ Still forbidden until relevant gates are approved:
 - No `tsconfig.json`.
 - No Firestore rules.
 - No Storage rules.
-- No production Flutter/Firebase source.
+- No production Flutter/Firebase source beyond the stock scaffold baseline.
 
 ## 18. Explicit Approval Evidence Log
 
@@ -414,7 +428,7 @@ Still forbidden until relevant gates are approved:
   - platforms restricted to android and ios
   - Firebase setup deferred
   - firebase_options.dart generation deferred
-  - scaffold markers still absent
+  - scaffold markers still absent at approval-review time
 - Known remaining risks:
   - `.gitignore` covers standard `.env` and `.env.*` patterns; unconventional names like `.envrc` or `.envproduction` are not explicitly covered. Assessment: low risk for FYP scope; Runiac does not currently use these patterns. Future action: add if unconventional env files are introduced.
   - `flutter create --no-pub` support depends on the installed Flutter version and must be verified before scaffold execution.
@@ -424,3 +438,22 @@ Still forbidden until relevant gates are approved:
   - This approval authorizes preparing and reviewing scaffold execution only.
   - This approval does not itself authorize running `flutter create`.
   - This approval does not authorize Firebase setup, `firebase init`, `flutterfire configure`, dependency resolution, builds, tests, or deployment.
+
+### Flutter Scaffold Baseline Execution Record
+
+- Status: EXECUTED FOR STOCK SCAFFOLD BASELINE
+- Scaffold commit: `4b375d2 chore(mobile): add Flutter scaffold baseline`
+- Governance transition commit: `c8b2942 ci(governance): allow approved Flutter scaffold baseline`
+- State refresh commit: `7aca5ca docs(roadmap): refresh scaffold baseline state`
+- Scaffold path: `implementation/mobile/runiac_app/`
+- Command executed:
+  flutter create --template=app --platforms=android,ios --org com.runiac --project-name runiac_app --no-pub implementation/mobile/runiac_app
+- Execution constraints preserved:
+  - `--no-pub` was used.
+  - No `flutter pub get` was run.
+  - No `firebase init` was run.
+  - `flutterfire configure` has not been run.
+  - No Firebase config/secrets were generated or committed.
+  - Firebase Project and Config Gate remains `Not Started`.
+  - Stock Flutter scaffold baseline is present, but production Runiac feature implementation has not started.
+  - Build, deploy, custom tests, source expansion, Firebase setup, and Phase 02 feature work remain unauthorized until separately routed and approved.

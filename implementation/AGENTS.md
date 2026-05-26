@@ -3,10 +3,12 @@
 ## IMPLEMENTATION_MODE Scope
 - IMPLEMENTATION_MODE is used only when the user explicitly asks to implement, build, test, or fix code.
 - This folder currently contains future IMPLEMENTATION_MODE instructions only.
-- No production source code currently exists in this folder; instruction-only files here are not production implementation code.
-- Production implementation files should be added only when the user explicitly starts implementation.
+- Stock Flutter scaffold baseline exists under `implementation/mobile/runiac_app/`; this is scaffold baseline only, not Runiac production feature implementation.
+- No production Runiac feature implementation currently exists in this folder; instruction-only files here are not production implementation code.
+- Production implementation files or scaffold changes should be added only when the user explicitly routes and approves implementation.
 - Do not rewrite PDD-only files unless the implementation task explicitly requires documentation or traceability updates.
 - Do not place production source code inside `docs/`.
+- Firebase remains uninitialized. Do not run `firebase init`, `flutterfire configure`, or add Firebase config/secrets unless separately approved.
 
 ## Implementation Workflow
 - A0_ORCH owns the workflow.
@@ -26,5 +28,6 @@
 - Medical Trainer/Expert cannot directly publish expert plans.
 - Platform Administrator-only operations must be enforced through trusted backend logic.
 - Premium users must not gain XP, ranking, leaderboard score, or competitive advantages.
+- Future Flutter source changes require explicit routing and must preserve backend ownership of XP, streak, level, rank, leaderboard, subscription, and expert-publication state.
 
 Detailed implementation role profiles are in `implementation/AGENT_ROLES.md`.

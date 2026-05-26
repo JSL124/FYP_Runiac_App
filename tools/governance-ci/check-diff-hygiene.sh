@@ -23,6 +23,10 @@ is_allowed_path() {
     docs/meta/REPOSITORY_WORKFLOW_RECORD.md|implementation/roadmap/capsules/repository-workflow-record.md)
       return 0
       ;;
+    # Approved: scaffold-baseline instruction/setup-gate alignment only
+    implementation/AGENTS.md|implementation/mobile/AGENTS.md|implementation/traceability/setup-gates.md)
+      return 0
+      ;;
     implementation/roadmap/CURRENT.md|implementation/roadmap/phases/phase-01-governance-ci.md|implementation/roadmap/snapshots/latest.md|implementation/roadmap/ci/*|tools/governance-ci/*)
       return 0
       ;;
