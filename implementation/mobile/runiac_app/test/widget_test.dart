@@ -28,19 +28,25 @@ void main() {
     expect(find.text('Saved'), findsOneWidget);
     expect(find.text('Shared Routes'), findsOneWidget);
     expect(
-      find.text('Nearby route suggestions will appear after location setup.'),
+      find.text('Shared route previews will appear here after app setup.'),
       findsOneWidget,
     );
     expect(find.text('Route preview'), findsOneWidget);
-    expect(find.text('Details will appear after setup.'), findsOneWidget);
-    expect(find.text('Community routes'), findsOneWidget);
-    expect(find.text('Shared route details will appear here.'), findsOneWidget);
+    expect(
+      find.text('Map and route notes will stay as placeholders.'),
+      findsOneWidget,
+    );
 
     await tester.drag(find.text('Shared Routes'), const Offset(0, -260));
     await tester.pumpAndSettle();
 
+    expect(find.text('Shared routes'), findsOneWidget);
+    expect(find.text('Community cards can be reviewed later.'), findsOneWidget);
     expect(find.text('Saved routes'), findsOneWidget);
-    expect(find.text('Saved routes will be available later.'), findsOneWidget);
+    expect(
+      find.text('Saved route slots remain static for now.'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('Run item opens and closes static full-screen launch surface', (

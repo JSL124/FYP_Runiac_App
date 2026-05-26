@@ -9,16 +9,16 @@ class SharedRoutesSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
-      minChildSize: 0.18,
-      initialChildSize: 0.46,
-      maxChildSize: 0.7,
+      minChildSize: 0.065,
+      initialChildSize: 0.56,
+      maxChildSize: 0.68,
       snap: true,
-      snapSizes: const [0.18, 0.46, 0.7],
+      snapSizes: const [0.065, 0.56, 0.68],
       builder: (context, scrollController) {
         return DecoratedBox(
           decoration: const BoxDecoration(
             color: RuniacColors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
             boxShadow: [
               BoxShadow(
                 color: Color(0x1A172033),
@@ -29,41 +29,49 @@ class SharedRoutesSheet extends StatelessWidget {
           ),
           child: ListView(
             controller: scrollController,
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
             physics: const ClampingScrollPhysics(),
             children: const [
-              _SheetDragHandle(),
-              SizedBox(height: 8),
+              _SheetHandleArea(),
               _SharedRoutesHeader(),
-              SizedBox(height: 6),
+              SizedBox(height: 5),
               Text(
-                'Nearby route suggestions will appear after location setup.',
+                'Shared route previews will appear here after app setup.',
                 style: TextStyle(
                   color: RuniacColors.textSecondary,
                   fontSize: 13,
                   height: 1.35,
                 ),
               ),
-              SizedBox(height: 12),
+              SizedBox(height: 14),
               RoutePreviewCard(
                 title: 'Route preview',
-                message: 'Details will appear after setup.',
+                message: 'Map and route notes will stay as placeholders.',
               ),
-              SizedBox(height: 8),
+              SizedBox(height: 10),
               RoutePreviewCard(
-                title: 'Community routes',
-                message: 'Shared route details will appear here.',
+                title: 'Shared routes',
+                message: 'Community cards can be reviewed later.',
               ),
-              SizedBox(height: 8),
+              SizedBox(height: 10),
               RoutePreviewCard(
                 title: 'Saved routes',
-                message: 'Saved routes will be available later.',
+                message: 'Saved route slots remain static for now.',
               ),
             ],
           ),
         );
       },
     );
+  }
+}
+
+class _SheetHandleArea extends StatelessWidget {
+  const _SheetHandleArea();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(height: 48, child: Center(child: _SheetDragHandle()));
   }
 }
 
@@ -97,7 +105,7 @@ class _SharedRoutesHeader extends StatelessWidget {
             'Shared Routes',
             style: TextStyle(
               color: RuniacColors.textPrimary,
-              fontSize: 22,
+              fontSize: 21,
               fontWeight: FontWeight.w800,
               height: 1.15,
             ),

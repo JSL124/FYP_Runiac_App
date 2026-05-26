@@ -10,7 +10,7 @@ class MapsTopOverlay extends StatelessWidget {
     return const Row(
       children: [
         Expanded(child: _MapsSearchField()),
-        SizedBox(width: 10),
+        SizedBox(width: 8),
         _SavedRoutesButton(),
       ],
     );
@@ -23,8 +23,8 @@ class _MapsSearchField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 52,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
         color: RuniacColors.white,
         borderRadius: BorderRadius.circular(999),
@@ -32,22 +32,22 @@ class _MapsSearchField extends StatelessWidget {
         boxShadow: const [
           BoxShadow(
             color: Color(0x14172033),
-            blurRadius: 12,
-            offset: Offset(0, 6),
+            blurRadius: 10,
+            offset: Offset(0, 5),
           ),
         ],
       ),
       child: const Row(
         children: [
-          Icon(Icons.search, color: RuniacColors.textPrimary, size: 24),
-          SizedBox(width: 10),
+          Icon(Icons.search, color: RuniacColors.textPrimary, size: 22),
+          SizedBox(width: 8),
           Expanded(
             child: Text(
               'Search routes or area',
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: RuniacColors.textSecondary,
-                fontSize: 15,
+                fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -64,29 +64,29 @@ class _SavedRoutesButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 52,
-      padding: const EdgeInsets.symmetric(horizontal: 14),
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         color: RuniacColors.primaryBlue,
         borderRadius: BorderRadius.circular(999),
         boxShadow: const [
           BoxShadow(
             color: Color(0x332F50C7),
-            blurRadius: 12,
-            offset: Offset(0, 6),
+            blurRadius: 10,
+            offset: Offset(0, 5),
           ),
         ],
       ),
       child: const Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.bookmark_border, color: RuniacColors.white, size: 20),
-          SizedBox(width: 7),
+          Icon(Icons.bookmark_border, color: RuniacColors.white, size: 19),
+          SizedBox(width: 6),
           Text(
             'Saved',
             style: TextStyle(
               color: RuniacColors.white,
-              fontSize: 14,
+              fontSize: 13,
               fontWeight: FontWeight.w800,
             ),
           ),

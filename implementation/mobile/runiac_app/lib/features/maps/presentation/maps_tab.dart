@@ -10,16 +10,22 @@ class MapsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const SafeArea(
-      child: ColoredBox(
-        color: RuniacColors.background,
-        child: Stack(
-          children: [
-            Positioned.fill(child: MapsBackground()),
-            Positioned(left: 16, right: 16, top: 16, child: MapsTopOverlay()),
-            SharedRoutesSheet(),
-          ],
-        ),
+    return const ColoredBox(
+      color: RuniacColors.background,
+      child: Stack(
+        children: [
+          Positioned.fill(child: MapsBackground()),
+          Positioned(
+            left: 14,
+            right: 14,
+            top: 0,
+            child: SafeArea(
+              minimum: EdgeInsets.only(top: 14),
+              child: MapsTopOverlay(),
+            ),
+          ),
+          SharedRoutesSheet(),
+        ],
       ),
     );
   }

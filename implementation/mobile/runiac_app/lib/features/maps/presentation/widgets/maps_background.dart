@@ -12,8 +12,8 @@ class MapsBackground extends StatelessWidget {
         Positioned.fill(child: CustomPaint(painter: _MapsBackgroundPainter())),
         Positioned(left: 52, top: 124, child: _MapPinPlaceholder()),
         Positioned(right: 64, top: 188, child: _MapPinPlaceholder()),
-        Positioned(left: 130, bottom: 288, child: _MapPinPlaceholder()),
-        Positioned(right: 104, bottom: 328, child: _MapFocusDot()),
+        Positioned(left: 126, top: 296, child: _MapPinPlaceholder()),
+        Positioned(right: 92, top: 338, child: _MapFocusDot()),
       ],
     );
   }

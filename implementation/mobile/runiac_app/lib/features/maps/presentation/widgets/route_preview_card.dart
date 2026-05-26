@@ -14,49 +14,60 @@ class RoutePreviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: RuniacColors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: RuniacColors.border),
-      ),
-      child: Row(
-        children: [
-          const _RouteThumbnailPlaceholder(),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: RuniacColors.textPrimary,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    height: 1.2,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  message,
-                  style: const TextStyle(
-                    color: RuniacColors.textSecondary,
-                    fontSize: 13,
-                    height: 1.3,
-                  ),
-                ),
-              ],
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 88),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFAFBFF),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: RuniacColors.border),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0A172033),
+              blurRadius: 10,
+              offset: Offset(0, 5),
             ),
-          ),
-          const SizedBox(width: 8),
-          const Icon(
-            Icons.chevron_right,
-            color: RuniacColors.textSecondary,
-            size: 22,
-          ),
-        ],
+          ],
+        ),
+        child: Row(
+          children: [
+            const _RouteThumbnailPlaceholder(),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: RuniacColors.textPrimary,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      height: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 7),
+                  Text(
+                    message,
+                    style: const TextStyle(
+                      color: RuniacColors.textSecondary,
+                      fontSize: 13,
+                      height: 1.35,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Icon(
+              Icons.chevron_right,
+              color: RuniacColors.textSecondary,
+              size: 22,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -68,8 +79,8 @@ class _RouteThumbnailPlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 70,
-      height: 56,
+      width: 72,
+      height: 58,
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: RuniacColors.background,
@@ -86,7 +97,7 @@ class _RouteThumbnailPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final roadPaint = Paint()
       ..color = RuniacColors.white
-      ..strokeWidth = 7
+      ..strokeWidth = 9
       ..strokeCap = StrokeCap.round;
     canvas
       ..drawLine(
@@ -101,8 +112,8 @@ class _RouteThumbnailPainter extends CustomPainter {
       );
 
     final routePaint = Paint()
-      ..color = RuniacColors.textPrimary
-      ..strokeWidth = 2.5
+      ..color = RuniacColors.primaryBlue
+      ..strokeWidth = 3
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
     final routePath = Path()
