@@ -8,11 +8,11 @@
 
 Mode for future implementation: implementation-approved.
 
-Type: Flutter static frontend-only Leaderboard help modal/sheet shell.
+Type: Flutter static frontend-only Leaderboard help popup/dialog shell.
 
 ## Status
 
-Status: Active; reactivated after `github-actions-flutter-validation-baseline` CI parity closure.
+Status: Closed.
 
 Routed on: 2026-05-27 Asia/Singapore.
 
@@ -22,11 +22,21 @@ Resumable on: 2026-05-27 Asia/Singapore.
 
 Reactivated on: 2026-05-27 Asia/Singapore.
 
+Closed on: 2026-05-27 Asia/Singapore.
+
 Depends on: `implementation/roadmap/capsules/leaderboard-map-first-landing-shell.md` closed at `b1ed742 feat(mobile): add leaderboard map landing shell`.
 
 Deferred because: hosted GitHub Actions previously ran governance checks but did not yet run the Flutter analyze/test validation expected by this product capsule. `github-actions-flutter-validation-baseline` is now closed after local validation and hosted GitHub Actions PASS for `587cc0e`.
 
 Reactivated because: hosted Flutter validation CI parity is complete. This reactivation is routing-only; no help modal implementation has occurred yet, and the capsule must not be marked completed or superseded until its future implementation and validation are finished.
+
+Closure commit: `96a2706 feat(mobile): add leaderboard tips popup`.
+
+Closure evidence: local `git diff --check`, `cd implementation/mobile/runiac_app && flutter analyze --no-pub`, `cd implementation/mobile/runiac_app && flutter test`, and `./tools/governance-ci/run-all-checks.sh` passed before commit; hosted GitHub Actions for `96a2706` was manually confirmed PASS by the user.
+
+Closure summary: the existing `Leaderboard information` affordance opens a centered Tips popup/dialog with concise beginner-friendly help content, clear close behavior, and widget-test coverage for open/content/dismiss plus absence of forbidden fake leaderboard content.
+
+Closure boundary preserved: no league selector popup, region tap behavior, region preview bottom sheet, fake leaderboard rows, fake users, fake ranks, fake XP, fake scores, fake levels, fake streaks, Firebase/Auth/Firestore/Cloud Functions/FCM, GPS/location, backend work, dependency changes, workflow changes, shell changes, native Android/iOS changes, scaffold, build, init, deploy, or Phase 02 selection.
 
 ## Required Agent Chain
 
@@ -145,9 +155,9 @@ No backend, Firebase, GPS, security-rules, Cloud Functions, or leaderboard aggre
 
 ## Done When
 
-- [ ] The existing `Leaderboard information` affordance opens a concise help modal/sheet.
-- [ ] The help UI can be dismissed.
-- [ ] Help copy remains beginner-friendly and does not imply live backend data.
-- [ ] No region tap, region preview bottom sheet, leaderboard rows, fake users, fake ranks, fake XP, fake scores, fake levels, fake streaks, or backend-owned values are introduced.
-- [ ] No forbidden files or scopes are touched.
-- [ ] Required validation passes.
+- [x] The existing `Leaderboard information` affordance opens a concise help popup/dialog.
+- [x] The help UI can be dismissed.
+- [x] Help copy remains beginner-friendly and does not imply live backend data.
+- [x] No region tap, region preview bottom sheet, leaderboard rows, fake users, fake ranks, fake XP, fake scores, fake levels, fake streaks, or backend-owned values are introduced.
+- [x] No forbidden files or scopes are touched.
+- [x] Required validation passes.
