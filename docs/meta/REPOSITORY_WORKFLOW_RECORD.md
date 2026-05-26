@@ -26,7 +26,7 @@ Governance CI was introduced as local validation support. Its checks help detect
 
 `docs/meta/` became the non-operational archive layer. It may preserve curated workflow learning, archive policy, schema references, and reflective process notes, but it must not become routing authority, approval evidence, setup-gate evidence, or implementation guidance.
 
-The current governed state is therefore pre-scaffold and documentation/governance-centered. Runiac has explicit instruction hierarchy, roadmap context, setup gates, local validation checks, and meta/archive boundaries, while Flutter, Firebase, production source, production tests, and Phase 02 work remain outside this record's authority.
+The current governed state has moved beyond pre-scaffold into a static Flutter scaffold/source baseline with documentation and governance boundaries still active. Runiac has explicit instruction hierarchy, roadmap context, setup gates, local validation checks, hosted Governance CI, and meta/archive boundaries, while Firebase, backend services, GPS/location behavior, production data behavior, production tests beyond routed need, and Phase 02 work remain outside this record's authority.
 
 ## Workflow Memory Recording Schema
 
@@ -173,13 +173,13 @@ These checkpoints are a current repo memory aid. They separate committed artifac
 - Boundary / not inferred: The active route is artifact-backed, but human motivation is not fully reconstructed and this record is not complete history or operational authority.
 - Recording trigger hint: Future changes to Repository Workflow Record routing or closure state may indicate that this checkpoint should be reviewed.
 
-### CP-14 — Current governed pre-scaffold state
-- Trigger / context: The current repo state is governed, pre-scaffold, and documentation/governance-centered.
-- Change / approach: Existing workflow choices support implementation preparation without authorizing scaffold/setup execution.
-- Evidence basis: `CURRENT.md`; `latest.md`; `setup-gates.md`; root AGENTS; governance CI files.
+### CP-14 — Current governed scaffold-baseline state
+- Trigger / context: The current repo state is governed and has an approved static Flutter scaffold/source baseline, while Firebase/backend setup and Phase 02 remain unselected.
+- Change / approach: Existing workflow choices support bounded static Flutter UI/source capsules without authorizing Firebase setup, backend work, production data behavior, build/deploy activity, or Phase 02 implementation.
+- Evidence basis: `CURRENT.md`; `latest.md`; `setup-gates.md`; root AGENTS; governance CI files; static Flutter scaffold and app shell checkpoints.
 - Confidence: ARTIFACT_VERIFIED.
-- Boundary / not inferred: Flutter scaffold execution, Firebase setup, Phase 02, source, tests, builds, init, deploy, or production implementation are not inferred.
-- Recording trigger hint: Future changes to scaffold/setup authorization or repository implementation state may indicate that this checkpoint should be reviewed.
+- Boundary / not inferred: Firebase setup, backend services, GPS/location behavior, production data behavior, Phase 02, builds, init, deploy, or production implementation beyond routed static UI/source capsules are not inferred.
+- Recording trigger hint: Future changes to scaffold/setup authorization, static Flutter source baseline, or repository implementation state may indicate that this checkpoint should be reviewed.
 
 ### CP-15 — Agent-review output template standardization
 - Trigger / context: The agent-review workflow gained a Level 1.5 output/review-template layer after a workflow-impacting patch was pushed.
@@ -188,6 +188,14 @@ These checkpoints are a current repo memory aid. They separate committed artifac
 - Confidence: ARTIFACT_VERIFIED.
 - Boundary / not inferred: This records workflow-template standardization only; it does not claim that every future task used the templates correctly, and it does not create implementation, setup, scaffold, Firebase, build, test, deploy, staging, commit, or push approval.
 - Recording trigger hint: Future changes to agent-review output templates, review-gate templates, or their Governance CI allowlist may indicate that this checkpoint should be reviewed.
+
+### CP-16 — Flutter source structure and hosted CI recovery checkpoint
+- Trigger / context: The static Flutter app source grew into a large `app.dart` file, and hosted Governance CI later failed at checkout after the source-structure refactor was pushed.
+- Change / approach: The mobile source was split into a feature-first-lite structure, keeping `app.dart` thin and preserving current static UI behavior. The hosted CI checkout failure was diagnosed as a checkout-stage HTTP 403 and the workflow was minimally adjusted to use direct exact-SHA git checkout.
+- Evidence basis: `3dad079 chore(mobile): split static Flutter source structure`; `9a53089 fix(ci): use direct git checkout for governance checks`; hosted Governance CI run success for `9a53089`; current mobile source tree under `lib/core` and `lib/features`.
+- Confidence: ARTIFACT_VERIFIED.
+- Boundary / not inferred: This checkpoint records source-structure and CI recovery only. It does not authorize Phase 02, Firebase, backend, GPS, production data behavior, route generation, or trusted progression logic.
+- Recording trigger hint: Future changes to mobile source structure, `app.dart` composition boundaries, or hosted Governance CI checkout behavior may indicate that this checkpoint should be reviewed.
 
 ## Unknown or User-Memory-Required History
 
@@ -246,11 +254,11 @@ Push actions should be separately approved when required by the task. Commit mes
 
 This record does not create artifact inventory entries, timelines, repository Genesis material, autonomous archive systems, or approval evidence. It does not replace ADRs, setup gates, snapshots, roadmap routing, or active instructions.
 
-## Pre-Scaffold Boundary
+## Static Scaffold Baseline Boundary
 
-Runiac remains in a pre-scaffold governance state until separately approved work changes that state. This record does not authorize Flutter scaffold execution, Firebase initialization, dependency installation, builds, deploys, production source files, generated platform files, or production tests.
+Runiac has an approved static Flutter scaffold/source baseline under `implementation/mobile/runiac_app/`. This record does not authorize Firebase initialization, dependency installation, builds, deploys, production data behavior, generated platform-file changes, or production tests beyond a routed need.
 
-Any future scaffold or setup action must follow the active roadmap context, setup gates, ADRs, and explicit human approval.
+Any future setup action or expansion beyond the routed static Flutter source baseline must follow the active roadmap context, setup gates, ADRs, and explicit human approval.
 
 ## Backend-Owned Progression Boundary
 
