@@ -197,6 +197,14 @@ These checkpoints are a current repo memory aid. They separate committed artifac
 - Boundary / not inferred: This checkpoint records source-structure and CI recovery only. It does not authorize Phase 02, Firebase, backend, GPS, production data behavior, route generation, or trusted progression logic.
 - Recording trigger hint: Future changes to mobile source structure, `app.dart` composition boundaries, or hosted Governance CI checkout behavior may indicate that this checkpoint should be reviewed.
 
+### CP-17 — Governed AI-assisted operating model
+- Trigger / context: Runiac's workflow matured from ad-hoc prompt handling into a governed AI-assisted engineering process with explicit context loading, mode boundaries, review gates, and approval checks.
+- Change / approach: Current work is expected to start from `CURRENT.md`, load only the required layered context, classify the requested execution mode, define assumptions and scope boundaries, execute only approved scope, validate observed results, run review gates, and report READY or NOT READY with evidence.
+- Evidence basis: Root `AGENTS.md`; `docs/AGENTS.md`; `docs/meta/AGENTS.md`; `CURRENT.md`; `latest.md`; `tools/agent-review/templates/CODEX_OUTPUT_TEMPLATE.md`; `tools/agent-review/templates/REVIEW_GATE_TEMPLATE.md`; ADR-001; ADR-002.
+- Confidence: ARTIFACT_VERIFIED.
+- Boundary / not inferred: This checkpoint records the current operating discipline only. It does not claim every historical task followed the model perfectly, select the next capsule, advance a phase, or authorize implementation, scaffold, build, init, deploy, Firebase, backend, native, or product-source work.
+- Recording trigger hint: Future changes to execution modes, context-loading protocol, review-gate templates, approval gates, or roadmap routing may indicate that this checkpoint should be reviewed.
+
 ## Unknown or User-Memory-Required History
 
 The current repo memory cannot safely reconstruct every part of the human workflow. These items align with USER_MEMORY_REQUIRED and require human memory, external chat summaries, or additional artifact-backed evidence:
@@ -212,9 +220,33 @@ The current repo memory cannot safely reconstruct every part of the human workfl
 
 ## Current Discipline
 
-Runiac currently uses layered context retrieval before work begins. The intended workflow starts from `implementation/roadmap/CURRENT.md`, then follows any active phase or capsule routing, relevant ADRs, and `implementation/roadmap/snapshots/latest.md`. Folder-level `AGENTS.md` files then provide local scope rules for the area being changed.
+Runiac currently operates as a governed AI-assisted engineering repository, not as an ad-hoc prompting workspace. The intended workflow starts from `implementation/roadmap/CURRENT.md`, then follows any active phase, active capsule, relevant ADRs, and `implementation/roadmap/snapshots/latest.md`. Folder-level `AGENTS.md` files then provide local scope rules for the area being changed.
 
 This discipline keeps active operational truth separate from reflective archive material. `docs/meta/` may preserve curated workflow learning, but it must not drive routing, approval, setup gates, or implementation decisions.
+
+Context loading is layered and minimal. Agents should load the smallest operational context needed for the task, avoid broad historical documents unless routed, and treat explicit evidence as stronger than memory or inference.
+
+Execution-mode language now distinguishes at least four task postures:
+
+- `inspect-only`: read, classify, analyze, or audit without modifying files or running mutating commands.
+- `plan-only`: produce a bounded plan without implementation, staging, commit, push, build, scaffold, init, or deploy work.
+- `review-only`: review an artifact, plan, diff, or workflow without taking over implementation unless separately approved.
+- `implementation-approved`: execute a scoped change only when the prompt, roadmap context, or capsule explicitly grants that implementation scope.
+
+When no implementation, build, test, scaffold, init, deploy, staging, commit, or push approval exists, the safe default posture is inspect-only or documentation/PDD-only work as routed by the active instructions. Approval for one mode does not imply approval for another.
+
+Significant work is expected to follow this operating sequence:
+
+1. Understand the task and active mode.
+2. Load required context in the repository-defined order.
+3. Define assumptions.
+4. Define the scope boundary and allowed files.
+5. Identify risks, drift concerns, and forbidden work.
+6. Plan the smallest sufficient change.
+7. Execute only the approved scope.
+8. Validate observed results.
+9. Run the relevant review gates.
+10. Report READY or NOT READY with evidence.
 
 ## Capsule-Based Execution
 
@@ -222,11 +254,23 @@ Bounded work is routed through explicit roadmap context or a capsule before file
 
 For documentation/governance tasks, the capsule boundary is used to prevent drift into implementation, source generation, setup actions, broad archive creation, or unapproved historical reconstruction.
 
+Capsules are bounded executable work units. Phases provide the governance or policy context around those units, ADRs persist durable architecture and governance decisions, and `snapshots/latest.md` stores compressed operational memory. Capsules do not automatically advance phases, select later work, create future files, or authorize work outside their stated scope.
+
+Speculative capsule creation, speculative future phase documents, placeholder implementation artifacts, and automatic phase advancement are outside the current discipline unless explicitly routed by operational authority.
+
 ## Validation-First Workflow
 
 The current discipline expects repository state to be verified before work starts. Typical checks include clean working tree status, branch alignment, recent commit context, active roadmap state, and relevant snapshot state.
 
 Validation results must be reported as actual command results. Expected outputs must not be presented as if they were observed.
+
+For implementation-approved work, the current operating pattern is validation-first:
+
+`Implement -> Validate -> Test -> Review -> Commit -> Next capsule`
+
+This means implementation does not become ready merely because code changed. It must pass the scoped validation and test expectations, then pass deterministic review gates before staging, commit, push, closure, or any later capsule selection.
+
+Review gates should be deterministic and evidence-based. A review gate should state what was checked, what files or commands supplied evidence, whether the gate passed or failed, and which issue class blocks readiness.
 
 ## A0/A6/A8 Review Discipline
 
@@ -236,11 +280,15 @@ A6_REVIEW checks consistency, governance boundaries, architecture drift, role an
 
 A8_OUTPUT_CHECKER checks completeness, readiness claims, modified file lists, validation evidence, and whether the output stays inside the approved scope.
 
+A14_ERROR_TRIAGE is reserved for concrete observed errors and minimal scoped fixes. It should not be used as a broad rewrite or implementation shortcut. A16_WORKFLOW_AUDITOR may inspect whether a task followed the correct owner, specialist role, mode, file scope, review gate, readiness claim, and commit protocol.
+
 ## Human Approval Gates
 
 Human approval remains required for Tier 1 or external work, especially irreversible actions. The current setup-gate discipline separates review readiness from execution approval.
 
 Review results, clean status, or agent-generated decisions do not authorize Flutter scaffold execution, Firebase setup, production service changes, deployment, source creation, or tests unless a human-approved task explicitly grants that scope.
+
+Scaffold, build, init, deploy, Firebase setup, `flutterfire configure`, native platform setup, production service connection, dependency changes, and other high-risk or irreversible actions must not run from implication. They require explicit approval and must remain bounded by ADR-001, setup gates, CURRENT, and any active capsule.
 
 ## Commit and Push Discipline
 
@@ -254,15 +302,19 @@ Push actions should be separately approved when required by the task. Commit mes
 
 This record does not create artifact inventory entries, timelines, repository Genesis material, autonomous archive systems, or approval evidence. It does not replace ADRs, setup gates, snapshots, roadmap routing, or active instructions.
 
+Meta records are non-operational memory unless `CURRENT.md`, an active capsule, or an approved task explicitly routes work to them. They may help future AI/Codex sessions understand the process, but they must not be used to infer current approval state or bypass layered context retrieval.
+
 ## Static Scaffold Baseline Boundary
 
 Runiac has an approved static Flutter scaffold/source baseline under `implementation/mobile/runiac_app/`. This record does not authorize Firebase initialization, dependency installation, builds, deploys, production data behavior, generated platform-file changes, or production tests beyond a routed need.
 
 Any future setup action or expansion beyond the routed static Flutter source baseline must follow the active roadmap context, setup gates, ADRs, and explicit human approval.
 
+Flutter, Firebase, backend, Cloud Functions, native, and test work remain bounded by current roadmap authorization. A static UI/source capsule does not authorize backend behavior, GPS/location behavior, production data behavior, new dependencies, native setup, or Phase 02 work.
+
 ## Backend-Owned Progression Boundary
 
-The workflow discipline preserves the Runiac rule that official XP, streak, level, rank, leaderboard score, weekly XP, and monthly XP are backend-owned. Flutter may display trusted values, but the client must not directly calculate or write official progression or competitive ranking fields.
+The workflow discipline preserves the Runiac rule that official XP, streak, level, rank, leaderboard score, weekly XP, monthly XP, subscription privilege state, and expert plan publication state are backend-owned or governance-owned. Flutter may display trusted values, but the client must not directly calculate or write official progression, entitlement, competitive ranking, or expert-publication fields.
 
 Cloud Functions and backend enforcement remain responsible for trusted progression and leaderboard updates when implementation is eventually authorized. Premium features must not create competitive scoring advantages.
 
