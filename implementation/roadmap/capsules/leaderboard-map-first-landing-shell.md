@@ -12,13 +12,15 @@ Type: Flutter static frontend-only Leaderboard landing shell.
 
 ## Status
 
-Status: Selected for implementation; implementation not started.
+Status: Closed.
 
 Routed on: 2026-05-27 Asia/Singapore.
 
+Closed on: 2026-05-27 Asia/Singapore.
+
 Supersedes: `implementation/roadmap/capsules/leaderboard-static-motivation-hierarchy-polish.md`.
 
-Completion evidence commit target: `feat(mobile): add leaderboard map landing shell`.
+Completion commit: `b1ed742 feat(mobile): add leaderboard map landing shell`.
 
 ## Required Agent Chain
 
@@ -151,17 +153,46 @@ No backend, Firebase, GPS, security-rules, Cloud Functions, or leaderboard aggre
 
 Widget tests are recommended only for stable visible text, placeholder behavior, and absence of forbidden fake leaderboard data. Do not test exact pixels, exact colors, private widget structure, or custom painter internals.
 
+## Closure Evidence
+
+- Implementation commit: `b1ed742 feat(mobile): add leaderboard map landing shell`.
+- Implemented static map-first Leaderboard landing shell.
+- Suppressed the shell AppBar only while the active tab is Leaderboard.
+- Added static `Weekly XP / Monthly XP` segmented overlay.
+- Added static current league selector overlay.
+- Added visual info button.
+- Added static user ranked-area highlight with softened Runiac orange treatment.
+- Preserved bottom navigation behavior and other tab AppBar behavior.
+- Widget coverage updated for stable map-first Leaderboard labels and absence of forbidden fake ranking content.
+
+## Closure Validation
+
+- `git diff --check` PASS.
+- `cd implementation/mobile/runiac_app && flutter analyze --no-pub` PASS.
+- `cd implementation/mobile/runiac_app && flutter test` PASS.
+- `cd /Users/leejinseo/Desktop/FYP_Runiac && ./tools/governance-ci/run-all-checks.sh` PASS.
+- Final implementation status before closure was clean and aligned with `origin/main`.
+
+## Closure Scope Review
+
+- No help modal behavior was introduced.
+- No region tap behavior was introduced.
+- No region preview bottom sheet was introduced.
+- No bottom sheet is visible by default.
+- No fake users, fake ranks, fake XP, fake scores, fake streaks, fake levels, profile rows, leaderboard rows, or backend-owned values were introduced.
+- No real leaderboard data, leaderboard aggregation, Firebase, Auth, Firestore, Cloud Functions, FCM, GPS/current-location behavior, real map SDK, real map tiles, dependency changes, native Android/iOS changes, scaffold, build, init, deploy, unrelated tab changes, or Phase 02 selection was introduced.
+
 ## Done When
 
-- The Leaderboard landing screen is map-first and mostly map by default.
-- The top white header area is removed.
-- Static `Weekly XP / Monthly XP` segmented control is visible as an overlay.
-- Static current league selector is visible below the segmented control.
-- Static info icon button is visible near the league selector.
-- The user's own ranked area is visually highlighted with a warm accent.
-- No bottom sheet is visible by default.
-- No help modal, region tap, or region preview behavior is introduced.
-- No fake ranks, users, XP, scores, streaks, levels, profile rows, or backend-owned values are introduced.
-- No forbidden files or scopes are touched.
-- Required validation passes.
-- Capsule, CURRENT.md, and snapshot are updated with confirmed implementation state.
+- [x] The Leaderboard landing screen is map-first and mostly map by default.
+- [x] The top white header area is removed.
+- [x] Static `Weekly XP / Monthly XP` segmented control is visible as an overlay.
+- [x] Static current league selector is visible below the segmented control.
+- [x] Static info icon button is visible near the league selector.
+- [x] The user's own ranked area is visually highlighted with a warm accent.
+- [x] No bottom sheet is visible by default.
+- [x] No help modal, region tap, or region preview behavior is introduced.
+- [x] No fake ranks, users, XP, scores, streaks, levels, profile rows, or backend-owned values are introduced.
+- [x] No forbidden files or scopes are touched.
+- [x] Required validation passes.
+- [x] Capsule, CURRENT.md, and snapshot are updated with confirmed implementation state.
