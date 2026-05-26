@@ -4,13 +4,19 @@ import '../../../core/theme/runiac_colors.dart';
 import 'widgets/run_map_placeholder.dart';
 import 'widgets/run_plan_card.dart';
 
+const _primaryBlue = Color(0xFF2F5BFF);
+const _blueBorder = Color(0xFFDCE6FF);
+const _sportOrange = Color(0xFFFF7A1A);
+const _orangeShadow = Color(0x33FF7A1A);
+const _screenBackground = Color(0xFFF7F9FD);
+
 class RunLaunchScreen extends StatelessWidget {
   const RunLaunchScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: RuniacColors.background,
+      backgroundColor: _screenBackground,
       body: Stack(
         children: [
           const Positioned.fill(child: RunMapPlaceholder()),
@@ -110,9 +116,11 @@ class _RunLaunchControls extends StatelessWidget {
           child: FilledButton(
             onPressed: () {},
             style: FilledButton.styleFrom(
+              backgroundColor: _sportOrange,
+              foregroundColor: RuniacColors.white,
               elevation: 6,
               padding: EdgeInsets.zero,
-              shadowColor: const Color(0x332F50C7),
+              shadowColor: _orangeShadow,
               shape: const CircleBorder(),
               textStyle: const TextStyle(
                 fontSize: 17,
@@ -154,8 +162,8 @@ class _RunLaunchSecondaryAction extends StatelessWidget {
       label: FittedBox(fit: BoxFit.scaleDown, child: Text(label, maxLines: 1)),
       style: OutlinedButton.styleFrom(
         backgroundColor: RuniacColors.white,
-        foregroundColor: RuniacColors.primaryBlue,
-        side: const BorderSide(color: RuniacColors.border),
+        foregroundColor: _primaryBlue,
+        side: const BorderSide(color: _blueBorder),
         minimumSize: Size.fromHeight(height),
         padding: const EdgeInsets.symmetric(horizontal: 7),
         textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
