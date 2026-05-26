@@ -12,6 +12,16 @@
 - Future Flutter integration tests belong under `implementation/mobile/runiac_app/integration_test/`.
 - Root-level `tests/` is for cross-system tests only.
 
+## Flutter Source Structure
+- `lib/app.dart` must remain app composition only.
+- New feature screens must live under `lib/features/<feature>/presentation/`.
+- Feature-specific widgets must live under `lib/features/<feature>/presentation/widgets/`.
+- Shared widgets must live under `lib/core/widgets/`.
+- Theme and color definitions must live under `lib/core/theme/`.
+- Plan is a separate future feature reachable from You, not a bottom-navigation tab.
+- Future Plan files must live under `lib/features/plan/` only when an approved Plan capsule creates real implementation files.
+- Do not create empty future feature folders.
+
 ## Constraints
 - Flutter may display XP, streak, level, rank, weekly XP, monthly XP, and leaderboard values, but must not directly write trusted values.
 - Basic/Premium access uses `subscriptionStatus`.

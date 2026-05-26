@@ -1,0 +1,90 @@
+import 'package:flutter/material.dart';
+
+import '../../../../core/theme/runiac_colors.dart';
+import '../../../../core/widgets/card_title.dart';
+import '../../../../core/widgets/dashboard_card.dart';
+
+class LastRunCard extends StatelessWidget {
+  const LastRunCard({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return DashboardCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const CardTitle(icon: Icons.history, title: 'Last Run'),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const _InitialTile(),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Complete a run to see your summary.',
+                      style: TextStyle(
+                        color: RuniacColors.textPrimary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    SizedBox(height: 6),
+                    Text(
+                      'Your first run summary will appear here.',
+                      style: TextStyle(
+                        color: RuniacColors.textSecondary,
+                        fontSize: 14,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              OutlinedButton(
+                onPressed: () {},
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: RuniacColors.primaryBlue,
+                  side: const BorderSide(color: RuniacColors.border),
+                  minimumSize: const Size(92, 38),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  textStyle: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                child: const Text('View Details'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InitialTile extends StatelessWidget {
+  const _InitialTile();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: RuniacColors.background,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: RuniacColors.border),
+      ),
+      child: const Icon(
+        Icons.directions_run,
+        color: RuniacColors.textSecondary,
+        size: 20,
+      ),
+    );
+  }
+}
