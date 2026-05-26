@@ -116,6 +116,7 @@ void main() {
     expect(find.text('Lv.11 - Lv.20'), findsOneWidget);
     expect(find.text('Your ranked area'), findsOneWidget);
     expect(find.bySemanticsLabel('Leaderboard information'), findsOneWidget);
+    expect(find.text('Tips'), findsNothing);
 
     await tester.tap(find.bySemanticsLabel('Leaderboard information'));
     await tester.pumpAndSettle();

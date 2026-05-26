@@ -4,7 +4,6 @@ import '../home/presentation/home_tab.dart';
 import '../leaderboard/presentation/leaderboard_tab.dart';
 import '../maps/presentation/maps_tab.dart';
 import '../run/presentation/run_launch_screen.dart';
-import '../run/presentation/run_tab.dart';
 import '../you/presentation/you_tab.dart';
 
 class RuniacShell extends StatefulWidget {
@@ -18,7 +17,7 @@ class _RuniacShellState extends State<RuniacShell> {
   static const List<Widget> _tabs = [
     HomeTab(),
     MapsTab(),
-    RunTab(),
+    SizedBox.shrink(),
     LeaderboardTab(),
     YouTab(),
   ];
@@ -55,11 +54,7 @@ class _RuniacShellState extends State<RuniacShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar:
-          _selectedIndex == 0 ||
-              _selectedIndex == 1 ||
-              _selectedIndex == 2 ||
-              _selectedIndex == 3
+      appBar: _selectedIndex == 0 || _selectedIndex == 1 || _selectedIndex == 3
           ? null
           : AppBar(title: const Text('Runiac')),
       body: _tabs[_selectedIndex],

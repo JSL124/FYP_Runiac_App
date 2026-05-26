@@ -15,51 +15,46 @@ class RunControls extends StatelessWidget {
     final sideFontSize = compact ? 12.0 : 13.0;
     final sideIconSize = compact ? 17.0 : 18.0;
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              child: _RunSecondaryControl(
-                icon: Icons.tune,
-                label: 'Setting',
-                height: sideHeight,
-                fontSize: sideFontSize,
-                iconSize: sideIconSize,
+        Expanded(
+          child: _RunSecondaryControl(
+            icon: Icons.tune,
+            label: 'Setting',
+            height: sideHeight,
+            fontSize: sideFontSize,
+            iconSize: sideIconSize,
+          ),
+        ),
+        SizedBox(width: sideGap),
+        SizedBox(
+          width: startSize,
+          height: startSize,
+          child: FilledButton(
+            onPressed: () {},
+            style: FilledButton.styleFrom(
+              elevation: 6,
+              padding: EdgeInsets.zero,
+              shadowColor: const Color(0x332F50C7),
+              shape: const CircleBorder(),
+              textStyle: const TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
               ),
             ),
-            SizedBox(width: sideGap),
-            SizedBox(
-              width: startSize,
-              height: startSize,
-              child: FilledButton(
-                onPressed: () {},
-                style: FilledButton.styleFrom(
-                  elevation: 6,
-                  padding: EdgeInsets.zero,
-                  shadowColor: const Color(0x332F50C7),
-                  shape: const CircleBorder(),
-                  textStyle: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                child: const Text('Start'),
-              ),
-            ),
-            SizedBox(width: sideGap),
-            Expanded(
-              child: _RunSecondaryControl(
-                icon: Icons.alt_route,
-                label: 'Switch Route',
-                height: sideHeight,
-                fontSize: sideFontSize,
-                iconSize: sideIconSize,
-              ),
-            ),
-          ],
+            child: const Text('Start'),
+          ),
+        ),
+        SizedBox(width: sideGap),
+        Expanded(
+          child: _RunSecondaryControl(
+            icon: Icons.alt_route,
+            label: 'Switch Route',
+            height: sideHeight,
+            fontSize: sideFontSize,
+            iconSize: sideIconSize,
+          ),
         ),
       ],
     );

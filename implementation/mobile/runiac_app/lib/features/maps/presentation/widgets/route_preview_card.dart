@@ -95,13 +95,15 @@ class _RouteThumbnailPlaceholder extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: const Color(0xFFDDE6FF)),
         ),
-        child: CustomPaint(painter: _RouteThumbnailPainter()),
+        child: const CustomPaint(painter: _RouteThumbnailPainter()),
       ),
     );
   }
 }
 
 class _RouteThumbnailPainter extends CustomPainter {
+  const _RouteThumbnailPainter();
+
   @override
   void paint(Canvas canvas, Size size) {
     final roadPaint = Paint()

@@ -27,7 +27,7 @@ class _RunMapGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(painter: _RunMapGridPainter());
+    return const CustomPaint(painter: _RunMapGridPainter());
   }
 }
 
@@ -36,7 +36,7 @@ class _RunRouteLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(painter: _RunRouteLinePainter());
+    return const CustomPaint(painter: _RunRouteLinePainter());
   }
 }
 
@@ -94,6 +94,8 @@ class _RunRouteFlag extends StatelessWidget {
 }
 
 class _RunMapGridPainter extends CustomPainter {
+  const _RunMapGridPainter();
+
   @override
   void paint(Canvas canvas, Size size) {
     final backgroundPaint = Paint()..color = RuniacColors.background;
@@ -135,6 +137,8 @@ class _RunMapGridPainter extends CustomPainter {
 }
 
 class _RunRouteLinePainter extends CustomPainter {
+  const _RunRouteLinePainter();
+
   @override
   void paint(Canvas canvas, Size size) {
     final routePath = Path()
