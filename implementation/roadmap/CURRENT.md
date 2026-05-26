@@ -4,17 +4,17 @@
 
 - Current track: Track A - Governance and implementation readiness
 - Current phase: `implementation/roadmap/phases/phase-01-governance-ci.md`
-- Current active capsule: `implementation/roadmap/capsules/home-dashboard-primary-action-simplification.md`
-- Most recent completed capsule: `implementation/roadmap/capsules/run-launch-fullscreen-static-interaction.md` committed and pushed at `b5c31ef feat(mobile): add static run launch interaction`; follow-up Run launch cleanup committed and pushed at `5851057 chore(mobile): simplify run launch back handling`
-- Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; Flutter scaffold baseline present at `implementation/mobile/runiac_app/`; `flutter-app-shell-baseline` capsule closed after static app shell implementation; post-shell static UI/nav alignment checkpoint pushed at `247b4e5 feat(mobile): align static Runiac nav baseline`; `android-ui-smoke-test-evidence` validation capsule closed; `home-dashboard-visual-polish` capsule closed after static Home dashboard visual polish; `premium-home-dashboard-static-wireframe-alignment` capsule closed after static Premium Home Dashboard wireframe alignment; `github-actions-governance-ci-baseline` capsule closed after adding the minimal GitHub Actions governance workflow; `home-dashboard-scroll-layout-stability-fix` capsule closed after stabilizing Home dashboard scroll/card layout; `run-tab-static-placeholder` capsule closed after adding the static RunLandingPage-style Run tab placeholder; `run-tab-fullscreen-map-overlay-alignment` closed after static Run tab fullscreen map overlay layout alignment; `home-dashboard-reference-layout-alignment` closed after static Home dashboard reference layout alignment; `maps-tab-static-placeholder` committed and pushed at `323507b feat(mobile): polish static maps layout`; `run-launch-fullscreen-static-interaction` committed and pushed at `b5c31ef feat(mobile): add static run launch interaction`; Run launch back-handling cleanup committed and pushed at `5851057 chore(mobile): simplify run launch back handling`; `home-dashboard-primary-action-simplification` is now selected for the next static frontend-only Home dashboard polish capsule
-- Current state: Scaffold-baseline governance state with the static Flutter mobile UI split into a feature-first-lite source structure; Phase 02 remains unselected; the active implementation capsule is limited to static frontend-only Home dashboard primary action simplification
-- Current active milestone: implement `implementation/roadmap/capsules/home-dashboard-primary-action-simplification.md` only after this routing commit, limited to Home primary action visual hierarchy and secondary CTA simplification
+- Current active capsule: `implementation/roadmap/capsules/run-launch-brand-color-polish.md`
+- Most recent completed capsule: `implementation/roadmap/capsules/home-dashboard-primary-action-simplification.md` committed and pushed at `9254faa feat(mobile): polish home primary action hierarchy`; Home brand/action color follow-up committed and pushed at `bd2963d feat(mobile): polish home brand action hierarchy`
+- Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; Flutter scaffold baseline present at `implementation/mobile/runiac_app/`; `flutter-app-shell-baseline` capsule closed after static app shell implementation; post-shell static UI/nav alignment checkpoint pushed at `247b4e5 feat(mobile): align static Runiac nav baseline`; `android-ui-smoke-test-evidence` validation capsule closed; `home-dashboard-visual-polish` capsule closed after static Home dashboard visual polish; `premium-home-dashboard-static-wireframe-alignment` capsule closed after static Premium Home Dashboard wireframe alignment; `github-actions-governance-ci-baseline` capsule closed after adding the minimal GitHub Actions governance workflow; `home-dashboard-scroll-layout-stability-fix` capsule closed after stabilizing Home dashboard scroll/card layout; `run-tab-static-placeholder` capsule closed after adding the static RunLandingPage-style Run tab placeholder; `run-tab-fullscreen-map-overlay-alignment` closed after static Run tab fullscreen map overlay layout alignment; `home-dashboard-reference-layout-alignment` closed after static Home dashboard reference layout alignment; `maps-tab-static-placeholder` committed and pushed at `323507b feat(mobile): polish static maps layout`; `run-launch-fullscreen-static-interaction` committed and pushed at `b5c31ef feat(mobile): add static run launch interaction`; Run launch back-handling cleanup committed and pushed at `5851057 chore(mobile): simplify run launch back handling`; `home-dashboard-primary-action-simplification` is closed after Home primary action and brand color hierarchy polish; `run-launch-brand-color-polish` is now selected for the next static frontend-only Run launch visual color polish capsule
+- Current state: Scaffold-baseline governance state with the static Flutter mobile UI split into a feature-first-lite source structure; Phase 02 remains unselected; the active implementation capsule is limited to static frontend-only Run launch brand color polish
+- Current active milestone: implement `implementation/roadmap/capsules/run-launch-brand-color-polish.md` only after this routing commit, limited to Run launch visual color hierarchy with blue route/structure and orange Start/action energy
 
 ## Required Reading Order
 
 1. `implementation/roadmap/CURRENT.md`
 2. Active phase document: `implementation/roadmap/phases/phase-01-governance-ci.md` (closed)
-3. Active capsule document: `implementation/roadmap/capsules/home-dashboard-primary-action-simplification.md`
+3. Active capsule document: `implementation/roadmap/capsules/run-launch-brand-color-polish.md`
 4. Relevant ADRs listed below
 5. `implementation/roadmap/snapshots/latest.md`
 
@@ -49,17 +49,27 @@ Do not load future phase documents unless explicitly requested.
 
 ## Next Gate
 
-Home dashboard primary action simplification capsule is selected:
+Run launch brand color polish capsule is selected:
+
+- Capsule: `implementation/roadmap/capsules/run-launch-brand-color-polish.md`
+- Type: Flutter static frontend-only Run launch visual polish capsule
+- Completion commit target: `feat(mobile): polish run launch brand colors`
+- Chain: A0_ORCH -> A9_TRACE -> A5_WIRE -> A10_FLUTTER_IMPL -> A6_REVIEW -> A12_QA_TEST -> A8_OUTPUT_CHECKER
+- Allowed scope: static Run launch color hierarchy only; blue remains the route/structure color, orange becomes the Start/action energy color, white/soft gray stays the calm surface color, and navy stays readable text.
+- Required boundary: no Phase 02 selection, Firebase, Auth, Firestore, Cloud Functions, GPS/location permission, current location state, real run tracking, timer, distance, pace, duration, heart-rate, cadence, calories, activity submission, route setup logic, real route generation, fake run metrics, XP/streak/level/rank/leaderboard, premium entitlement, backend-like data behavior, dependency, native platform, shell navigation, or unrelated screen changes.
+- Validation required for future implementation: `flutter analyze --no-pub`; `flutter test`; `git diff --check`; Governance CI.
+- Current implementation state: no Run implementation has started for this capsule.
+- Stop state: selected for implementation-approved static Run launch color polish only.
+
+Prior completed Home milestone:
+
+Home dashboard primary action simplification capsule is committed and pushed:
 
 - Capsule: `implementation/roadmap/capsules/home-dashboard-primary-action-simplification.md`
 - Type: Flutter static frontend-only Home dashboard polish capsule
-- Completion commit target: `fix(mobile): simplify home dashboard primary action`
-- Chain: A0_ORCH -> A9_TRACE -> A5_WIRE -> A10_FLUTTER_IMPL -> A6_REVIEW -> A12_QA_TEST -> A8_OUTPUT_CHECKER
-- Allowed scope: static Home dashboard primary action hierarchy, Quick Start or equivalent primary action visual dominance, secondary CTA softening/reduction, beginner-friendly static copy, and widget coverage for Home static copy/action presence.
-- Required boundary: no Phase 02 selection, Firebase, Auth, Firestore, Cloud Functions, GPS/location permission, current location state, real run tracking, timer, distance, pace, duration, heart-rate, cadence, activity submission, real plan generation, XP/streak/level/rank/leaderboard, premium entitlement, backend-like data behavior, dependency, native platform, or unrelated screen changes.
-- Validation required for future implementation: `flutter analyze --no-pub`; `flutter test`; `git diff --check`; Governance CI.
-- Current implementation state: no Home implementation has started for this capsule.
-- Stop state: selected for implementation-approved static Home polish only.
+- Completion commits: `9254faa feat(mobile): polish home primary action hierarchy`; `bd2963d feat(mobile): polish home brand action hierarchy`
+- Required boundary preserved: no Phase 02 selection, Firebase, Auth, Firestore, Cloud Functions, GPS/location permission, current location state, real run tracking, timer, distance, pace, duration, heart-rate, cadence, calories, activity submission, real plan generation, XP/streak/level/rank/leaderboard, premium entitlement, backend-like data behavior, dependency, native platform, shell navigation, or unrelated screen changes.
+- Stop state: closed and pushed.
 
 Prior completed Run launch milestone:
 
