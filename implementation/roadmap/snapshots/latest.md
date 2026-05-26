@@ -10,7 +10,13 @@
 
 ## Current Implementation State
 
-Pre-scaffold governance state. Worktree inspection found no committed Flutter app scaffold, Firebase project config, production source/config, `pubspec.yaml`, `firebase.json`, `.firebaserc`, app `package.json`, `google-services.json`, or `GoogleService-Info.plist`.
+Approved Flutter scaffold baseline has been generated under `implementation/mobile/runiac_app/` with:
+
+```bash
+flutter create --template=app --platforms=android,ios --org com.runiac --project-name runiac_app --no-pub implementation/mobile/runiac_app
+```
+
+No `flutter pub get`, `firebase init`, `flutterfire configure`, build, deploy, or Firebase setup command was run. Worktree inspection found no Firebase project config, `firebase.json`, `.firebaserc`, `firebase_options.dart`, `google-services.json`, `GoogleService-Info.plist`, committed `.env*`, service account, or credentials file. The repository remains Firebase-uninitialized.
 
 ## Implemented
 
@@ -29,16 +35,16 @@ Pre-scaffold governance state. Worktree inspection found no committed Flutter ap
 - `docs/meta/REPOSITORY_WORKFLOW_RECORD.md` now uses the standardized 7-field workflow memory checkpoint schema and deterministic confidence labels.
 - Historical isolation check narrowed in `0619874 ci(governance): narrow historical isolation check` to allow legitimate `docs/meta` non-operational boundary references while preserving failure behavior for operational authority/dependency usage.
 - Main Governance CI runner includes historical isolation coverage as of `6d65fa1 ci(governance): include historical isolation check`.
+- Local Governance CI has been transitioned to allow the approved Flutter scaffold baseline under `implementation/mobile/runiac_app/` while continuing to block Firebase config, secrets, service accounts, credentials, signing material, Cloud Functions, Firestore rules, Storage rules, build/deploy artifacts, and unauthorized scaffold paths.
 - Workflow Memory Drift Check is detection-only, WARN-only local Governance CI support. It does not automatically update workflow memory, snapshots, CURRENT.md, or capsules.
 - Repository Workflow Record capsule is closed.
 
 ## Not Implemented
 
-- Flutter app scaffold.
 - Firebase project/config setup.
 - Firestore rules or collections.
 - Cloud Functions source.
-- Production app source code.
+- Production app source code beyond the generated Flutter scaffold baseline.
 - Production tests/build/deploy pipeline.
 - Artifact inventory entries.
 - Repository history reconstruction.
@@ -55,7 +61,7 @@ Pre-scaffold governance state. Worktree inspection found no committed Flutter ap
 
 - `implementation/traceability/setup-gates.md` is the source of truth for setup-gate approval state.
 - Gate-00 is `APPROVED`.
-- Flutter Scaffold Gate is `APPROVED FOR SCAFFOLD EXECUTION REVIEW`; scaffold execution is not authorized.
+- Flutter Scaffold Gate was separately human-approved for the bounded scaffold execution. The generated scaffold baseline does not authorize Firebase setup or Phase 02 work beyond the scaffold baseline.
 - Firebase Project and Config Gate is `Not Started`.
 - Secret / API Key / Environment Handling Gate is `Not Started`.
 - Human/project approval evidence is required before remaining setup gates become `Approved`.
@@ -64,6 +70,7 @@ Pre-scaffold governance state. Worktree inspection found no committed Flutter ap
 - Claude deny rules and `.gitignore` cover nested `.env`, Firebase config, service account, signing, private GPS/location/route, and test-evidence artifact patterns.
 - Operational authority remains with `implementation/roadmap/CURRENT.md`, active phase/capsule documents, ADRs, and validated snapshots.
 - `docs/meta` remains non-operational and must not override operational-authority sources.
+- `docs/meta` remains non-operational and is not approval evidence, routing authority, setup-gate authority, or implementation guidance.
 - Repository Workflow Record work is closed and remains documentation/governance-only. It does not authorize implementation, setup, scaffold, source, test, build, deploy, or init work.
 - Workflow Memory Drift Check warnings are detection-only and do not create approval, closure, snapshot refresh, or workflow-memory update authority.
 

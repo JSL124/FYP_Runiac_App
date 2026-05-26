@@ -7,66 +7,87 @@ cd "$repo_root"
 check_name="check-pre-scaffold-scope"
 scanned_paths="."
 failures=0
+approved_scaffold_prefix="implementation/mobile/runiac_app/"
 
 fail() {
   failures=$((failures + 1))
   printf 'finding=%s\n' "$1"
 }
 
-while IFS= read -r path; do
-  fail "Forbidden scaffold/config marker found: $path"
-done < <(
-  find . \
-    -path './.git' -prune -o \
-    -type f \( \
-      -name 'pubspec.yaml' -o \
-      -name 'firebase.json' -o \
-      -name '.firebaserc' -o \
-      -name 'google-services.json' -o \
-      -name 'GoogleService-Info.plist' -o \
-      -name 'firebase_options.dart' \
-    \) -print
-)
+is_approved_scaffold_path() {
+  case "$1" in
+    "$approved_scaffold_prefix"*)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+is_forbidden_config_or_secret() {
+  case "$1" in
+    *.env.example|*.env.*.example)
+      return 1
+      ;;
+    *firebase.json|*.firebaserc|*firebase_options.dart|*google-services.json|*GoogleService-Info.plist|*firestore.rules|*storage.rules)
+      return 0
+      ;;
+    *.env|*.env.*|*service-account*|*credentials*|*ServiceAccount*|*Credentials*)
+      return 0
+      ;;
+    *android/local.properties|*android/key.properties|*.jks|*.keystore|*.p12|*.cer|*.mobileprovision|*.p8)
+      return 0
+      ;;
+    */build/*|build/*|*/.dart_tool/*|*.apk|*.aab|*.ipa|*.xcarchive)
+      return 0
+      ;;
+    firebase/functions/*|firebase/functions/src/*|functions/*|functions/src/*)
+      return 0
+      ;;
+  esac
+
+  return 1
+}
 
 while IFS= read -r path; do
-  fail "Forbidden app package marker found: $path"
-done < <(
-  find . \
-    -path './.git' -prune -o \
-    -path './node_modules' -prune -o \
-    -path './.next' -prune -o \
-    -path './dist' -prune -o \
-    -type f -name 'package.json' \( \
-      -path './implementation/*' -o \
-      -path './firebase/*' -o \
-      -path './functions/*' \
-    \) -print
-)
+  [ -n "$path" ] || continue
 
-while IFS= read -r path; do
-  fail "Forbidden production source marker found: $path"
-done < <(
-  find . \
-    -path './.git' -prune -o \
-    -type f \( \
-      -path './implementation/mobile/*/lib/*.dart' -o \
-      -path './implementation/mobile/*/android/*' -o \
-      -path './implementation/mobile/*/ios/*' -o \
-      -path './firebase/functions/src/*' -o \
-      -path './firebase/firestore.rules' -o \
-      -path './firebase/storage.rules' \
-    \) -print
-)
+  if is_forbidden_config_or_secret "$path"; then
+    fail "Forbidden config/secret/backend marker found: $path"
+    continue
+  fi
+
+  case "$path" in
+    *pubspec.yaml|*pubspec.lock)
+      if ! is_approved_scaffold_path "$path"; then
+        fail "Flutter scaffold marker appears outside approved scaffold path: $path"
+      fi
+      ;;
+    *package.json)
+      case "$path" in
+        implementation/*|firebase/*|functions/*)
+          fail "Forbidden app package marker found: $path"
+          ;;
+      esac
+      ;;
+    implementation/mobile/*/lib/*.dart|implementation/mobile/*/android/*|implementation/mobile/*/ios/*)
+      if ! is_approved_scaffold_path "$path"; then
+        fail "Flutter production source marker appears outside approved scaffold path: $path"
+      fi
+      ;;
+  esac
+done < <(git ls-files --cached --others --exclude-standard)
 
 if [ "$failures" -eq 0 ]; then
   printf 'CHECK %s PASS\n' "$check_name"
   printf 'scanned_paths=%s\n' "$scanned_paths"
-  printf 'message=No Flutter scaffold, Firebase config, production source/config, or app package markers found.\n'
+  printf 'message=Approved Flutter scaffold baseline is limited to implementation/mobile/runiac_app and no Firebase config, secrets, backend source, or unauthorized scaffold markers were found.\n'
   exit 0
 fi
 
 printf 'CHECK %s FAIL\n' "$check_name"
 printf 'scanned_paths=%s\n' "$scanned_paths"
-printf 'message=Pre-scaffold boundary markers were found.\n'
+printf 'message=Approved scaffold baseline boundary check failed.\n'
 printf 'next_step=Remove unauthorized scaffold/config/source files or route the finding to A6_REVIEW and A8_OUTPUT_CHECKER.\n'
 exit 1

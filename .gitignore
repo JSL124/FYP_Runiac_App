@@ -5,6 +5,7 @@ Desktop.ini
 
 # IDE/editor local files
 .idea/
+**/.idea/
 .vscode/
 *.iml
 *.swp
@@ -49,6 +50,7 @@ coverage/
 
 # Mobile local config and signing material
 android/local.properties
+**/android/local.properties
 android/key.properties
 *.jks
 *.keystore
