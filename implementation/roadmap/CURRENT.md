@@ -4,17 +4,17 @@
 
 - Current track: Track A - Governance and implementation readiness
 - Current phase: `implementation/roadmap/phases/phase-01-governance-ci.md`
-- Current active capsule: `implementation/roadmap/capsules/run-launch-fullscreen-static-interaction.md`
-- Most recent completed capsule: `implementation/roadmap/capsules/maps-tab-static-placeholder.md` (ready for commit state recorded; not staged, committed, or pushed by that pass)
-- Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; Flutter scaffold baseline present at `implementation/mobile/runiac_app/`; `flutter-app-shell-baseline` capsule closed after static app shell implementation; post-shell static UI/nav alignment checkpoint pushed at `247b4e5 feat(mobile): align static Runiac nav baseline`; `android-ui-smoke-test-evidence` validation capsule closed; `home-dashboard-visual-polish` capsule closed after static Home dashboard visual polish; `premium-home-dashboard-static-wireframe-alignment` capsule closed after static Premium Home Dashboard wireframe alignment; `github-actions-governance-ci-baseline` capsule closed after adding the minimal GitHub Actions governance workflow; `home-dashboard-scroll-layout-stability-fix` capsule closed after stabilizing Home dashboard scroll/card layout; `run-tab-static-placeholder` capsule closed after adding the static RunLandingPage-style Run tab placeholder; `run-tab-fullscreen-map-overlay-alignment` closed after static Run tab fullscreen map overlay layout alignment; `home-dashboard-reference-layout-alignment` closed after static Home dashboard reference layout alignment; `maps-tab-static-placeholder` recorded ready for commit after static Maps tab placeholder implementation and validation; `flutter-source-structure-refactor` is ready for commit after a behavior-preserving feature-first-lite source split; `run-controls-and-plan-spacing-polish` was committed and pushed at `08bca0f fix(mobile): polish run tab controls spacing`; `run-launch-fullscreen-static-interaction` is ready for commit after static Run launch screen interaction implementation
-- Current state: Scaffold-baseline governance state with the static Flutter mobile UI split into a feature-first-lite source structure; Phase 02 remains unselected; the active implementation capsule is limited to static full-screen Run launch interaction
-- Current active milestone: commit `implementation/roadmap/capsules/run-launch-fullscreen-static-interaction.md` and its scoped static Run launch interaction changes only if explicitly approved later
+- Current active capsule: `implementation/roadmap/capsules/home-dashboard-primary-action-simplification.md`
+- Most recent completed capsule: `implementation/roadmap/capsules/run-launch-fullscreen-static-interaction.md` committed and pushed at `b5c31ef feat(mobile): add static run launch interaction`; follow-up Run launch cleanup committed and pushed at `5851057 chore(mobile): simplify run launch back handling`
+- Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; Flutter scaffold baseline present at `implementation/mobile/runiac_app/`; `flutter-app-shell-baseline` capsule closed after static app shell implementation; post-shell static UI/nav alignment checkpoint pushed at `247b4e5 feat(mobile): align static Runiac nav baseline`; `android-ui-smoke-test-evidence` validation capsule closed; `home-dashboard-visual-polish` capsule closed after static Home dashboard visual polish; `premium-home-dashboard-static-wireframe-alignment` capsule closed after static Premium Home Dashboard wireframe alignment; `github-actions-governance-ci-baseline` capsule closed after adding the minimal GitHub Actions governance workflow; `home-dashboard-scroll-layout-stability-fix` capsule closed after stabilizing Home dashboard scroll/card layout; `run-tab-static-placeholder` capsule closed after adding the static RunLandingPage-style Run tab placeholder; `run-tab-fullscreen-map-overlay-alignment` closed after static Run tab fullscreen map overlay layout alignment; `home-dashboard-reference-layout-alignment` closed after static Home dashboard reference layout alignment; `maps-tab-static-placeholder` committed and pushed at `323507b feat(mobile): polish static maps layout`; `run-launch-fullscreen-static-interaction` committed and pushed at `b5c31ef feat(mobile): add static run launch interaction`; Run launch back-handling cleanup committed and pushed at `5851057 chore(mobile): simplify run launch back handling`; `home-dashboard-primary-action-simplification` is now selected for the next static frontend-only Home dashboard polish capsule
+- Current state: Scaffold-baseline governance state with the static Flutter mobile UI split into a feature-first-lite source structure; Phase 02 remains unselected; the active implementation capsule is limited to static frontend-only Home dashboard primary action simplification
+- Current active milestone: implement `implementation/roadmap/capsules/home-dashboard-primary-action-simplification.md` only after this routing commit, limited to Home primary action visual hierarchy and secondary CTA simplification
 
 ## Required Reading Order
 
 1. `implementation/roadmap/CURRENT.md`
 2. Active phase document: `implementation/roadmap/phases/phase-01-governance-ci.md` (closed)
-3. Active capsule document: `implementation/roadmap/capsules/run-launch-fullscreen-static-interaction.md`
+3. Active capsule document: `implementation/roadmap/capsules/home-dashboard-primary-action-simplification.md`
 4. Relevant ADRs listed below
 5. `implementation/roadmap/snapshots/latest.md`
 
@@ -49,17 +49,28 @@ Do not load future phase documents unless explicitly requested.
 
 ## Next Gate
 
-Run launch fullscreen static interaction capsule is ready for commit:
+Home dashboard primary action simplification capsule is selected:
+
+- Capsule: `implementation/roadmap/capsules/home-dashboard-primary-action-simplification.md`
+- Type: Flutter static frontend-only Home dashboard polish capsule
+- Completion commit target: `fix(mobile): simplify home dashboard primary action`
+- Chain: A0_ORCH -> A9_TRACE -> A5_WIRE -> A10_FLUTTER_IMPL -> A6_REVIEW -> A12_QA_TEST -> A8_OUTPUT_CHECKER
+- Allowed scope: static Home dashboard primary action hierarchy, Quick Start or equivalent primary action visual dominance, secondary CTA softening/reduction, beginner-friendly static copy, and widget coverage for Home static copy/action presence.
+- Required boundary: no Phase 02 selection, Firebase, Auth, Firestore, Cloud Functions, GPS/location permission, current location state, real run tracking, timer, distance, pace, duration, heart-rate, cadence, activity submission, real plan generation, XP/streak/level/rank/leaderboard, premium entitlement, backend-like data behavior, dependency, native platform, or unrelated screen changes.
+- Validation required for future implementation: `flutter analyze --no-pub`; `flutter test`; `git diff --check`; Governance CI.
+- Current implementation state: no Home implementation has started for this capsule.
+- Stop state: selected for implementation-approved static Home polish only.
+
+Prior completed Run launch milestone:
+
+Run launch fullscreen static interaction capsule is committed and pushed:
 
 - Capsule: `implementation/roadmap/capsules/run-launch-fullscreen-static-interaction.md`
 - Type: Flutter static UI interaction capsule
 - Completion commit target: `feat(mobile): add static run launch interaction`
-- Chain: A0_ORCH -> A9_TRACE -> A5_WIRE -> A10_FLUTTER_IMPL -> A6_REVIEW -> A12_QA_TEST -> A8_OUTPUT_CHECKER
-- Allowed scope: static Run bottom-navigation launch interaction, full-screen slide-up Run launch route, top-left close affordance, Android back dismissal, static beginner-friendly launch copy, and widget coverage for open/close/back behavior.
-- Required boundary: no Phase 02 selection, Firebase, Auth, Firestore, Cloud Functions, GPS/location permission, current location state, real map SDK, route generation, route persistence, run tracking, timer, distance, pace, duration, heart-rate, cadence, activity submission, XP/streak/level/rank/leaderboard, premium entitlement, dependency, native platform, GitHub Actions workflow, or unrelated screen changes.
-- Validation: `flutter analyze --no-pub` PASS; `flutter test` PASS; `git diff --check` PASS; Governance CI PASS; Android smoke screenshot skipped by user preference to reduce iteration time.
-- Implemented scope: Run bottom-nav item now pushes an opaque full-screen slide-up Run launch route without selecting the Run tab underneath; launch screen hides the shell bottom nav while open, provides a top-left Close button, preserves Android back dismissal, keeps Start inert/static, and uses a separate floating Today’s Plan card plus independent Setting / Start / Route setup controls over the static map-like background.
-- Stop state: ready for commit only; do not stage, commit, or push.
+- Latest related cleanup commit: `5851057 chore(mobile): simplify run launch back handling`
+- Required boundary preserved: no Phase 02 selection, Firebase, Auth, Firestore, Cloud Functions, GPS/location permission, current location state, real map SDK, route generation, route persistence, run tracking, timer, distance, pace, duration, heart-rate, cadence, activity submission, XP/streak/level/rank/leaderboard, premium entitlement, dependency, native platform, GitHub Actions workflow, or unrelated screen changes.
+- Stop state: closed and pushed.
 
 Prior completed Run polish milestone:
 
