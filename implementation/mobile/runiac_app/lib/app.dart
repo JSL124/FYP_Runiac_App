@@ -56,10 +56,7 @@ class _RuniacShell extends StatefulWidget {
 class _RuniacShellState extends State<_RuniacShell> {
   static const List<Widget> _tabs = [
     _HomeTab(),
-    _PlaceholderTab(
-      title: 'Maps',
-      message: 'Community routes and maps will appear here.',
-    ),
+    _MapsTab(),
     _RunTab(),
     _PlaceholderTab(
       title: 'Leaderboard',
@@ -76,7 +73,7 @@ class _RuniacShellState extends State<_RuniacShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _selectedIndex == 0 || _selectedIndex == 2
+      appBar: _selectedIndex == 0 || _selectedIndex == 1 || _selectedIndex == 2
           ? null
           : AppBar(title: const Text('Runiac')),
       body: _tabs[_selectedIndex],
@@ -824,6 +821,519 @@ class _CarouselDot extends StatelessWidget {
       ),
     );
   }
+}
+
+class _MapsTab extends StatelessWidget {
+  const _MapsTab();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SafeArea(
+      child: ColoredBox(
+        color: RuniacColors.background,
+        child: Stack(
+          children: [
+            Positioned.fill(child: _MapsBackground()),
+            Positioned(left: 16, right: 16, top: 16, child: _MapsTopOverlay()),
+            _SharedRoutesSheet(),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MapsTopOverlay extends StatelessWidget {
+  const _MapsTopOverlay();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Row(
+      children: [
+        Expanded(child: _MapsSearchField()),
+        SizedBox(width: 10),
+        _SavedRoutesButton(),
+      ],
+    );
+  }
+}
+
+class _MapsSearchField extends StatelessWidget {
+  const _MapsSearchField();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 52,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: RuniacColors.white,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: RuniacColors.border),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x14172033),
+            blurRadius: 12,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.search, color: RuniacColors.textPrimary, size: 24),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Search routes or area',
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: RuniacColors.textSecondary,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SavedRoutesButton extends StatelessWidget {
+  const _SavedRoutesButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 52,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(
+        color: RuniacColors.primaryBlue,
+        borderRadius: BorderRadius.circular(999),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x332F50C7),
+            blurRadius: 12,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.bookmark_border, color: RuniacColors.white, size: 20),
+          SizedBox(width: 7),
+          Text(
+            'Saved',
+            style: TextStyle(
+              color: RuniacColors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MapsBackground extends StatelessWidget {
+  const _MapsBackground();
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: const [
+        Positioned.fill(child: CustomPaint(painter: _MapsBackgroundPainter())),
+        Positioned(left: 52, top: 124, child: _MapPinPlaceholder()),
+        Positioned(right: 64, top: 188, child: _MapPinPlaceholder()),
+        Positioned(left: 130, bottom: 288, child: _MapPinPlaceholder()),
+        Positioned(right: 104, bottom: 328, child: _MapFocusDot()),
+      ],
+    );
+  }
+}
+
+class _MapPinPlaceholder extends StatelessWidget {
+  const _MapPinPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 30,
+      height: 30,
+      decoration: BoxDecoration(
+        color: RuniacColors.textPrimary,
+        borderRadius: BorderRadius.circular(999),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x24172033),
+            blurRadius: 10,
+            offset: Offset(0, 5),
+          ),
+        ],
+      ),
+      child: const Icon(Icons.place, color: RuniacColors.white, size: 18),
+    );
+  }
+}
+
+class _MapFocusDot extends StatelessWidget {
+  const _MapFocusDot();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        color: const Color(0xEFFFFFFF),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Center(
+        child: Container(
+          width: 18,
+          height: 18,
+          decoration: BoxDecoration(
+            color: RuniacColors.textPrimary,
+            borderRadius: BorderRadius.circular(999),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SharedRoutesSheet extends StatelessWidget {
+  const _SharedRoutesSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      minChildSize: 0.18,
+      initialChildSize: 0.46,
+      maxChildSize: 0.7,
+      snap: true,
+      snapSizes: const [0.18, 0.46, 0.7],
+      builder: (context, scrollController) {
+        return DecoratedBox(
+          decoration: const BoxDecoration(
+            color: RuniacColors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            boxShadow: [
+              BoxShadow(
+                color: Color(0x1A172033),
+                blurRadius: 18,
+                offset: Offset(0, -6),
+              ),
+            ],
+          ),
+          child: ListView(
+            controller: scrollController,
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+            physics: const ClampingScrollPhysics(),
+            children: const [
+              _SheetDragHandle(),
+              SizedBox(height: 8),
+              _SharedRoutesHeader(),
+              SizedBox(height: 6),
+              Text(
+                'Nearby route suggestions will appear after location setup.',
+                style: TextStyle(
+                  color: RuniacColors.textSecondary,
+                  fontSize: 13,
+                  height: 1.35,
+                ),
+              ),
+              SizedBox(height: 12),
+              _RoutePreviewCard(
+                title: 'Route preview',
+                message: 'Details will appear after setup.',
+              ),
+              SizedBox(height: 8),
+              _RoutePreviewCard(
+                title: 'Community routes',
+                message: 'Shared route details will appear here.',
+              ),
+              SizedBox(height: 8),
+              _RoutePreviewCard(
+                title: 'Saved routes',
+                message: 'Saved routes will be available later.',
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _SheetDragHandle extends StatelessWidget {
+  const _SheetDragHandle();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        width: 44,
+        height: 5,
+        decoration: BoxDecoration(
+          color: RuniacColors.border,
+          borderRadius: BorderRadius.circular(999),
+        ),
+      ),
+    );
+  }
+}
+
+class _SharedRoutesHeader extends StatelessWidget {
+  const _SharedRoutesHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Expanded(
+          child: Text(
+            'Shared Routes',
+            style: TextStyle(
+              color: RuniacColors.textPrimary,
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              height: 1.15,
+            ),
+          ),
+        ),
+        TextButton(
+          onPressed: () {},
+          style: TextButton.styleFrom(
+            foregroundColor: RuniacColors.primaryBlue,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            textStyle: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          child: const Text('See all'),
+        ),
+      ],
+    );
+  }
+}
+
+class _RoutePreviewCard extends StatelessWidget {
+  const _RoutePreviewCard({required this.title, required this.message});
+
+  final String title;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: RuniacColors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: RuniacColors.border),
+      ),
+      child: Row(
+        children: [
+          const _RouteThumbnailPlaceholder(),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: RuniacColors.textPrimary,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  message,
+                  style: const TextStyle(
+                    color: RuniacColors.textSecondary,
+                    fontSize: 13,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          const Icon(
+            Icons.chevron_right,
+            color: RuniacColors.textSecondary,
+            size: 22,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RouteThumbnailPlaceholder extends StatelessWidget {
+  const _RouteThumbnailPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 70,
+      height: 56,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: RuniacColors.background,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: CustomPaint(painter: _RouteThumbnailPainter()),
+      ),
+    );
+  }
+}
+
+class _MapsBackgroundPainter extends CustomPainter {
+  const _MapsBackgroundPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRect(
+      Offset.zero & size,
+      Paint()..color = const Color(0xFFE9ECE8),
+    );
+
+    final blockPaint = Paint()..color = const Color(0xFFF1F3EF);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(-20, 92, size.width * 0.48, size.height * 0.34),
+        const Radius.circular(18),
+      ),
+      blockPaint,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(
+          size.width * 0.56,
+          110,
+          size.width * 0.5,
+          size.height * 0.32,
+        ),
+        const Radius.circular(18),
+      ),
+      blockPaint,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(28, size.height * 0.5, size.width * 0.44, 118),
+        const Radius.circular(18),
+      ),
+      blockPaint,
+    );
+
+    final roadPaint = Paint()
+      ..color = const Color(0xFFFFFFFF)
+      ..strokeWidth = 18
+      ..strokeCap = StrokeCap.round;
+    final softRoadPaint = Paint()
+      ..color = const Color(0xCCFFFFFF)
+      ..strokeWidth = 12
+      ..strokeCap = StrokeCap.round;
+
+    canvas
+      ..drawLine(
+        Offset(-size.width * 0.08, 120),
+        Offset(size.width * 0.96, size.height * 0.52),
+        roadPaint,
+      )
+      ..drawLine(
+        Offset(size.width * 0.66, 0),
+        Offset(size.width * 0.38, size.height * 0.74),
+        roadPaint,
+      )
+      ..drawLine(
+        Offset(-20, size.height * 0.62),
+        Offset(size.width * 0.78, size.height * 0.58),
+        softRoadPaint,
+      )
+      ..drawLine(
+        Offset(size.width * 0.1, size.height * 0.22),
+        Offset(size.width * 0.92, size.height * 0.78),
+        softRoadPaint,
+      );
+
+    final routePaint = Paint()
+      ..color = RuniacColors.primaryBlue
+      ..strokeWidth = 4
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+    final routePath = Path()
+      ..moveTo(size.width * 0.18, size.height * 0.38)
+      ..cubicTo(
+        size.width * 0.35,
+        size.height * 0.30,
+        size.width * 0.42,
+        size.height * 0.50,
+        size.width * 0.57,
+        size.height * 0.42,
+      )
+      ..cubicTo(
+        size.width * 0.72,
+        size.height * 0.34,
+        size.width * 0.78,
+        size.height * 0.52,
+        size.width * 0.64,
+        size.height * 0.60,
+      );
+    canvas.drawPath(routePath, routePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _RouteThumbnailPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final roadPaint = Paint()
+      ..color = RuniacColors.white
+      ..strokeWidth = 7
+      ..strokeCap = StrokeCap.round;
+    canvas
+      ..drawLine(
+        Offset(-6, 8),
+        Offset(size.width + 6, size.height - 10),
+        roadPaint,
+      )
+      ..drawLine(
+        Offset(size.width * 0.58, -4),
+        Offset(size.width * 0.35, size.height + 4),
+        roadPaint,
+      );
+
+    final routePaint = Paint()
+      ..color = RuniacColors.textPrimary
+      ..strokeWidth = 2.5
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    final routePath = Path()
+      ..moveTo(size.width * 0.24, size.height * 0.68)
+      ..cubicTo(
+        size.width * 0.38,
+        size.height * 0.24,
+        size.width * 0.62,
+        size.height * 0.84,
+        size.width * 0.78,
+        size.height * 0.36,
+      );
+    canvas.drawPath(routePath, routePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _SoftNotice extends StatelessWidget {

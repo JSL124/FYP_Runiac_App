@@ -4,18 +4,19 @@
 
 - Current track: Track A - Governance and implementation readiness
 - Current phase: `implementation/roadmap/phases/phase-01-governance-ci.md`
-- Current active capsule: none selected
+- Current active capsule: `implementation/roadmap/capsules/maps-tab-static-placeholder.md`
 - Most recent completed capsule: `implementation/roadmap/capsules/home-dashboard-reference-layout-alignment.md`
-- Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; Flutter scaffold baseline present at `implementation/mobile/runiac_app/`; `flutter-app-shell-baseline` capsule closed after static app shell implementation; post-shell static UI/nav alignment checkpoint pushed at `247b4e5 feat(mobile): align static Runiac nav baseline`; `android-ui-smoke-test-evidence` validation capsule closed; `home-dashboard-visual-polish` capsule closed after static Home dashboard visual polish; `premium-home-dashboard-static-wireframe-alignment` capsule closed after static Premium Home Dashboard wireframe alignment; `github-actions-governance-ci-baseline` capsule closed after adding the minimal GitHub Actions governance workflow; `home-dashboard-scroll-layout-stability-fix` capsule closed after stabilizing Home dashboard scroll/card layout; `run-tab-static-placeholder` capsule closed after adding the static RunLandingPage-style Run tab placeholder; `run-tab-fullscreen-map-overlay-alignment` closed after static Run tab fullscreen map overlay layout alignment; `home-dashboard-reference-layout-alignment` closed after static Home dashboard reference layout alignment
-- Current state: Scaffold-baseline governance state with the static Home dashboard reference layout alignment capsule closed; Phase 02 remains unselected; no active implementation capsule is selected
-- Current active milestone: select the next capsule explicitly before further implementation
+- Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; Flutter scaffold baseline present at `implementation/mobile/runiac_app/`; `flutter-app-shell-baseline` capsule closed after static app shell implementation; post-shell static UI/nav alignment checkpoint pushed at `247b4e5 feat(mobile): align static Runiac nav baseline`; `android-ui-smoke-test-evidence` validation capsule closed; `home-dashboard-visual-polish` capsule closed after static Home dashboard visual polish; `premium-home-dashboard-static-wireframe-alignment` capsule closed after static Premium Home Dashboard wireframe alignment; `github-actions-governance-ci-baseline` capsule closed after adding the minimal GitHub Actions governance workflow; `home-dashboard-scroll-layout-stability-fix` capsule closed after stabilizing Home dashboard scroll/card layout; `run-tab-static-placeholder` capsule closed after adding the static RunLandingPage-style Run tab placeholder; `run-tab-fullscreen-map-overlay-alignment` closed after static Run tab fullscreen map overlay layout alignment; `home-dashboard-reference-layout-alignment` closed after static Home dashboard reference layout alignment; `maps-tab-static-placeholder` is routed and ready for commit after static Maps tab placeholder implementation and validation
+- Current state: Scaffold-baseline governance state with the static Maps tab placeholder capsule ready for commit; Phase 02 remains unselected; the active implementation capsule is limited to static Maps tab UI placeholder work
+- Current active milestone: commit `implementation/roadmap/capsules/maps-tab-static-placeholder.md` and its scoped Flutter UI changes only if explicitly approved later
 
 ## Required Reading Order
 
 1. `implementation/roadmap/CURRENT.md`
 2. Active phase document: `implementation/roadmap/phases/phase-01-governance-ci.md` (closed)
-3. Relevant ADRs listed below
-4. `implementation/roadmap/snapshots/latest.md`
+3. Active capsule document: `implementation/roadmap/capsules/maps-tab-static-placeholder.md`
+4. Relevant ADRs listed below
+5. `implementation/roadmap/snapshots/latest.md`
 
 Do not load future phase documents unless explicitly requested.
 
@@ -51,6 +52,17 @@ Do not load future phase documents unless explicitly requested.
 No active capsule is selected.
 
 The next milestone is explicit next capsule selection. This closed state does not approve Phase 02 implementation, Firebase setup, `flutterfire configure`, dependency installation, build, init, deploy, backend work, or additional Flutter implementation.
+
+Maps tab static placeholder capsule is ready for commit:
+
+- Capsule: `implementation/roadmap/capsules/maps-tab-static-placeholder.md`
+- Type: Flutter UI product-code-changing capsule
+- Completion commit target: `feat(mobile): add static maps tab placeholder`
+- Chain: A0_ORCH -> A9_TRACE -> A5_WIRE -> A10_FLUTTER_IMPL -> A6_REVIEW -> A12_QA_TEST -> A8_OUTPUT_CHECKER
+- Validation: `flutter analyze --no-pub` PASS; `flutter test` PASS; `git diff --check` PASS; Governance CI PASS; Android smoke evidence PASS on `emulator-5554`.
+- Implemented scope: replaced the generic Maps placeholder with a static MapsLandingPage-style screen using a full map-like background, decorative roads/route-like shapes, marker placeholders, a top search bar, a primary-blue Saved pill control, and a draggable bottom shared route panel with safe placeholder cards.
+- Required boundary preserved: static UI layout only; no Firebase, Auth, Firestore, Cloud Functions, GPS/location permission, current location state, real map SDK, route generation, route recommendation logic, saved-route persistence, fake route/place/distance/duration/difficulty/rating/saved-count/community data, dependency changes, native Android/iOS changes, workflow configuration changes, or Phase 02 selection.
+- Stop state: ready for commit only; not staged, committed, or pushed.
 
 Home dashboard reference layout alignment capsule is complete:
 
