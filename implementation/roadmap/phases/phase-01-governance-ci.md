@@ -24,6 +24,31 @@ Require concise proof for gate changes, validation claims, and readiness decisio
 
 Start with the smallest checks that reduce real risk. Avoid broad CI, dependency installs, external services, or build pipelines until the relevant gates are approved.
 
+## Post-Closure Operating Addendum - Safe Visible Product Acceleration Rule
+
+This addendum does not reopen Phase 01, select Phase 02, select a capsule, or authorize Firebase/backend/native setup. It records a lightweight operating rule for future explicitly routed frontend prototype capsules while the repository remains in scaffold-baseline state.
+
+For future frontend prototype capsules, prefer one visible screen-level improvement per capsule.
+
+Allowed:
+- Static Flutter UI.
+- Placeholder display data.
+- Existing Flutter widgets and existing dependencies only.
+- Small widget test updates required to keep tests aligned with the approved visible UI change.
+- Minimal capsule, CURRENT.md, and snapshot updates required by existing roadmap governance.
+
+Forbidden:
+- Firebase/Auth/Firestore/Cloud Functions setup.
+- `flutterfire configure`.
+- Google Maps or Mapbox SDK integration.
+- GPS/native configuration.
+- New dependencies unless explicitly approved.
+- Client-side mutation or calculation of backend-owned values.
+- XP, streak, level, rank, leaderboard score, weekly/monthly XP, subscription privilege state, or expert plan publication state logic.
+- Unrelated refactors.
+- Roadmap expansion.
+- New ADRs unless a real architecture decision is unavoidable.
+
 ## Implementation Status
 
 - Phase 01 - Governance CI is closed.

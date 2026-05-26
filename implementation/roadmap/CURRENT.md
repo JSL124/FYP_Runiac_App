@@ -46,6 +46,7 @@ Do not load future phase documents unless explicitly requested.
 - Update CURRENT.md immediately when active phase, active capsule, gate status, or forbidden scope changes.
 - Use Workflow Memory Drift Check output only as detection-only local Governance CI support; it must not automatically mutate workflow memory, snapshots, CURRENT.md, or capsules.
 - Maintain the scaffold baseline state only; any further Flutter source/test expansion requires explicit routing and approval.
+- Apply the Safe Visible Product Acceleration Rule recorded in `implementation/roadmap/phases/phase-01-governance-ci.md` for future explicitly routed frontend prototype capsules: one visible screen-level improvement per capsule, static Flutter UI, placeholder display data, existing widgets/dependencies, small widget test updates, and minimal required capsule/snapshot updates only.
 
 ## Forbidden Work
 
@@ -54,6 +55,7 @@ Do not load future phase documents unless explicitly requested.
 - Do not modify existing implementation logic.
 - Do not expand the generated Flutter scaffold into Runiac production features or tests without separate approval.
 - Do not run `flutterfire configure`; Firebase remains uninitialized.
+- Do not treat Safe Visible Product Acceleration as approval for Firebase/Auth/Firestore/Cloud Functions setup, `flutterfire configure`, Google Maps or Mapbox SDK integration, GPS/native configuration, new dependencies without explicit approval, client-side mutation or calculation of backend-owned values, XP/streak/level/rank/leaderboard score/weekly XP/monthly XP/subscription privilege state/expert plan publication state logic, unrelated refactors, roadmap expansion, or new ADRs unless a real architecture decision is unavoidable.
 - Do not modify `docs/submissions/`, `PRD.md`, or frozen submitted PDD snapshots.
 - Do not load `roadmap-stretch.md`, archived snapshots, or future phase docs unless explicitly requested.
 - Do not treat `docs/meta` as operational truth, approval evidence, routing authority, setup-gate authority, or implementation guidance.
