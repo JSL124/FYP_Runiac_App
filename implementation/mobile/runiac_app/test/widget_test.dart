@@ -10,9 +10,9 @@ void main() {
 
     expect(find.text('Runiac'), findsOneWidget);
     expect(find.text('Home'), findsOneWidget);
-    expect(find.text('Plan'), findsOneWidget);
+    expect(find.text('Maps'), findsOneWidget);
     expect(find.text('Run'), findsOneWidget);
-    expect(find.text('Explore'), findsOneWidget);
     expect(find.text('Leaderboard'), findsOneWidget);
+    expect(find.text('You'), findsOneWidget);
   });
 }
