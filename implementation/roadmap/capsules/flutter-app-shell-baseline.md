@@ -20,12 +20,18 @@ This capsule is the routing and implementation contract for the future shell pat
 - No Firebase config/source files are present.
 - No production Runiac Flutter feature implementation has started.
 
-## Allowed Future Implementation Files
+## Allowed Future Files
 
-Only these files may be modified or created by the future implementation patch:
+Production implementation files:
 
 - `implementation/mobile/runiac_app/lib/main.dart`
 - `implementation/mobile/runiac_app/lib/app.dart`
+
+Validation-support file:
+
+- `implementation/mobile/runiac_app/test/widget_test.dart`
+
+`test/widget_test.dart` may only be updated to remove the stale stock counter/MyApp test and verify static Runiac shell labels: `Runiac`, `Home`, `Plan`, `Run`, `Explore`, and `Leaderboard`.
 
 Strict file layout rule:
 
@@ -33,11 +39,13 @@ Strict file layout rule:
 - Do not create `lib/screens/`.
 - Do not create feature folders.
 - Do not create assets.
+- Do not create additional test files.
 - Do not edit `pubspec.yaml`.
 
 ## Explicitly Forbidden Files
 
 - `implementation/mobile/runiac_app/pubspec.yaml`
+- Additional test files.
 - `implementation/mobile/runiac_app/lib/screens/**`
 - `implementation/mobile/runiac_app/android/**`
 - `implementation/mobile/runiac_app/ios/**`
