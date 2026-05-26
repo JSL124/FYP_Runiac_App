@@ -12,11 +12,15 @@ Type: Flutter static frontend-only Leaderboard help modal/sheet shell.
 
 ## Status
 
-Status: Active.
+Status: Deferred pending `github-actions-flutter-validation-baseline`.
 
 Routed on: 2026-05-27 Asia/Singapore.
 
+Deferred on: 2026-05-27 Asia/Singapore.
+
 Depends on: `implementation/roadmap/capsules/leaderboard-map-first-landing-shell.md` closed at `b1ed742 feat(mobile): add leaderboard map landing shell`.
+
+Deferred because: hosted GitHub Actions currently runs governance checks but does not yet run the Flutter analyze/test validation expected by this product capsule. This capsule remains routed and should not be marked completed or superseded.
 
 ## Required Agent Chain
 
