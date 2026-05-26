@@ -6,7 +6,7 @@
 - Current phase: `implementation/roadmap/phases/phase-01-governance-ci.md`
 - Current active capsule: None selected
 - Most recent completed capsule: `implementation/roadmap/capsules/flutter-app-shell-baseline.md` at `e48a348 feat(mobile): add static Runiac app shell`
-- Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; Flutter scaffold baseline present at `implementation/mobile/runiac_app/`; `flutter-app-shell-baseline` capsule closed after static app shell implementation
+- Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; Flutter scaffold baseline present at `implementation/mobile/runiac_app/`; `flutter-app-shell-baseline` capsule closed after static app shell implementation; post-shell static UI/nav alignment checkpoint pushed at `247b4e5 feat(mobile): align static Runiac nav baseline`
 - Current state: Scaffold-baseline governance state; no active capsule selected; future work requires explicit routing
 - Current active milestone: explicit next capsule selection
 
@@ -70,6 +70,14 @@ Flutter app shell baseline capsule is complete:
 - Implemented scope: static offline Runiac app shell with five placeholder tabs: Home, Plan, Run, Explore, and Leaderboard
 - Firebase remains uninitialized.
 - No Firebase, GPS, authentication, leaderboard, XP, or backend-owned logic was added.
+
+Post-shell static UI/nav alignment checkpoint is verified:
+
+- Checkpoint commit: `247b4e5 feat(mobile): align static Runiac nav baseline`
+- Follows the closed static app shell baseline at `e48a348 feat(mobile): add static Runiac app shell`
+- Affected files: `implementation/mobile/runiac_app/lib/app.dart`; `implementation/mobile/runiac_app/test/widget_test.dart`
+- Validation before push: `flutter analyze` PASS; `flutter test` PASS; `./tools/governance-ci/run-all-checks.sh` PASS; `git diff --check` PASS; scope review PASS
+- Interpretation: static UI/nav alignment only; no Firebase, GPS, authentication, Firestore, leaderboard, plan, profile, XP, streak, level, rank, premium-state, or backend-owned logic was started.
 
 This post-completion state records the already-approved Flutter scaffold baseline and the closed static app shell baseline only. It does not approve Phase 02 implementation, Firebase setup, `flutterfire configure`, dependency installation, build, init, deploy, tests, source changes beyond a future explicitly routed capsule, or production implementation.
 
