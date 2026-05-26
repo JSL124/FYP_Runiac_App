@@ -42,12 +42,10 @@ class _RuniacShellState extends State<RuniacShell> {
         return const RunLaunchScreen();
       },
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        final offsetAnimation = Tween<Offset>(
-          begin: const Offset(0, 1),
-          end: Offset.zero,
-        ).animate(
-          CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-        );
+        final offsetAnimation =
+            Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero).animate(
+              CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+            );
 
         return SlideTransition(position: offsetAnimation, child: child);
       },
@@ -57,7 +55,11 @@ class _RuniacShellState extends State<RuniacShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _selectedIndex == 0 || _selectedIndex == 1 || _selectedIndex == 2
+      appBar:
+          _selectedIndex == 0 ||
+              _selectedIndex == 1 ||
+              _selectedIndex == 2 ||
+              _selectedIndex == 3
           ? null
           : AppBar(title: const Text('Runiac')),
       body: _tabs[_selectedIndex],

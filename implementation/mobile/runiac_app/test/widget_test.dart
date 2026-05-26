@@ -101,6 +101,35 @@ void main() {
     );
   });
 
+  testWidgets('Leaderboard tab shows static map-first landing shell', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const RuniacApp());
+
+    await tester.tap(find.text('Leaderboard'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Runiac'), findsNothing);
+    expect(find.text('Weekly XP'), findsOneWidget);
+    expect(find.text('Monthly XP'), findsOneWidget);
+    expect(find.text('Rising Runner Division'), findsOneWidget);
+    expect(find.text('Lv.11 - Lv.20'), findsOneWidget);
+    expect(find.text('Your ranked area'), findsOneWidget);
+    expect(find.bySemanticsLabel('Leaderboard information'), findsOneWidget);
+
+    expect(find.text('Community motivation'), findsNothing);
+    expect(find.text('No live ranking data yet'), findsNothing);
+    expect(find.text('520 XP'), findsNothing);
+    expect(find.textContaining('#1'), findsNothing);
+    expect(find.textContaining('#18'), findsNothing);
+    expect(find.text('Top 3 Runners'), findsNothing);
+    expect(find.text('View More Ranking'), findsNothing);
+    expect(find.text('Share My Rank'), findsNothing);
+    expect(find.textContaining('Alex'), findsNothing);
+    expect(find.textContaining('Maya'), findsNothing);
+    expect(find.textContaining('520'), findsNothing);
+  });
+
   testWidgets('Run item opens and closes static full-screen launch surface', (
     WidgetTester tester,
   ) async {
