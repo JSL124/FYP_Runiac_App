@@ -2,36 +2,61 @@
 
 ## Status
 
-Active / In Progress
+Status: Closed.
+
+Completed on: 2026-05-26 Asia/Singapore
+
+Completion commit: `e48a348 feat(mobile): add static Runiac app shell`
+
+Completion review:
+
+- A6_REVIEW PASS.
+- A8_OUTPUT_CHECKER PASS.
+- `flutter analyze --no-pub` PASS.
+- Governance CI PASS.
+
+This capsule is closed. Do not add further work to it.
 
 ## Purpose
 
 Transition the mobile app shell from the stock Flutter counter template into a minimal, static, offline Runiac app shell.
 
-This capsule is the routing and implementation contract for the future shell patch. Activating this capsule does not itself authorize Flutter source modification. Flutter source changes require a separate implementation-approved prompt after A6_REVIEW and A8_OUTPUT_CHECKER review.
+This capsule was the routing and implementation contract for the static shell patch. The implementation checkpoint completed in `e48a348 feat(mobile): add static Runiac app shell`.
 
 ## Current Baseline
 
-- Stock Flutter scaffold baseline exists at `implementation/mobile/runiac_app/`.
-- `implementation/mobile/runiac_app/lib/` currently contains only `main.dart`.
-- The current `main.dart` is the stock Flutter counter template.
+- Static offline Runiac app shell exists at `implementation/mobile/runiac_app/`.
+- `implementation/mobile/runiac_app/lib/` contains `main.dart` and `app.dart`.
+- The stock Flutter counter template has been replaced with a static shell.
+- The shell has exactly five placeholder tabs: Home, Plan, Run, Explore, and Leaderboard.
 - Firebase remains uninitialized.
 - `flutterfire configure` has not been run.
 - No Firebase config/source files are present.
-- No production Runiac Flutter feature implementation has started.
+- No Firebase, GPS, authentication, leaderboard, XP, or backend-owned logic has been added.
 
-## Allowed Future Files
+Modified implementation files:
 
-Production implementation files:
+- `implementation/mobile/runiac_app/lib/main.dart`
+- `implementation/mobile/runiac_app/lib/app.dart`
+- `implementation/mobile/runiac_app/test/widget_test.dart`
+- `implementation/mobile/runiac_app/pubspec.lock`
+
+## Completed File Scope
+
+Production implementation files modified:
 
 - `implementation/mobile/runiac_app/lib/main.dart`
 - `implementation/mobile/runiac_app/lib/app.dart`
 
-Validation-support file:
+Validation-support file modified:
 
 - `implementation/mobile/runiac_app/test/widget_test.dart`
 
-`test/widget_test.dart` may only be updated to remove the stale stock counter/MyApp test and verify static Runiac shell labels: `Runiac`, `Home`, `Plan`, `Run`, `Explore`, and `Leaderboard`.
+Lockfile updated:
+
+- `implementation/mobile/runiac_app/pubspec.lock`
+
+No further files should be added to this capsule.
 
 Strict file layout rule:
 
@@ -128,15 +153,15 @@ Allowed only:
 - static placeholder screen titles/messages
 - non-functional shell UI
 
-## Validation Plan
+## Validation Evidence
 
-Future implementation patch validation:
+Completion validation:
 
 ```bash
 git status --short
-git diff -- implementation/mobile/runiac_app/lib/main.dart implementation/mobile/runiac_app/lib/app.dart
 git diff --check
 flutter analyze --no-pub
+./tools/governance-ci/run-all-checks.sh
 ```
 
 Explicitly forbidden validation commands:
@@ -175,17 +200,20 @@ A8_OUTPUT_CHECKER must verify:
 
 ## Done When
 
-- The capsule document exists.
-- `CURRENT.md` selects this capsule as the active capsule.
-- `latest.md` records `d59f6f9 docs(agents): align scaffold baseline review wording` as the latest verified commit.
-- No Flutter source is modified by the routing patch.
-- No Firebase, native, dependency, build, init, or deploy action is performed.
-- Governance CI passes.
-- Patch is ready for human inspection.
+- [x] The capsule document exists.
+- [x] `CURRENT.md` selected this capsule as the active capsule during implementation.
+- [x] `latest.md` records `e48a348 feat(mobile): add static Runiac app shell` as the latest verified commit.
+- [x] The stock Flutter counter template was replaced with a static offline Runiac app shell.
+- [x] The shell has exactly five placeholder tabs: Home, Plan, Run, Explore, and Leaderboard.
+- [x] No Firebase, GPS, authentication, leaderboard, XP, or backend-owned logic was added.
+- [x] No Firebase, native, build, init, or deploy action was performed.
+- [x] A6_REVIEW and A8_OUTPUT_CHECKER passed.
+- [x] `flutter analyze --no-pub` passed.
+- [x] Governance CI passed.
 
 ## Out of Scope
 
-- Flutter source implementation in this routing patch.
+- Further Flutter source implementation beyond the static shell baseline.
 - Separate screen files.
 - `lib/screens/`.
 - Feature folders.
@@ -204,10 +232,10 @@ A8_OUTPUT_CHECKER must verify:
 
 ## Human Approval Gates
 
-Before Flutter source changes begin, human approval must explicitly authorize a separate implementation-approved prompt for this capsule.
+This capsule is closed and does not authorize further Flutter source changes.
 
-Before commit, the routing patch must pass A6_REVIEW and A8_OUTPUT_CHECKER. Review output alone is not approval for broader implementation, Firebase setup, dependency resolution, native file changes, build, deploy, scaffold, or init work.
+Future source changes require a new explicit route and a separate implementation-approved prompt. Review output alone is not approval for broader implementation, Firebase setup, dependency resolution, native file changes, build, deploy, scaffold, or init work.
 
 ## Rollback / Recovery Note
 
-This capsule is documentation/routing only. If routing is incorrect, recover by reverting the capsule document addition and restoring `CURRENT.md` plus `implementation/roadmap/snapshots/latest.md` to the previous no-active-capsule state. Do not modify Flutter, Firebase, native, dependency, build, or deploy files as part of rollback unless separately approved.
+This capsule is closed. If closure metadata is incorrect, recover by patching only the roadmap memory files unless a separate implementation-approved task explicitly authorizes source changes. Do not modify Flutter, Firebase, native, dependency, build, or deploy files as part of rollback unless separately approved.

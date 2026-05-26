@@ -4,17 +4,17 @@
 
 - Current track: Track A - Governance and implementation readiness
 - Current phase: `implementation/roadmap/phases/phase-01-governance-ci.md`
-- Current active capsule: `implementation/roadmap/capsules/flutter-app-shell-baseline.md`
-- Most recent completed capsule: `implementation/roadmap/capsules/repository-workflow-record.md`
-- Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; Flutter scaffold baseline present at `implementation/mobile/runiac_app/`; `flutter-app-shell-baseline` selected for routing/planning only
-- Current state: Scaffold-baseline governance state; active capsule routing does not authorize Flutter source implementation
-- Current active milestone: `flutter-app-shell-baseline` routing and review
+- Current active capsule: None selected
+- Most recent completed capsule: `implementation/roadmap/capsules/flutter-app-shell-baseline.md` at `e48a348 feat(mobile): add static Runiac app shell`
+- Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; Flutter scaffold baseline present at `implementation/mobile/runiac_app/`; `flutter-app-shell-baseline` capsule closed after static app shell implementation
+- Current state: Scaffold-baseline governance state; no active capsule selected; future work requires explicit routing
+- Current active milestone: explicit next capsule selection
 
 ## Required Reading Order
 
 1. `implementation/roadmap/CURRENT.md`
 2. Active phase document: `implementation/roadmap/phases/phase-01-governance-ci.md` (closed)
-3. Active capsule document: `implementation/roadmap/capsules/flutter-app-shell-baseline.md`
+3. Active capsule document: none selected
 4. Relevant ADRs listed below
 5. `implementation/roadmap/snapshots/latest.md`
 
@@ -49,11 +49,11 @@ Do not load future phase documents unless explicitly requested.
 
 ## Next Gate
 
-Review the `flutter-app-shell-baseline` routing patch before any Flutter source implementation.
+No active capsule is selected.
 
-Run A6_REVIEW and A8_OUTPUT_CHECKER before committing this routing patch and again before any future Flutter source implementation patch.
+Run A6_REVIEW and A8_OUTPUT_CHECKER before selecting any future routing or implementation patch.
 
-This active capsule is a routing/planning activation only. It does not approve Phase 02 implementation, Firebase setup, `flutterfire configure`, dependency installation, build, init, deploy, tests, source changes beyond the future capsule's explicitly allowed files, or production implementation. Flutter source implementation requires a separate implementation-approved prompt after review.
+This post-capsule state does not approve Phase 02 implementation, Firebase setup, `flutterfire configure`, dependency installation, build, init, deploy, tests, new source changes, or production implementation. Future work requires separate explicit routing and approval.
 
 Artifact Inventory Schema persistence is complete:
 
@@ -63,7 +63,15 @@ Artifact Inventory Schema persistence is complete:
 
 No implementation authorization should be inferred from this completed work.
 
-This post-completion state records the already-approved Flutter scaffold baseline only. It does not approve Phase 02 implementation, Firebase setup, `flutterfire configure`, dependency installation, build, init, deploy, tests, source changes beyond the stock scaffold baseline, or production implementation.
+Flutter app shell baseline capsule is complete:
+
+- Completion commit: `e48a348 feat(mobile): add static Runiac app shell`
+- Capsule: `implementation/roadmap/capsules/flutter-app-shell-baseline.md` (closed)
+- Implemented scope: static offline Runiac app shell with five placeholder tabs: Home, Plan, Run, Explore, and Leaderboard
+- Firebase remains uninitialized.
+- No Firebase, GPS, authentication, leaderboard, XP, or backend-owned logic was added.
+
+This post-completion state records the already-approved Flutter scaffold baseline and the closed static app shell baseline only. It does not approve Phase 02 implementation, Firebase setup, `flutterfire configure`, dependency installation, build, init, deploy, tests, source changes beyond a future explicitly routed capsule, or production implementation.
 
 Flutter scaffold baseline is present:
 
@@ -72,7 +80,7 @@ Flutter scaffold baseline is present:
 - Scaffold path: `implementation/mobile/runiac_app/`
 - Firebase remains uninitialized.
 - `flutterfire configure` has not been run.
-- No production Runiac feature implementation is authorized by this routing patch.
+- No production Runiac feature implementation is authorized by this state.
 - No build, deploy, source expansion, or test expansion is authorized unless separately routed.
 - Flutter may later display trusted XP, streak, level, rank, weekly XP, monthly XP, leaderboard, subscription, and expert-plan state, but the client must not write backend-owned progression, entitlement, ranking, or expert-publication fields.
 

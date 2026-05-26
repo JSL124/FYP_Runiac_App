@@ -4,9 +4,9 @@
 
 - Last updated phase: Phase 01 - Governance CI
 - Last updated capsule: `implementation/roadmap/capsules/flutter-app-shell-baseline.md`
-- Latest verified commit: `d59f6f9 docs(agents): align scaffold baseline review wording`
-- Routing commit: `04e0972 docs(roadmap): route repository workflow record`
-- Closure context: Phase 01 Governance CI is closed at `f917aab`; Artifact Inventory Schema persistence is complete; Repository Workflow Record capsule is closed; workflow memory schema migration, historical isolation check repair, historical isolation runner integration, Governance CI scaffold-baseline transition, and Flutter scaffold baseline are pushed and verified; `flutter-app-shell-baseline` is selected as the active routing/planning capsule.
+- Latest verified commit: `e48a348 feat(mobile): add static Runiac app shell`
+- Routing commit: `e2a96ed docs(roadmap): route flutter app shell capsule`
+- Closure context: Phase 01 Governance CI is closed at `f917aab`; Artifact Inventory Schema persistence is complete; Repository Workflow Record capsule is closed; workflow memory schema migration, historical isolation check repair, historical isolation runner integration, Governance CI scaffold-baseline transition, Flutter scaffold baseline, and static Flutter app shell baseline are pushed and verified; `flutter-app-shell-baseline` is closed.
 
 ## Current Implementation State
 
@@ -18,9 +18,9 @@ flutter create --template=app --platforms=android,ios --org com.runiac --project
 
 No `flutter pub get`, `firebase init`, `flutterfire configure`, build, deploy, or Firebase setup command was run. Worktree inspection found no Firebase project config, `firebase.json`, `.firebaserc`, `firebase_options.dart`, `google-services.json`, `GoogleService-Info.plist`, committed `.env*`, service account, or credentials file. The repository remains Firebase-uninitialized.
 
-The repository is now in scaffold-baseline state, not pre-scaffold state. The generated baseline is stock Flutter scaffold only and does not authorize Phase 02 feature work, Firebase setup, dependency installation, builds, deploys, custom production tests, or Runiac production source implementation.
+The repository is now in scaffold-baseline state, not pre-scaffold state. The stock counter template has been replaced by a static offline Runiac app shell with five placeholder tabs: Home, Plan, Run, Explore, and Leaderboard. This shell baseline does not authorize Phase 02 feature work, Firebase setup, dependency installation, builds, deploys, further custom production tests, or additional Runiac production source implementation.
 
-The active `flutter-app-shell-baseline` capsule is a routing/planning activation only. It does not authorize Flutter source modification by itself. Flutter implementation requires a separate implementation-approved prompt after A6_REVIEW and A8_OUTPUT_CHECKER review.
+The `flutter-app-shell-baseline` capsule is closed at `e48a348 feat(mobile): add static Runiac app shell`. No next capsule is selected. Future work requires explicit next capsule selection and approval after A6_REVIEW and A8_OUTPUT_CHECKER review.
 
 ## Implemented
 
@@ -42,16 +42,20 @@ The active `flutter-app-shell-baseline` capsule is a routing/planning activation
 - Local Governance CI has been transitioned to allow the approved Flutter scaffold baseline under `implementation/mobile/runiac_app/` while continuing to block Firebase config, secrets, service accounts, credentials, signing material, Cloud Functions, Firestore rules, Storage rules, build/deploy artifacts, and unauthorized scaffold paths.
 - Governance CI scaffold-baseline transition committed in `c8b2942 ci(governance): allow approved Flutter scaffold baseline`.
 - Flutter scaffold baseline committed in `4b375d2 chore(mobile): add Flutter scaffold baseline`.
+- Static Flutter app shell baseline committed in `e48a348 feat(mobile): add static Runiac app shell`.
+- `flutter-app-shell-baseline` capsule is closed after A6_REVIEW PASS, A8_OUTPUT_CHECKER PASS, `flutter analyze --no-pub` PASS, and Governance CI PASS.
+- Static shell scope is limited to five placeholder tabs: Home, Plan, Run, Explore, and Leaderboard.
+- No Firebase, GPS, authentication, leaderboard, XP, or backend-owned logic was added by the shell baseline.
 - Workflow Memory Drift Check is detection-only, WARN-only local Governance CI support. It does not automatically update workflow memory, snapshots, CURRENT.md, or capsules.
 - Repository Workflow Record capsule is closed.
-- `flutter-app-shell-baseline` is selected as the active routing/planning capsule.
+- `flutter-app-shell-baseline` is closed.
 
 ## Not Implemented
 
 - Firebase project/config setup.
 - Firestore rules or collections.
 - Cloud Functions source.
-- Production app source code beyond the generated Flutter scaffold baseline.
+- Production app source code beyond the static offline Flutter app shell baseline.
 - Production tests/build/deploy pipeline.
 - Artifact inventory entries.
 - Repository history reconstruction.
@@ -80,6 +84,7 @@ The active `flutter-app-shell-baseline` capsule is a routing/planning activation
 - `docs/meta` remains non-operational and is not approval evidence, routing authority, setup-gate authority, or implementation guidance.
 - Repository Workflow Record work is closed and remains documentation/governance-only. It does not authorize implementation, setup, scaffold, source, test, build, deploy, or init work.
 - Workflow Memory Drift Check warnings are detection-only and do not create approval, closure, snapshot refresh, or workflow-memory update authority.
+- Static Flutter app shell closure does not authorize Firebase setup, Phase 02 routing, further source expansion, dependency installation, build, deploy, init, or backend work.
 
 ## Known Limitations
 
@@ -89,4 +94,4 @@ The active `flutter-app-shell-baseline` capsule is a routing/planning activation
 
 ## Current Active Milestone
 
-Phase 01 - Governance CI is closed at `f917aab`. Artifact Inventory Schema persistence is complete at `7aaacf1`. Repository Workflow Record capsule is closed after `04e0972`, `0eb37c8`, `93fff5e`, schema refresh commit `9f2c832`, historical isolation repair commit `0619874`, and historical isolation runner integration commit `6d65fa1`. Governance CI scaffold-baseline transition is committed at `c8b2942`; Flutter scaffold baseline is committed and pushed at `4b375d2`. `flutter-app-shell-baseline` is the active routing/planning capsule. Phase 02 implementation, Firebase setup, `flutterfire configure`, dependency installation, build, init, deploy, source changes without separate implementation approval, custom tests, and production implementation remain unauthorized until separate explicit approval exists.
+Phase 01 - Governance CI is closed at `f917aab`. Artifact Inventory Schema persistence is complete at `7aaacf1`. Repository Workflow Record capsule is closed after `04e0972`, `0eb37c8`, `93fff5e`, schema refresh commit `9f2c832`, historical isolation repair commit `0619874`, and historical isolation runner integration commit `6d65fa1`. Governance CI scaffold-baseline transition is committed at `c8b2942`; Flutter scaffold baseline is committed and pushed at `4b375d2`; static Flutter app shell baseline is committed and pushed at `e48a348`. `flutter-app-shell-baseline` is closed. No next capsule is selected. The next expected milestone is explicit next capsule selection, not automatic implementation. Phase 02 implementation, Firebase setup, `flutterfire configure`, dependency installation, build, init, deploy, source changes without separate implementation approval, custom tests, backend work, and production implementation remain unauthorized until separate explicit approval exists.
