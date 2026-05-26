@@ -7,7 +7,7 @@
 - Latest verified commit: `247b4e5 feat(mobile): align static Runiac nav baseline`
 - Latest roadmap checkpoint: `cbe0fe0 docs(roadmap): record static nav baseline checkpoint`
 - Routing commit: `e2a96ed docs(roadmap): route flutter app shell capsule`
-- Closure context: Phase 01 Governance CI is closed at `f917aab`; Artifact Inventory Schema persistence is complete; Repository Workflow Record capsule is closed; workflow memory schema migration, historical isolation check repair, historical isolation runner integration, Governance CI scaffold-baseline transition, Flutter scaffold baseline, static Flutter app shell baseline, and post-shell static UI/nav alignment checkpoint are pushed and verified; `flutter-app-shell-baseline` is closed; `android-ui-smoke-test-evidence` is selected as the next validation-only capsule.
+- Closure context: Phase 01 Governance CI is closed at `f917aab`; Artifact Inventory Schema persistence is complete; Repository Workflow Record capsule is closed; workflow memory schema migration, historical isolation check repair, historical isolation runner integration, Governance CI scaffold-baseline transition, Flutter scaffold baseline, static Flutter app shell baseline, and post-shell static UI/nav alignment checkpoint are pushed and verified; `flutter-app-shell-baseline` is closed; `android-ui-smoke-test-evidence` validation evidence is complete.
 
 ## Current Implementation State
 
@@ -21,7 +21,7 @@ No `flutter pub get`, `firebase init`, `flutterfire configure`, build, deploy, o
 
 The repository is now in scaffold-baseline state, not pre-scaffold state. The stock counter template has been replaced by a static offline Runiac app shell with five placeholder tabs: Home, Plan, Run, Explore, and Leaderboard. The post-shell static UI/nav alignment checkpoint at `247b4e5 feat(mobile): align static Runiac nav baseline` updated only `implementation/mobile/runiac_app/lib/app.dart` and `implementation/mobile/runiac_app/test/widget_test.dart`. This shell baseline and alignment checkpoint do not authorize Phase 02 feature work, Firebase setup, dependency installation, builds, deploys, further custom production tests, or additional Runiac production source implementation.
 
-The `flutter-app-shell-baseline` capsule is closed at `e48a348 feat(mobile): add static Runiac app shell`. The latest verified pushed implementation checkpoint is `247b4e5 feat(mobile): align static Runiac nav baseline`. The active routed capsule is `android-ui-smoke-test-evidence`, a validation-only capsule for Android emulator UI smoke-test evidence. Future product work requires explicit next capsule selection and approval after A6_REVIEW and A8_OUTPUT_CHECKER review.
+The `flutter-app-shell-baseline` capsule is closed at `e48a348 feat(mobile): add static Runiac app shell`. The latest verified pushed implementation checkpoint is `247b4e5 feat(mobile): align static Runiac nav baseline`. The `android-ui-smoke-test-evidence` validation-only capsule verified the current static Flutter UI baseline on Android emulator `emulator-5554`. No next capsule is selected. Future product work requires explicit next capsule selection and approval after A6_REVIEW and A8_OUTPUT_CHECKER review.
 
 ## Implemented
 
@@ -56,6 +56,9 @@ The `flutter-app-shell-baseline` capsule is closed at `e48a348 feat(mobile): add
 - `flutter-app-shell-baseline` is closed.
 - `android-ui-smoke-test-evidence` is routed as a validation-only capsule to verify the current static Flutter UI baseline on Android emulator `emulator-5554`.
 - Expected Android smoke-test evidence: emulator detected as `emulator-5554`, app launches successfully, bottom navigation visible with Home / Maps / Run / Leaderboard / You, no runtime crash observed, and command outputs recorded.
+- Android smoke-test evidence completed: `flutter devices` detected `emulator-5554`; `flutter analyze --no-pub` passed; `flutter test` passed; `flutter run -d emulator-5554` launched the app with no runtime crash observed in console output.
+- Visual evidence completed: temporary screenshot at `/private/tmp/runiac-android-smoke.png` showed the app launched with bottom navigation Home / Maps / Run / Leaderboard / You; old Plan / Explore bottom-navigation labels were not visible; screenshot is not committed.
+- App remained static UI only during smoke testing; no Firebase, GPS, authentication, Firestore, backend behavior, XP, streak, level, rank, leaderboard score, premium-state, or backend-owned logic was observed.
 
 ## Not Implemented
 
@@ -93,7 +96,7 @@ The `flutter-app-shell-baseline` capsule is closed at `e48a348 feat(mobile): add
 - Workflow Memory Drift Check warnings are detection-only and do not create approval, closure, snapshot refresh, or workflow-memory update authority.
 - Static Flutter app shell closure does not authorize Firebase setup, Phase 02 routing, further source expansion, dependency installation, build, deploy, init, or backend work.
 - Backend-owned values remain protected: XP, streak, level, rank, leaderboard score, weekly XP, monthly XP, subscription privilege state, and expert plan publication state.
-- Android UI smoke-test evidence routing does not authorize product code edits, Flutter source/test edits, iOS/CocoaPods work, Firebase setup, GPS/tracking, authentication, Firestore, leaderboard logic, XP/streak/level/rank, premium-state, or backend-owned logic.
+- Android UI smoke-test evidence closure does not authorize product code edits, Flutter source/test edits, iOS/CocoaPods work, Firebase setup, GPS/tracking, authentication, Firestore, leaderboard logic, XP/streak/level/rank, premium-state, or backend-owned logic.
 
 ## Known Limitations
 
@@ -103,4 +106,4 @@ The `flutter-app-shell-baseline` capsule is closed at `e48a348 feat(mobile): add
 
 ## Current Active Milestone
 
-Phase 01 - Governance CI is closed at `f917aab`. Artifact Inventory Schema persistence is complete at `7aaacf1`. Repository Workflow Record capsule is closed after `04e0972`, `0eb37c8`, `93fff5e`, schema refresh commit `9f2c832`, historical isolation repair commit `0619874`, and historical isolation runner integration commit `6d65fa1`. Governance CI scaffold-baseline transition is committed at `c8b2942`; Flutter scaffold baseline is committed and pushed at `4b375d2`; static Flutter app shell baseline is committed and pushed at `e48a348`; post-shell static UI/nav alignment checkpoint is committed and pushed at `247b4e5`; latest roadmap checkpoint is `cbe0fe0`. `flutter-app-shell-baseline` is closed. `android-ui-smoke-test-evidence` is the active validation-only capsule. The next expected milestone is execute Android UI smoke-test evidence, not automatic implementation. Phase 02 implementation, Firebase setup, `flutterfire configure`, dependency installation, build, init, deploy, source changes without separate implementation approval, custom tests, backend work, and production implementation remain unauthorized until separate explicit approval exists.
+Phase 01 - Governance CI is closed at `f917aab`. Artifact Inventory Schema persistence is complete at `7aaacf1`. Repository Workflow Record capsule is closed after `04e0972`, `0eb37c8`, `93fff5e`, schema refresh commit `9f2c832`, historical isolation repair commit `0619874`, and historical isolation runner integration commit `6d65fa1`. Governance CI scaffold-baseline transition is committed at `c8b2942`; Flutter scaffold baseline is committed and pushed at `4b375d2`; static Flutter app shell baseline is committed and pushed at `e48a348`; post-shell static UI/nav alignment checkpoint is committed and pushed at `247b4e5`; latest roadmap checkpoint is `cbe0fe0`. `flutter-app-shell-baseline` is closed. `android-ui-smoke-test-evidence` is closed after successful Android smoke-test evidence. No next capsule is selected. The next expected milestone is explicit next capsule selection, not automatic implementation. Phase 02 implementation, Firebase setup, `flutterfire configure`, dependency installation, build, init, deploy, source changes without separate implementation approval, custom tests, backend work, and production implementation remain unauthorized until separate explicit approval exists.
