@@ -60,7 +60,7 @@ class _RuniacShellState extends State<_RuniacShell> {
       title: 'Maps',
       message: 'Community routes and maps will appear here.',
     ),
-    _PlaceholderTab(title: 'Run', message: 'Run tools will appear here.'),
+    _RunTab(),
     _PlaceholderTab(
       title: 'Leaderboard',
       message: 'Leaderboard content will appear here.',
@@ -704,6 +704,344 @@ class _SkeletonLine extends StatelessWidget {
       ),
     );
   }
+}
+
+class _RunTab extends StatelessWidget {
+  const _RunTab();
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: ColoredBox(
+        color: RuniacColors.background,
+        child: Column(
+          children: [
+            Expanded(
+              child: Stack(
+                children: const [
+                  Positioned.fill(child: _RunMapPlaceholder()),
+                  Positioned(
+                    left: 20,
+                    right: 20,
+                    bottom: 18,
+                    child: _RunPlanCard(),
+                  ),
+                ],
+              ),
+            ),
+            const _RunControls(),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RunMapPlaceholder extends StatelessWidget {
+  const _RunMapPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+      decoration: BoxDecoration(
+        color: RuniacColors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: RuniacColors.border),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Stack(
+          children: const [
+            Positioned.fill(child: _RunMapGrid()),
+            Positioned.fill(child: _RunRouteLine()),
+            Positioned(left: 52, top: 92, child: _RunRouteMarker()),
+            Positioned(right: 58, top: 148, child: _RunRouteFlag()),
+            Positioned(left: 110, bottom: 132, child: _RunRouteMarker()),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RunMapGrid extends StatelessWidget {
+  const _RunMapGrid();
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(painter: _RunMapGridPainter());
+  }
+}
+
+class _RunRouteLine extends StatelessWidget {
+  const _RunRouteLine();
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(painter: _RunRouteLinePainter());
+  }
+}
+
+class _RunPlanCard extends StatelessWidget {
+  const _RunPlanCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return const _DashboardCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _CardTitle(icon: Icons.event_available, title: 'Today\'s Plan'),
+          SizedBox(height: 14),
+          Text(
+            'Ready for an easy run?',
+            style: TextStyle(
+              color: RuniacColors.textPrimary,
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              height: 1.15,
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Route details will appear after setup.',
+            style: TextStyle(
+              color: RuniacColors.textSecondary,
+              fontSize: 15,
+              height: 1.4,
+            ),
+          ),
+          SizedBox(height: 12),
+          _SoftNotice(text: 'Recommended effort will appear here.'),
+        ],
+      ),
+    );
+  }
+}
+
+class _RunControls extends StatelessWidget {
+  const _RunControls();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
+      decoration: const BoxDecoration(
+        color: RuniacColors.white,
+        border: Border(top: BorderSide(color: RuniacColors.border)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {},
+                  icon: const Icon(Icons.tune),
+                  label: const Text('Setting'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: RuniacColors.primaryBlue,
+                    side: const BorderSide(color: RuniacColors.border),
+                    minimumSize: const Size.fromHeight(48),
+                    textStyle: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {},
+                  icon: const Icon(Icons.alt_route),
+                  label: const Text('Switch Route'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: RuniacColors.primaryBlue,
+                    side: const BorderSide(color: RuniacColors.border),
+                    minimumSize: const Size.fromHeight(48),
+                    textStyle: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: 112,
+            height: 112,
+            child: FilledButton(
+              onPressed: () {},
+              style: FilledButton.styleFrom(
+                shape: const CircleBorder(),
+                textStyle: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              child: const Text('Start'),
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Tracking setup will be enabled later.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: RuniacColors.textSecondary,
+              fontSize: 14,
+              height: 1.35,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RunRouteMarker extends StatelessWidget {
+  const _RunRouteMarker();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 28,
+      height: 28,
+      decoration: BoxDecoration(
+        color: RuniacColors.white,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: RuniacColors.accentOrange, width: 3),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x1A172033),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: const Icon(
+        Icons.place,
+        color: RuniacColors.accentOrange,
+        size: 16,
+      ),
+    );
+  }
+}
+
+class _RunRouteFlag extends StatelessWidget {
+  const _RunRouteFlag();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 34,
+      height: 34,
+      decoration: BoxDecoration(
+        color: RuniacColors.primaryBlue,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x1A172033),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: const Icon(Icons.flag, color: RuniacColors.white, size: 20),
+    );
+  }
+}
+
+class _RunMapGridPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final backgroundPaint = Paint()..color = RuniacColors.background;
+    canvas.drawRect(Offset.zero & size, backgroundPaint);
+
+    final roadPaint = Paint()
+      ..color = RuniacColors.border
+      ..strokeWidth = 2;
+    for (var x = -size.height; x < size.width; x += 76) {
+      canvas.drawLine(
+        Offset(x, 0),
+        Offset(x + size.height, size.height),
+        roadPaint,
+      );
+    }
+    for (var y = 34.0; y < size.height; y += 72) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y + 26), roadPaint);
+    }
+
+    final parkPaint = Paint()..color = const Color(0x1435B779);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(size.width * 0.58, 30, size.width * 0.28, 84),
+        const Radius.circular(8),
+      ),
+      parkPaint,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(24, size.height * 0.62, size.width * 0.32, 78),
+        const Radius.circular(8),
+      ),
+      parkPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _RunRouteLinePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final routePath = Path()
+      ..moveTo(size.width * 0.18, size.height * 0.34)
+      ..cubicTo(
+        size.width * 0.36,
+        size.height * 0.18,
+        size.width * 0.52,
+        size.height * 0.56,
+        size.width * 0.68,
+        size.height * 0.42,
+      )
+      ..cubicTo(
+        size.width * 0.82,
+        size.height * 0.30,
+        size.width * 0.82,
+        size.height * 0.66,
+        size.width * 0.56,
+        size.height * 0.70,
+      )
+      ..cubicTo(
+        size.width * 0.40,
+        size.height * 0.73,
+        size.width * 0.34,
+        size.height * 0.56,
+        size.width * 0.30,
+        size.height * 0.82,
+      );
+
+    final shadowPaint = Paint()
+      ..color = const Color(0x332F50C7)
+      ..strokeWidth = 12
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    canvas.drawPath(routePath, shadowPaint);
+
+    final routePaint = Paint()
+      ..color = RuniacColors.primaryBlue
+      ..strokeWidth = 6
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    canvas.drawPath(routePath, routePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _PlaceholderTab extends StatelessWidget {

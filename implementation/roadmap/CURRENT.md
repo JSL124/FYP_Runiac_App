@@ -5,9 +5,9 @@
 - Current track: Track A - Governance and implementation readiness
 - Current phase: `implementation/roadmap/phases/phase-01-governance-ci.md`
 - Current active capsule: none selected
-- Most recent completed capsule: `implementation/roadmap/capsules/home-dashboard-scroll-layout-stability-fix.md`
-- Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; Flutter scaffold baseline present at `implementation/mobile/runiac_app/`; `flutter-app-shell-baseline` capsule closed after static app shell implementation; post-shell static UI/nav alignment checkpoint pushed at `247b4e5 feat(mobile): align static Runiac nav baseline`; `android-ui-smoke-test-evidence` validation capsule closed; `home-dashboard-visual-polish` capsule closed after static Home dashboard visual polish; `premium-home-dashboard-static-wireframe-alignment` capsule closed after static Premium Home Dashboard wireframe alignment; `github-actions-governance-ci-baseline` capsule closed after adding the minimal GitHub Actions governance workflow; `home-dashboard-scroll-layout-stability-fix` capsule closed after stabilizing Home dashboard scroll/card layout
-- Current state: Scaffold-baseline governance state with the Home dashboard scroll/layout stability bugfix capsule closed; Phase 02 remains unselected; no active implementation capsule is selected
+- Most recent completed capsule: `implementation/roadmap/capsules/run-tab-static-placeholder.md`
+- Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; Flutter scaffold baseline present at `implementation/mobile/runiac_app/`; `flutter-app-shell-baseline` capsule closed after static app shell implementation; post-shell static UI/nav alignment checkpoint pushed at `247b4e5 feat(mobile): align static Runiac nav baseline`; `android-ui-smoke-test-evidence` validation capsule closed; `home-dashboard-visual-polish` capsule closed after static Home dashboard visual polish; `premium-home-dashboard-static-wireframe-alignment` capsule closed after static Premium Home Dashboard wireframe alignment; `github-actions-governance-ci-baseline` capsule closed after adding the minimal GitHub Actions governance workflow; `home-dashboard-scroll-layout-stability-fix` capsule closed after stabilizing Home dashboard scroll/card layout; `run-tab-static-placeholder` capsule closed after adding the static RunLandingPage-style Run tab placeholder
+- Current state: Scaffold-baseline governance state with the static Run tab placeholder capsule closed; Phase 02 remains unselected; no active implementation capsule is selected
 - Current active milestone: select the next capsule explicitly before further implementation
 
 ## Required Reading Order
@@ -51,6 +51,17 @@ Do not load future phase documents unless explicitly requested.
 No active capsule is selected.
 
 The next milestone is explicit next capsule selection. This closed state does not approve Phase 02 implementation, Firebase setup, `flutterfire configure`, dependency installation, build, init, deploy, backend work, or additional Flutter implementation. Future Flutter UI work requires a newly routed active capsule and the required review chain for that capsule.
+
+Run tab static placeholder capsule is complete:
+
+- Capsule: `implementation/roadmap/capsules/run-tab-static-placeholder.md`
+- Type: Flutter UI product-code-changing capsule
+- Completion commit target: `feat(mobile): add static run tab placeholder`
+- Chain: A0_ORCH -> A9_TRACE -> A5_WIRE -> A10_FLUTTER_IMPL -> A6_REVIEW -> A12_QA_TEST -> A8_OUTPUT_CHECKER
+- Validation: `flutter analyze --no-pub` PASS; `flutter test` PASS; `git diff --check` PASS; Governance CI PASS; Android smoke evidence PASS on `emulator-5554`
+- Implemented scope: static RunLandingPage-style Run tab placeholder using a large route/map-looking visual area, static route line, marker/flag placeholders, Today's Plan card, Setting button, central Start button, Switch Route button, and safe setup-later copy.
+- Preserved bottom navigation Home / Maps / Run / Leaderboard / You and the Runiac logo palette.
+- No Firebase, Auth, Firestore, Cloud Functions, GPS/tracking, real map integration, timer, distance, pace, heart-rate, cadence, activity recording, activity submission, backend-owned values, dependency changes, native Android/iOS changes, or Phase 02 selection was introduced.
 
 Home dashboard scroll layout stability fix capsule is complete:
 
