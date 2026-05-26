@@ -4,19 +4,18 @@
 
 - Current track: Track A - Governance and implementation readiness
 - Current phase: `implementation/roadmap/phases/phase-01-governance-ci.md`
-- Current active capsule: `implementation/roadmap/capsules/home-dashboard-visual-polish.md`
-- Most recent completed capsule: `implementation/roadmap/capsules/android-ui-smoke-test-evidence.md`
-- Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; Flutter scaffold baseline present at `implementation/mobile/runiac_app/`; `flutter-app-shell-baseline` capsule closed after static app shell implementation; post-shell static UI/nav alignment checkpoint pushed at `247b4e5 feat(mobile): align static Runiac nav baseline`; `android-ui-smoke-test-evidence` validation capsule closed; `home-dashboard-visual-polish` capsule routed
-- Current state: Scaffold-baseline governance state; Phase 02 remains unselected; active Flutter UI product-code-changing capsule routed for future implementation
-- Current active milestone: implement `home-dashboard-visual-polish` through the Flutter UI Capsule Chain
+- Current active capsule: none selected
+- Most recent completed capsule: `implementation/roadmap/capsules/home-dashboard-visual-polish.md`
+- Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; Flutter scaffold baseline present at `implementation/mobile/runiac_app/`; `flutter-app-shell-baseline` capsule closed after static app shell implementation; post-shell static UI/nav alignment checkpoint pushed at `247b4e5 feat(mobile): align static Runiac nav baseline`; `android-ui-smoke-test-evidence` validation capsule closed; `home-dashboard-visual-polish` capsule closed after static Home dashboard visual polish
+- Current state: Scaffold-baseline governance state with the active Home dashboard visual polish capsule closed; Phase 02 remains unselected; no active implementation capsule is selected
+- Current active milestone: select the next capsule explicitly before further implementation
 
 ## Required Reading Order
 
 1. `implementation/roadmap/CURRENT.md`
 2. Active phase document: `implementation/roadmap/phases/phase-01-governance-ci.md` (closed)
-3. Active capsule document: `implementation/roadmap/capsules/home-dashboard-visual-polish.md`
-4. Relevant ADRs listed below
-5. `implementation/roadmap/snapshots/latest.md`
+3. Relevant ADRs listed below
+4. `implementation/roadmap/snapshots/latest.md`
 
 Do not load future phase documents unless explicitly requested.
 
@@ -49,17 +48,20 @@ Do not load future phase documents unless explicitly requested.
 
 ## Next Gate
 
-Active capsule: `implementation/roadmap/capsules/home-dashboard-visual-polish.md`.
+No active capsule is selected.
 
-Required agent chain for future implementation:
+The next milestone is explicit next capsule selection. This closed state does not approve Phase 02 implementation, Firebase setup, `flutterfire configure`, dependency installation, build, init, deploy, backend work, or additional Flutter implementation. Future Flutter UI work requires a newly routed active capsule and the required review chain for that capsule.
 
-```text
-A0_ORCH -> A9_TRACE -> A5_WIRE -> A10_FLUTTER_IMPL -> A6_REVIEW -> A12_QA_TEST -> A8_OUTPUT_CHECKER
-```
+Home dashboard visual polish capsule is complete:
 
-Run A9_TRACE, A5_WIRE, A6_REVIEW, A12_QA_TEST, and A8_OUTPUT_CHECKER before any implementation commit for this capsule.
-
-This routed state does not approve Phase 02 implementation, Firebase setup, `flutterfire configure`, dependency installation, build, init, deploy, backend work, or implementation outside `home-dashboard-visual-polish`. Future Home dashboard visual polish implementation is limited to the routed capsule scope and still requires the Flutter UI Capsule Chain review and validation.
+- Capsule: `implementation/roadmap/capsules/home-dashboard-visual-polish.md`
+- Type: Flutter UI product-code-changing
+- Completion commit target: `feat(mobile): polish static home dashboard`
+- Chain: A0_ORCH -> A9_TRACE -> A5_WIRE -> A10_FLUTTER_IMPL -> A6_REVIEW -> A12_QA_TEST -> A8_OUTPUT_CHECKER
+- Validation: `flutter analyze --no-pub` PASS; `flutter test` PASS; `git diff --check` PASS; Governance CI PASS; Android smoke evidence PASS on `emulator-5554`
+- Implemented scope: static Home dashboard spacing, hierarchy, Runiac logo palette baseline, `Start Run` CTA presentation, supportive guidance card, and empty-state copy
+- Bottom navigation remains Home / Maps / Run / Leaderboard / You.
+- No Firebase, Auth, Firestore, Cloud Functions, GPS/tracking, real run recording, fake XP, fake streak, fake level, fake rank, fake leaderboard score, fake premium state, fake run history, backend-owned values, dependency changes, or native Android/iOS changes were introduced.
 
 Android UI smoke-test evidence capsule is complete:
 
@@ -94,7 +96,7 @@ Post-shell static UI/nav alignment checkpoint is verified:
 - Validation before push: `flutter analyze` PASS; `flutter test` PASS; `./tools/governance-ci/run-all-checks.sh` PASS; `git diff --check` PASS; scope review PASS
 - Interpretation: static UI/nav alignment only; no Firebase, GPS, authentication, Firestore, leaderboard, plan, profile, XP, streak, level, rank, premium-state, or backend-owned logic was started.
 
-This post-completion state records the already-approved Flutter scaffold baseline and the closed static app shell baseline only. It does not approve Phase 02 implementation, Firebase setup, `flutterfire configure`, dependency installation, build, init, deploy, tests, source changes beyond a future explicitly routed capsule, or production implementation.
+This post-completion state records the already-approved Flutter scaffold baseline, closed static app shell baseline, closed static UI/nav alignment checkpoint, Android smoke-test evidence, and closed Home dashboard visual polish capsule. It does not approve Phase 02 implementation, Firebase setup, `flutterfire configure`, dependency installation, build, init, deploy, tests, source changes beyond a future explicitly routed capsule, or production implementation.
 
 Flutter scaffold baseline is present:
 
