@@ -5,9 +5,9 @@
 - Current track: Track A - Governance and implementation readiness
 - Current phase: `implementation/roadmap/phases/phase-01-governance-ci.md`
 - Current active capsule: none selected
-- Most recent completed capsule: `implementation/roadmap/capsules/github-actions-governance-ci-baseline.md`
-- Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; Flutter scaffold baseline present at `implementation/mobile/runiac_app/`; `flutter-app-shell-baseline` capsule closed after static app shell implementation; post-shell static UI/nav alignment checkpoint pushed at `247b4e5 feat(mobile): align static Runiac nav baseline`; `android-ui-smoke-test-evidence` validation capsule closed; `home-dashboard-visual-polish` capsule closed after static Home dashboard visual polish; `premium-home-dashboard-static-wireframe-alignment` capsule closed after static Premium Home Dashboard wireframe alignment; `github-actions-governance-ci-baseline` capsule closed after adding the minimal GitHub Actions governance workflow
-- Current state: Scaffold-baseline governance state with the GitHub Actions governance CI baseline capsule closed; Phase 02 remains unselected; no active implementation capsule is selected
+- Most recent completed capsule: `implementation/roadmap/capsules/home-dashboard-scroll-layout-stability-fix.md`
+- Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; Flutter scaffold baseline present at `implementation/mobile/runiac_app/`; `flutter-app-shell-baseline` capsule closed after static app shell implementation; post-shell static UI/nav alignment checkpoint pushed at `247b4e5 feat(mobile): align static Runiac nav baseline`; `android-ui-smoke-test-evidence` validation capsule closed; `home-dashboard-visual-polish` capsule closed after static Home dashboard visual polish; `premium-home-dashboard-static-wireframe-alignment` capsule closed after static Premium Home Dashboard wireframe alignment; `github-actions-governance-ci-baseline` capsule closed after adding the minimal GitHub Actions governance workflow; `home-dashboard-scroll-layout-stability-fix` capsule closed after stabilizing Home dashboard scroll/card layout
+- Current state: Scaffold-baseline governance state with the Home dashboard scroll/layout stability bugfix capsule closed; Phase 02 remains unselected; no active implementation capsule is selected
 - Current active milestone: select the next capsule explicitly before further implementation
 
 ## Required Reading Order
@@ -51,6 +51,17 @@ Do not load future phase documents unless explicitly requested.
 No active capsule is selected.
 
 The next milestone is explicit next capsule selection. This closed state does not approve Phase 02 implementation, Firebase setup, `flutterfire configure`, dependency installation, build, init, deploy, backend work, or additional Flutter implementation. Future Flutter UI work requires a newly routed active capsule and the required review chain for that capsule.
+
+Home dashboard scroll layout stability fix capsule is complete:
+
+- Capsule: `implementation/roadmap/capsules/home-dashboard-scroll-layout-stability-fix.md`
+- Type: Flutter UI bugfix capsule
+- Completion commit target: `fix(mobile): stabilize home dashboard scrolling`
+- Chain: A0_ORCH -> A9_TRACE -> A5_WIRE -> A10_FLUTTER_IMPL -> A6_REVIEW -> A12_QA_TEST -> A8_OUTPUT_CHECKER
+- Validation: `flutter analyze --no-pub` PASS; `flutter test` PASS; `git diff --check` PASS; Governance CI PASS; Android smoke evidence PASS on `emulator-5554`
+- Implemented scope: disabled Home dashboard overscroll stretch, kept clamping scroll physics, and made the route placeholder explicitly full-width with its existing fixed height.
+- Preserved existing Home section order, static placeholder meaning, bottom navigation Home / Maps / Run / Leaderboard / You, and the Runiac logo palette.
+- No Firebase, Auth, Firestore, Cloud Functions, GPS/tracking, backend integration, premium entitlement logic, AI advice logic, fake backend-owned values, new product sections, dependency changes, native Android/iOS changes, or Phase 02 selection was introduced.
 
 GitHub Actions governance CI baseline capsule is complete:
 

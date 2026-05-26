@@ -112,25 +112,29 @@ class _HomeTab extends StatelessWidget {
     return SafeArea(
       child: ColoredBox(
         color: RuniacColors.background,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),
-          children: const [
-            _HomeHeader(),
-            SizedBox(height: 16),
-            _TodayPlanCard(),
-            SizedBox(height: 14),
-            _GoalPreparationCard(),
-            SizedBox(height: 14),
-            _RunnerProgressCard(),
-            SizedBox(height: 14),
-            _WeeklyPlanCard(),
-            SizedBox(height: 14),
-            _LastRunCard(),
-            SizedBox(height: 14),
-            _AdviceCard(),
-            SizedBox(height: 14),
-            _CommunityRouteCard(),
-          ],
+        child: ScrollConfiguration(
+          behavior: ScrollConfiguration.of(context).copyWith(overscroll: false),
+          child: ListView(
+            physics: const ClampingScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),
+            children: const [
+              _HomeHeader(),
+              SizedBox(height: 16),
+              _TodayPlanCard(),
+              SizedBox(height: 14),
+              _GoalPreparationCard(),
+              SizedBox(height: 14),
+              _RunnerProgressCard(),
+              SizedBox(height: 14),
+              _WeeklyPlanCard(),
+              SizedBox(height: 14),
+              _LastRunCard(),
+              SizedBox(height: 14),
+              _AdviceCard(),
+              SizedBox(height: 14),
+              _CommunityRouteCard(),
+            ],
+          ),
         ),
       ),
     );
@@ -595,6 +599,7 @@ class _RoutePlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: double.infinity,
       height: 92,
       decoration: BoxDecoration(
         color: RuniacColors.background,
