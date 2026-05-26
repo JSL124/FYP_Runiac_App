@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runiac_app/app.dart';
@@ -14,6 +15,43 @@ void main() {
     expect(find.text('Run'), findsOneWidget);
     expect(find.text('Leaderboard'), findsOneWidget);
     expect(find.text('You'), findsOneWidget);
+  });
+
+  testWidgets('Home dashboard keeps a calm primary quick start', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const RuniacApp());
+
+    expect(find.text('Good to see you'), findsOneWidget);
+    expect(
+      find.text('Your Home dashboard is ready for a calm start.'),
+      findsOneWidget,
+    );
+    expect(find.text('Ready for an easy run?'), findsOneWidget);
+    expect(find.text('Start small and keep it comfortable.'), findsOneWidget);
+    expect(find.text('View Plan'), findsOneWidget);
+    expect(find.text('Quick Start'), findsOneWidget);
+    expect(find.bySemanticsLabel('Notifications'), findsOneWidget);
+    expect(find.bySemanticsLabel('Profile'), findsOneWidget);
+
+    await tester.tap(find.text('Quick Start'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Good to see you'), findsOneWidget);
+    expect(find.text('Quick Start'), findsOneWidget);
+
+    await tester.tap(find.bySemanticsLabel('Notifications'));
+    await tester.tap(find.bySemanticsLabel('Profile'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Good to see you'), findsOneWidget);
+
+    await tester.drag(find.byType(ListView), const Offset(0, -500));
+    await tester.pumpAndSettle();
+
+    expect(find.text('This Week\'s Plan'), findsOneWidget);
+    expect(find.text('Last Run'), findsOneWidget);
+    expect(find.text('View Details'), findsNothing);
   });
 
   testWidgets('Maps tab shows static route discovery placeholder', (

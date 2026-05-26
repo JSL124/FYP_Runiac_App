@@ -34,7 +34,7 @@ class TodayPlanCard extends StatelessWidget {
                     ),
                     SizedBox(height: 8),
                     Text(
-                      'Your next run will appear here.',
+                      'Start small and keep it comfortable.',
                       style: TextStyle(
                         color: RuniacColors.textSecondary,
                         fontSize: 14,
@@ -57,7 +57,7 @@ class TodayPlanCard extends StatelessWidget {
                   style: OutlinedButton.styleFrom(
                     foregroundColor: RuniacColors.primaryBlue,
                     side: const BorderSide(color: RuniacColors.border),
-                    minimumSize: const Size.fromHeight(42),
+                    minimumSize: const Size.fromHeight(44),
                     textStyle: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                   child: const Text('View Plan'),
@@ -67,11 +67,11 @@ class TodayPlanCard extends StatelessWidget {
               Expanded(
                 child: FilledButton.icon(
                   onPressed: () {},
-                  icon: const Icon(Icons.directions_run),
+                  icon: const Icon(Icons.play_arrow_rounded),
                   label: const Text('Quick Start'),
                   style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(42),
-                    textStyle: const TextStyle(fontWeight: FontWeight.w700),
+                    minimumSize: const Size.fromHeight(44),
+                    textStyle: const TextStyle(fontWeight: FontWeight.w800),
                   ),
                 ),
               ),

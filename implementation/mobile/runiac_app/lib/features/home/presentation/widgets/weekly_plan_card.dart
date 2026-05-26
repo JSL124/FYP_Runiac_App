@@ -14,30 +14,9 @@ class WeeklyPlanCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Expanded(
-                child: CardTitle(
-                  icon: Icons.view_week_outlined,
-                  title: 'This Week\'s Plan',
-                ),
-              ),
-              const SizedBox(width: 10),
-              OutlinedButton(
-                onPressed: () {},
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: RuniacColors.primaryBlue,
-                  side: const BorderSide(color: RuniacColors.border),
-                  minimumSize: const Size(84, 36),
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  textStyle: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                child: const Text('View Plan'),
-              ),
-            ],
+          const CardTitle(
+            icon: Icons.view_week_outlined,
+            title: 'This Week\'s Plan',
           ),
           const SizedBox(height: 12),
           const Text(

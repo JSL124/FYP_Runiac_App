@@ -50,34 +50,54 @@ class _HomeProfilePlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 88,
+      width: 98,
       height: 58,
       child: Stack(
         children: [
-          const Positioned(
+          Positioned(
             left: 0,
-            top: 17,
-            child: Icon(
-              Icons.notifications_none,
-              color: RuniacColors.textPrimary,
-              size: 24,
+            top: 7,
+            child: Semantics(
+              label: 'Notifications',
+              button: true,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {},
+                child: const SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: Icon(
+                    Icons.notifications_none,
+                    color: RuniacColors.textPrimary,
+                    size: 24,
+                  ),
+                ),
+              ),
             ),
           ),
           Positioned(
             right: 0,
             top: 2,
-            child: Container(
-              width: 54,
-              height: 54,
-              decoration: BoxDecoration(
-                color: RuniacColors.white,
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: RuniacColors.border),
-              ),
-              child: const Icon(
-                Icons.person_outline,
-                color: RuniacColors.textSecondary,
-                size: 30,
+            child: Semantics(
+              label: 'Profile',
+              button: true,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {},
+                child: Container(
+                  width: 54,
+                  height: 54,
+                  decoration: BoxDecoration(
+                    color: RuniacColors.white,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: RuniacColors.border),
+                  ),
+                  child: const Icon(
+                    Icons.person_outline,
+                    color: RuniacColors.textSecondary,
+                    size: 30,
+                  ),
+                ),
               ),
             ),
           ),

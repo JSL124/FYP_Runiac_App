@@ -44,21 +44,6 @@ class LastRunCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 10),
-              OutlinedButton(
-                onPressed: () {},
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: RuniacColors.primaryBlue,
-                  side: const BorderSide(color: RuniacColors.border),
-                  minimumSize: const Size(92, 38),
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  textStyle: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                child: const Text('View Details'),
-              ),
             ],
           ),
         ],
