@@ -8,7 +8,7 @@ void main() {
   ) async {
     await tester.pumpWidget(const RuniacApp());
 
-    expect(find.text('Runiac'), findsOneWidget);
+    expect(find.text('Good to see you'), findsOneWidget);
     expect(find.text('Home'), findsOneWidget);
     expect(find.text('Maps'), findsOneWidget);
     expect(find.text('Run'), findsOneWidget);

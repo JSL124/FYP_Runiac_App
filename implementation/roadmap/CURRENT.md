@@ -5,9 +5,9 @@
 - Current track: Track A - Governance and implementation readiness
 - Current phase: `implementation/roadmap/phases/phase-01-governance-ci.md`
 - Current active capsule: none selected
-- Most recent completed capsule: `implementation/roadmap/capsules/run-tab-fullscreen-map-overlay-alignment.md`
-- Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; Flutter scaffold baseline present at `implementation/mobile/runiac_app/`; `flutter-app-shell-baseline` capsule closed after static app shell implementation; post-shell static UI/nav alignment checkpoint pushed at `247b4e5 feat(mobile): align static Runiac nav baseline`; `android-ui-smoke-test-evidence` validation capsule closed; `home-dashboard-visual-polish` capsule closed after static Home dashboard visual polish; `premium-home-dashboard-static-wireframe-alignment` capsule closed after static Premium Home Dashboard wireframe alignment; `github-actions-governance-ci-baseline` capsule closed after adding the minimal GitHub Actions governance workflow; `home-dashboard-scroll-layout-stability-fix` capsule closed after stabilizing Home dashboard scroll/card layout; `run-tab-static-placeholder` capsule closed after adding the static RunLandingPage-style Run tab placeholder; `run-tab-fullscreen-map-overlay-alignment` closed after static Run tab fullscreen map overlay layout alignment
-- Current state: Scaffold-baseline governance state with the static Run tab fullscreen map overlay alignment capsule closed; Phase 02 remains unselected; no active implementation capsule is selected
+- Most recent completed capsule: `implementation/roadmap/capsules/home-dashboard-reference-layout-alignment.md`
+- Current status: Phase 01 governance CI closed; Artifact Inventory Schema persistence completed; Repository Workflow Record capsule closed; Flutter scaffold baseline present at `implementation/mobile/runiac_app/`; `flutter-app-shell-baseline` capsule closed after static app shell implementation; post-shell static UI/nav alignment checkpoint pushed at `247b4e5 feat(mobile): align static Runiac nav baseline`; `android-ui-smoke-test-evidence` validation capsule closed; `home-dashboard-visual-polish` capsule closed after static Home dashboard visual polish; `premium-home-dashboard-static-wireframe-alignment` capsule closed after static Premium Home Dashboard wireframe alignment; `github-actions-governance-ci-baseline` capsule closed after adding the minimal GitHub Actions governance workflow; `home-dashboard-scroll-layout-stability-fix` capsule closed after stabilizing Home dashboard scroll/card layout; `run-tab-static-placeholder` capsule closed after adding the static RunLandingPage-style Run tab placeholder; `run-tab-fullscreen-map-overlay-alignment` closed after static Run tab fullscreen map overlay layout alignment; `home-dashboard-reference-layout-alignment` closed after static Home dashboard reference layout alignment
+- Current state: Scaffold-baseline governance state with the static Home dashboard reference layout alignment capsule closed; Phase 02 remains unselected; no active implementation capsule is selected
 - Current active milestone: select the next capsule explicitly before further implementation
 
 ## Required Reading Order
@@ -51,6 +51,16 @@ Do not load future phase documents unless explicitly requested.
 No active capsule is selected.
 
 The next milestone is explicit next capsule selection. This closed state does not approve Phase 02 implementation, Firebase setup, `flutterfire configure`, dependency installation, build, init, deploy, backend work, or additional Flutter implementation.
+
+Home dashboard reference layout alignment capsule is complete:
+
+- Capsule: `implementation/roadmap/capsules/home-dashboard-reference-layout-alignment.md`
+- Type: Flutter UI layout-alignment capsule
+- Completion commit target: `fix(mobile): align home dashboard reference layout`
+- Chain: A0_ORCH -> A9_TRACE -> A5_WIRE -> A10_FLUTTER_IMPL -> A6_REVIEW -> A12_QA_TEST -> A8_OUTPUT_CHECKER
+- Validation: `flutter analyze --no-pub` PASS; `flutter test` PASS; `git diff --check` PASS; Governance CI PASS; Android smoke evidence PASS on `emulator-5554`.
+- Implemented scope: aligned the static Home dashboard closer to the provided wireframe structure using safe placeholder copy and the section order Greeting / Today's Plan / Training Goal / Runner Progress / This Week's Plan / Last Run / Post-run Feedback / Recommended Routes.
+- Required boundary preserved: static UI layout only; no Firebase, Auth, Firestore, Cloud Functions, GPS/tracking, real map integration, timer, distance, pace, heart-rate, cadence, activity recording, activity submission, fake AI advice, fake premium entitlement, backend-owned values, dependency changes, native Android/iOS changes, or Phase 02 selection.
 
 Run tab fullscreen map overlay alignment capsule is complete:
 

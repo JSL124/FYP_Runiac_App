@@ -76,7 +76,9 @@ class _RuniacShellState extends State<_RuniacShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _selectedIndex == 2 ? null : AppBar(title: const Text('Runiac')),
+      appBar: _selectedIndex == 0 || _selectedIndex == 2
+          ? null
+          : AppBar(title: const Text('Runiac')),
       body: _tabs[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
@@ -116,23 +118,23 @@ class _HomeTab extends StatelessWidget {
           behavior: ScrollConfiguration.of(context).copyWith(overscroll: false),
           child: ListView(
             physics: const ClampingScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
             children: const [
               _HomeHeader(),
-              SizedBox(height: 16),
+              SizedBox(height: 12),
               _TodayPlanCard(),
-              SizedBox(height: 14),
+              SizedBox(height: 10),
               _GoalPreparationCard(),
-              SizedBox(height: 14),
+              SizedBox(height: 10),
               _RunnerProgressCard(),
-              SizedBox(height: 14),
+              SizedBox(height: 10),
               _WeeklyPlanCard(),
-              SizedBox(height: 14),
+              SizedBox(height: 10),
               _LastRunCard(),
-              SizedBox(height: 14),
-              _AdviceCard(),
-              SizedBox(height: 14),
-              _CommunityRouteCard(),
+              SizedBox(height: 10),
+              _PostRunFeedbackCard(),
+              SizedBox(height: 10),
+              _RecommendedRoutesCard(),
             ],
           ),
         ),
@@ -146,30 +148,82 @@ class _HomeHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return const Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        _HomeAccentBar(),
-        SizedBox(height: 16),
-        Text(
-          'Good to see you',
-          style: TextStyle(
-            color: RuniacColors.textPrimary,
-            fontSize: 30,
-            fontWeight: FontWeight.w800,
-            height: 1.12,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _HomeAccentBar(),
+              SizedBox(height: 12),
+              Text(
+                'Good to see you',
+                style: TextStyle(
+                  color: RuniacColors.textPrimary,
+                  fontSize: 26,
+                  fontWeight: FontWeight.w800,
+                  height: 1.1,
+                ),
+              ),
+              SizedBox(height: 6),
+              Text(
+                'Your Home dashboard is ready for a calm start.',
+                style: TextStyle(
+                  color: RuniacColors.textSecondary,
+                  fontSize: 14,
+                  height: 1.35,
+                ),
+              ),
+            ],
           ),
         ),
-        SizedBox(height: 8),
-        Text(
-          'Your Home dashboard is ready for a calm start.',
-          style: TextStyle(
-            color: RuniacColors.textSecondary,
-            fontSize: 16,
-            height: 1.4,
-          ),
-        ),
+        SizedBox(width: 12),
+        _HomeProfilePlaceholder(),
       ],
+    );
+  }
+}
+
+class _HomeProfilePlaceholder extends StatelessWidget {
+  const _HomeProfilePlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 88,
+      height: 58,
+      child: Stack(
+        children: [
+          const Positioned(
+            left: 0,
+            top: 17,
+            child: Icon(
+              Icons.notifications_none,
+              color: RuniacColors.textPrimary,
+              size: 24,
+            ),
+          ),
+          Positioned(
+            right: 0,
+            top: 2,
+            child: Container(
+              width: 54,
+              height: 54,
+              decoration: BoxDecoration(
+                color: RuniacColors.white,
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: RuniacColors.border),
+              ),
+              child: const Icon(
+                Icons.person_outline,
+                color: RuniacColors.textSecondary,
+                size: 30,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -184,50 +238,64 @@ class _TodayPlanCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const _CardTitle(icon: Icons.calendar_today, title: 'Today\'s Plan'),
-          const SizedBox(height: 16),
-          const Text(
-            'Ready for an easy run?',
-            style: TextStyle(
-              color: RuniacColors.textPrimary,
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              height: 1.15,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Your next run will appear here.',
-            style: TextStyle(
-              color: RuniacColors.textSecondary,
-              fontSize: 15,
-              height: 1.4,
-            ),
-          ),
-          const SizedBox(height: 18),
-          Row(
+          const SizedBox(height: 14),
+          const Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: FilledButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.directions_run),
-                  label: const Text('Quick Start'),
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(48),
-                    textStyle: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Ready for an easy run?',
+                      style: TextStyle(
+                        color: RuniacColors.textPrimary,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        height: 1.15,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Your next run will appear here.',
+                      style: TextStyle(
+                        color: RuniacColors.textSecondary,
+                        fontSize: 14,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: 14),
+              _PlanImagePlaceholder(),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
               Expanded(
                 child: OutlinedButton(
                   onPressed: () {},
                   style: OutlinedButton.styleFrom(
                     foregroundColor: RuniacColors.primaryBlue,
                     side: const BorderSide(color: RuniacColors.border),
-                    minimumSize: const Size.fromHeight(48),
+                    minimumSize: const Size.fromHeight(42),
                     textStyle: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                   child: const Text('View Plan'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: () {},
+                  icon: const Icon(Icons.directions_run),
+                  label: const Text('Quick Start'),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(42),
+                    textStyle: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
                 ),
               ),
             ],
@@ -247,13 +315,13 @@ class _GoalPreparationCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _CardTitle(icon: Icons.flag_outlined, title: 'Goal Preparation'),
-          SizedBox(height: 14),
+          _CardTitle(icon: Icons.flag_outlined, title: 'Training Goal'),
+          SizedBox(height: 12),
           Text(
-            'Your training progress will appear here.',
+            'Your training preparation will appear here.',
             style: TextStyle(
               color: RuniacColors.textPrimary,
-              fontSize: 18,
+              fontSize: 17,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -266,7 +334,7 @@ class _GoalPreparationCard extends StatelessWidget {
               height: 1.4,
             ),
           ),
-          SizedBox(height: 18),
+          SizedBox(height: 14),
           _ProgressPlaceholder(),
         ],
       ),
@@ -287,16 +355,16 @@ class _RunnerProgressCard extends StatelessWidget {
             icon: Icons.emoji_events_outlined,
             title: 'Runner Progress',
           ),
-          SizedBox(height: 14),
+          SizedBox(height: 12),
           Text(
-            'XP and level will appear after verified runs.',
+            'Progress summaries will appear after verified runs.',
             style: TextStyle(
               color: RuniacColors.textSecondary,
-              fontSize: 15,
-              height: 1.4,
+              fontSize: 14,
+              height: 1.35,
             ),
           ),
-          SizedBox(height: 18),
+          SizedBox(height: 14),
           _ProgressPlaceholder(),
         ],
       ),
@@ -313,39 +381,46 @@ class _WeeklyPlanCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _CardTitle(
-            icon: Icons.view_week_outlined,
-            title: 'This Week\'s Plan',
+          Row(
+            children: [
+              const Expanded(
+                child: _CardTitle(
+                  icon: Icons.view_week_outlined,
+                  title: 'This Week\'s Plan',
+                ),
+              ),
+              const SizedBox(width: 10),
+              OutlinedButton(
+                onPressed: () {},
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: RuniacColors.primaryBlue,
+                  side: const BorderSide(color: RuniacColors.border),
+                  minimumSize: const Size(84, 36),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  textStyle: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                child: const Text('View Plan'),
+              ),
+            ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           const Text(
             'Your weekly plan will appear after setup.',
             style: TextStyle(
               color: RuniacColors.textSecondary,
-              fontSize: 15,
-              height: 1.4,
+              fontSize: 14,
+              height: 1.35,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           const _PlanSkeletonRow(),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           const _PlanSkeletonRow(),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           const _PlanSkeletonRow(),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: () {},
-              style: OutlinedButton.styleFrom(
-                foregroundColor: RuniacColors.primaryBlue,
-                side: const BorderSide(color: RuniacColors.border),
-                minimumSize: const Size.fromHeight(46),
-                textStyle: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-              child: const Text('View Plan'),
-            ),
-          ),
         ],
       ),
     );
@@ -357,28 +432,57 @@ class _LastRunCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const _DashboardCard(
+    return _DashboardCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _CardTitle(icon: Icons.history, title: 'Last Run'),
-          SizedBox(height: 14),
-          Text(
-            'Complete a run to see your summary.',
-            style: TextStyle(
-              color: RuniacColors.textPrimary,
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          SizedBox(height: 8),
-          Text(
-            'Your first run summary will appear here.',
-            style: TextStyle(
-              color: RuniacColors.textSecondary,
-              fontSize: 15,
-              height: 1.4,
-            ),
+          const _CardTitle(icon: Icons.history, title: 'Last Run'),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const _InitialTile(),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Complete a run to see your summary.',
+                      style: TextStyle(
+                        color: RuniacColors.textPrimary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    SizedBox(height: 6),
+                    Text(
+                      'Your first run summary will appear here.',
+                      style: TextStyle(
+                        color: RuniacColors.textSecondary,
+                        fontSize: 14,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              OutlinedButton(
+                onPressed: () {},
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: RuniacColors.primaryBlue,
+                  side: const BorderSide(color: RuniacColors.border),
+                  minimumSize: const Size(92, 38),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  textStyle: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                child: const Text('View Details'),
+              ),
+            ],
           ),
         ],
       ),
@@ -386,8 +490,8 @@ class _LastRunCard extends StatelessWidget {
   }
 }
 
-class _AdviceCard extends StatelessWidget {
-  const _AdviceCard();
+class _PostRunFeedbackCard extends StatelessWidget {
+  const _PostRunFeedbackCard();
 
   @override
   Widget build(BuildContext context) {
@@ -395,14 +499,17 @@ class _AdviceCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _CardTitle(icon: Icons.tips_and_updates_outlined, title: 'Advice'),
-          SizedBox(height: 14),
+          _CardTitle(
+            icon: Icons.tips_and_updates_outlined,
+            title: 'Post-run Feedback',
+          ),
+          SizedBox(height: 12),
           Text(
-            'Post-run advice will appear after your completed runs.',
+            'Feedback will appear after a completed run.',
             style: TextStyle(
               color: RuniacColors.textSecondary,
-              fontSize: 15,
-              height: 1.4,
+              fontSize: 14,
+              height: 1.35,
             ),
           ),
           SizedBox(height: 12),
@@ -413,8 +520,8 @@ class _AdviceCard extends StatelessWidget {
   }
 }
 
-class _CommunityRouteCard extends StatelessWidget {
-  const _CommunityRouteCard();
+class _RecommendedRoutesCard extends StatelessWidget {
+  const _RecommendedRoutesCard();
 
   @override
   Widget build(BuildContext context) {
@@ -424,20 +531,20 @@ class _CommunityRouteCard extends StatelessWidget {
         children: [
           _CardTitle(
             icon: Icons.route_outlined,
-            title: 'Recommended Community Route',
+            title: 'Recommended Routes',
             accent: true,
           ),
-          SizedBox(height: 14),
+          SizedBox(height: 12),
           Text(
             'Community routes will appear here.',
             style: TextStyle(
               color: RuniacColors.textSecondary,
-              fontSize: 15,
-              height: 1.4,
+              fontSize: 14,
+              height: 1.35,
             ),
           ),
-          SizedBox(height: 16),
-          _RoutePlaceholder(),
+          SizedBox(height: 14),
+          _RouteCarouselPlaceholder(),
         ],
       ),
     );
@@ -459,7 +566,7 @@ class _DashboardCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         side: const BorderSide(color: RuniacColors.border),
       ),
-      child: Padding(padding: const EdgeInsets.all(20), child: child),
+      child: Padding(padding: const EdgeInsets.all(14), child: child),
     );
   }
 }
@@ -480,8 +587,8 @@ class _CardTitle extends StatelessWidget {
     return Row(
       children: [
         Container(
-          width: 34,
-          height: 34,
+          width: 30,
+          height: 30,
           decoration: BoxDecoration(
             color: accent ? const Color(0x1AFC6818) : const Color(0x1A2F50C7),
             borderRadius: BorderRadius.circular(8),
@@ -491,7 +598,7 @@ class _CardTitle extends StatelessWidget {
             color: accent
                 ? RuniacColors.accentOrange
                 : RuniacColors.primaryBlue,
-            size: 20,
+            size: 18,
           ),
         ),
         const SizedBox(width: 12),
@@ -500,13 +607,44 @@ class _CardTitle extends StatelessWidget {
             title,
             style: const TextStyle(
               color: RuniacColors.textPrimary,
-              fontSize: 17,
+              fontSize: 16,
               fontWeight: FontWeight.w800,
               height: 1.2,
             ),
           ),
         ),
       ],
+    );
+  }
+}
+
+class _PlanImagePlaceholder extends StatelessWidget {
+  const _PlanImagePlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return const _CrossedPlaceholder(width: 96, height: 96);
+  }
+}
+
+class _InitialTile extends StatelessWidget {
+  const _InitialTile();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: RuniacColors.background,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: RuniacColors.border),
+      ),
+      child: const Icon(
+        Icons.directions_run,
+        color: RuniacColors.textSecondary,
+        size: 20,
+      ),
     );
   }
 }
@@ -593,53 +731,96 @@ class _PlanSkeletonRow extends StatelessWidget {
   }
 }
 
-class _RoutePlaceholder extends StatelessWidget {
-  const _RoutePlaceholder();
+class _RouteCarouselPlaceholder extends StatelessWidget {
+  const _RouteCarouselPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        SizedBox(
+          height: 116,
+          child: Stack(
+            alignment: Alignment.center,
+            children: const [
+              Positioned(
+                left: 10,
+                child: _CrossedPlaceholder(width: 94, height: 92),
+              ),
+              _CrossedPlaceholder(width: 110, height: 108),
+              Positioned(
+                right: 10,
+                child: _CrossedPlaceholder(width: 94, height: 92),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            _CarouselDot(active: true),
+            SizedBox(width: 6),
+            _CarouselDot(),
+            SizedBox(width: 6),
+            _CarouselDot(),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _CrossedPlaceholder extends StatelessWidget {
+  const _CrossedPlaceholder({required this.width, required this.height});
+
+  final double width;
+  final double height;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity,
-      height: 92,
+      width: width,
+      height: height,
       decoration: BoxDecoration(
         color: RuniacColors.background,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: RuniacColors.border),
       ),
-      child: Stack(
-        children: [
-          Positioned(
-            left: 20,
-            top: 44,
-            right: 20,
-            child: Container(
-              height: 4,
-              decoration: BoxDecoration(
-                color: RuniacColors.accentOrange,
-                borderRadius: BorderRadius.circular(999),
-              ),
-            ),
-          ),
-          const Positioned(left: 18, top: 35, child: _RoutePin()),
-          const Positioned(right: 18, top: 35, child: _RoutePin()),
-        ],
-      ),
+      child: CustomPaint(painter: _PlaceholderCrossPainter()),
     );
   }
 }
 
-class _RoutePin extends StatelessWidget {
-  const _RoutePin();
+class _PlaceholderCrossPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = RuniacColors.border
+      ..strokeWidth = 1.2;
+
+    canvas
+      ..drawLine(Offset.zero, Offset(size.width, size.height), paint)
+      ..drawLine(Offset(size.width, 0), Offset(0, size.height), paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _CarouselDot extends StatelessWidget {
+  const _CarouselDot({this.active = false});
+
+  final bool active;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 22,
-      height: 22,
+      width: active ? 7 : 5,
+      height: active ? 7 : 5,
       decoration: BoxDecoration(
-        color: RuniacColors.white,
+        color: active ? RuniacColors.primaryBlue : RuniacColors.border,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: RuniacColors.accentOrange, width: 3),
       ),
     );
   }
