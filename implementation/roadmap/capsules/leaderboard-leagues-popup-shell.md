@@ -12,11 +12,17 @@ Type: Flutter static frontend-only Leaderboard leagues popup shell.
 
 ## Status
 
-Status: Ready for commit.
+Status: Closed.
 
 Routed on: 2026-05-27 Asia/Singapore.
 
 Ready for commit on: 2026-05-27 Asia/Singapore.
+
+Closed on: 2026-05-27 Asia/Singapore.
+
+Completion commit: `e1d8b74 feat(mobile): add leaderboard leagues popup`.
+
+Hosted validation: GitHub Actions Governance CI #42 PASS for commit `e1d8b74`.
 
 Depends on:
 
@@ -124,7 +130,8 @@ git status --short
 - `cd implementation/mobile/runiac_app && flutter analyze --no-pub` PASS.
 - `cd implementation/mobile/runiac_app && flutter test` PASS.
 - `./tools/governance-ci/run-all-checks.sh` PASS.
-- `git status --short` shows only task-relevant unstaged changes.
+- Commit `e1d8b74 feat(mobile): add leaderboard leagues popup` was pushed.
+- Hosted GitHub Actions Governance CI #42 passed for commit `e1d8b74`.
 
 ## Widget Test Expectations
 
@@ -142,12 +149,13 @@ git status --short
 - The Tips dialog must remain separate from the Leagues popup.
 - The region preview sheet must remain draggable and inert.
 
-## Ready-For-Commit Scope Review
+## Closure Scope Review
 
 - No fake users, fake ranks, fake XP, fake scores, fake current league, sorting, ranking logic, or leaderboard aggregation was introduced.
 - No Firebase, Auth, Firestore, Cloud Functions, GPS/native configuration, map SDK, sharing integration, premium gating, subscription logic, dependency, `pubspec.yaml`, Android/iOS native, or Phase 02 work was introduced.
 - Existing Tips behavior was preserved.
-- No staging, commit, or push was performed.
+- Implementation was committed at `e1d8b74 feat(mobile): add leaderboard leagues popup`.
+- Hosted GitHub Actions Governance CI #42 passed for commit `e1d8b74`.
 
 ## Done When
 
