@@ -2,23 +2,84 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
 
-class LeaderboardTab extends StatelessWidget {
+class LeaderboardTab extends StatefulWidget {
   const LeaderboardTab({super.key});
 
   @override
+  State<LeaderboardTab> createState() => _LeaderboardTabState();
+}
+
+class _LeaderboardTabState extends State<LeaderboardTab> {
+  static const double _expandedSheetHeight = 396;
+  static const double _collapsedSheetHeight = 28;
+
+  double _sheetProgress = 1;
+
+  void _expandSheet() {
+    setState(() {
+      _sheetProgress = 1;
+    });
+  }
+
+  void _handleSheetDragUpdate(DragUpdateDetails details) {
+    setState(() {
+      _sheetProgress =
+          (_sheetProgress -
+                  details.delta.dy /
+                      (_expandedSheetHeight - _collapsedSheetHeight))
+              .clamp(0, 1);
+    });
+  }
+
+  void _handleSheetDragEnd(DragEndDetails details) {
+    final velocity = details.primaryVelocity ?? 0;
+
+    setState(() {
+      if (velocity > 260) {
+        _sheetProgress = 0;
+      } else if (velocity < -260) {
+        _sheetProgress = 1;
+      } else {
+        _sheetProgress = _sheetProgress >= 0.5 ? 1 : 0;
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return const ColoredBox(
-      color: Color(0xFFEAE6DD),
+    final hiddenSheetHeight =
+        (_expandedSheetHeight - _collapsedSheetHeight) * (1 - _sheetProgress);
+
+    return ColoredBox(
+      color: const Color(0xFFEAE6DD),
       child: Stack(
         children: [
-          Positioned.fill(child: _LeaderboardMapBackground()),
-          Positioned(
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _expandSheet,
+              child: const _LeaderboardMapBackground(),
+            ),
+          ),
+          const Positioned(
             left: 14,
             right: 14,
             top: 0,
             child: SafeArea(
               minimum: EdgeInsets.only(top: 14),
               child: _LeaderboardTopOverlay(),
+            ),
+          ),
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            left: 0,
+            right: 0,
+            bottom: -hiddenSheetHeight,
+            child: _RegionPreviewSheet(
+              height: _expandedSheetHeight,
+              onVerticalDragUpdate: _handleSheetDragUpdate,
+              onVerticalDragEnd: _handleSheetDragEnd,
             ),
           ),
         ],
@@ -101,6 +162,348 @@ class _XpSegmentedControl extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _RegionPreviewSheet extends StatelessWidget {
+  const _RegionPreviewSheet({
+    required this.height,
+    required this.onVerticalDragUpdate,
+    required this.onVerticalDragEnd,
+  });
+
+  final double height;
+  final GestureDragUpdateCallback onVerticalDragUpdate;
+  final GestureDragEndCallback onVerticalDragEnd;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onVerticalDragUpdate: onVerticalDragUpdate,
+      onVerticalDragEnd: onVerticalDragEnd,
+      child: SizedBox(
+        height: height,
+        child: DecoratedBox(
+          decoration: const BoxDecoration(
+            color: Color(0xFAFFFFFF),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+            border: Border.fromBorderSide(BorderSide(color: Color(0x332F50C7))),
+            boxShadow: [
+              BoxShadow(
+                color: Color(0x30172033),
+                blurRadius: 28,
+                offset: Offset(0, -12),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 9, 16, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Center(child: _SheetHandle()),
+                SizedBox(height: 10),
+                Text(
+                  'Jurong East',
+                  style: TextStyle(
+                    color: RuniacColors.textPrimary,
+                    fontSize: 21,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Weekly XP · Rising Runner Division',
+                  style: TextStyle(
+                    color: RuniacColors.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                SizedBox(height: 12),
+                _RegionPreviewList(),
+                SizedBox(height: 12),
+                _MyRankPreviewCard(),
+                SizedBox(height: 12),
+                _RegionPreviewActions(),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SheetHandle extends StatelessWidget {
+  const _SheetHandle();
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      key: const Key('leaderboard_sheet_handle'),
+      label: 'Leaderboard sheet handle',
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: RuniacColors.textSecondary.withValues(alpha: 0.28),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: const SizedBox(width: 34, height: 4),
+      ),
+    );
+  }
+}
+
+class _RegionPreviewList extends StatelessWidget {
+  const _RegionPreviewList();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: const [
+        Text(
+          'Region Preview',
+          style: TextStyle(
+            color: RuniacColors.textPrimary,
+            fontSize: 14,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        SizedBox(height: 3),
+        Text(
+          'Ranking preview pending',
+          style: TextStyle(
+            color: RuniacColors.textSecondary,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        SizedBox(height: 7),
+        _PreviewListShell(),
+      ],
+    );
+  }
+}
+
+class _PreviewListShell extends StatelessWidget {
+  const _PreviewListShell();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: RuniacColors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: RuniacColors.textSecondary.withValues(alpha: 0.32),
+        ),
+      ),
+      child: Column(
+        children: const [
+          _PreviewShellRow(widthFactor: 0.82),
+          Divider(height: 12, color: Color(0xFFE4E7EB)),
+          _PreviewShellRow(widthFactor: 0.68),
+          Divider(height: 12, color: Color(0xFFE4E7EB)),
+          _PreviewShellRow(widthFactor: 0.74),
+        ],
+      ),
+    );
+  }
+}
+
+class _PreviewShellRow extends StatelessWidget {
+  const _PreviewShellRow({required this.widthFactor});
+
+  final double widthFactor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 22,
+          height: 22,
+          decoration: BoxDecoration(
+            color: RuniacColors.textSecondary.withValues(alpha: 0.18),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Icon(
+            Icons.person_outline,
+            color: RuniacColors.textSecondary.withValues(alpha: 0.44),
+            size: 15,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              FractionallySizedBox(
+                widthFactor: widthFactor,
+                alignment: Alignment.centerLeft,
+                child: const _PreviewBar(height: 9),
+              ),
+              const SizedBox(height: 5),
+              const FractionallySizedBox(
+                widthFactor: 0.42,
+                alignment: Alignment.centerLeft,
+                child: _PreviewBar(height: 7),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        const Text(
+          'Pending',
+          style: TextStyle(
+            color: RuniacColors.textSecondary,
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PreviewBar extends StatelessWidget {
+  const _PreviewBar({required this.height});
+
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: RuniacColors.primaryBlue.withValues(alpha: 0.11),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: SizedBox(height: height),
+    );
+  }
+}
+
+class _MyRankPreviewCard extends StatelessWidget {
+  const _MyRankPreviewCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'My Rank Preview',
+          style: TextStyle(
+            color: RuniacColors.textPrimary,
+            fontSize: 14,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 7),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+          decoration: BoxDecoration(
+            color: RuniacColors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: RuniacColors.textSecondary.withValues(alpha: 0.38),
+            ),
+          ),
+          child: Row(
+            children: const [
+              _RankPreviewIcon(),
+              SizedBox(width: 11),
+              Expanded(
+                child: Text(
+                  'Your position will appear after leaderboard data is ready.',
+                  style: TextStyle(
+                    color: RuniacColors.textPrimary,
+                    fontSize: 12,
+                    height: 1.2,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RankPreviewIcon extends StatelessWidget {
+  const _RankPreviewIcon();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 30,
+      height: 30,
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF3EC),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: const Icon(
+        Icons.emoji_events_outlined,
+        color: RuniacColors.accentOrange,
+        size: 18,
+      ),
+    );
+  }
+}
+
+class _RegionPreviewActions extends StatelessWidget {
+  const _RegionPreviewActions();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: const [
+        Expanded(child: _VisualCta(label: 'View More Ranking', filled: true)),
+        SizedBox(width: 10),
+        Expanded(child: _VisualCta(label: 'Share My Rank', filled: false)),
+      ],
+    );
+  }
+}
+
+class _VisualCta extends StatelessWidget {
+  const _VisualCta({required this.label, required this.filled});
+
+  final String label;
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 36,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: filled ? RuniacColors.textPrimary : RuniacColors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: filled
+              ? RuniacColors.textPrimary
+              : RuniacColors.textSecondary.withValues(alpha: 0.48),
+        ),
+      ),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: filled ? RuniacColors.white : RuniacColors.textPrimary,
+          fontSize: 13,
+          fontWeight: FontWeight.w900,
+        ),
       ),
     );
   }

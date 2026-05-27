@@ -115,8 +115,39 @@ void main() {
     expect(find.text('Rising Runner Division'), findsOneWidget);
     expect(find.text('Lv.11 - Lv.20'), findsOneWidget);
     expect(find.text('Your ranked area'), findsOneWidget);
+    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('Maps'), findsOneWidget);
+    expect(find.text('Run'), findsOneWidget);
+    expect(find.text('Leaderboard'), findsOneWidget);
+    expect(find.text('You'), findsOneWidget);
+    expect(find.text('Jurong East'), findsOneWidget);
+    expect(find.text('Weekly XP · Rising Runner Division'), findsOneWidget);
+    expect(find.text('Region Preview'), findsOneWidget);
+    expect(find.text('Ranking preview pending'), findsOneWidget);
+    expect(find.text('My Rank Preview'), findsOneWidget);
+    expect(
+      find.text('Your position will appear after leaderboard data is ready.'),
+      findsOneWidget,
+    );
+    expect(find.text('View More Ranking'), findsOneWidget);
+    expect(find.text('Share My Rank'), findsOneWidget);
+    expect(find.byKey(const Key('leaderboard_sheet_handle')), findsOneWidget);
     expect(find.bySemanticsLabel('Leaderboard information'), findsOneWidget);
     expect(find.text('Tips'), findsNothing);
+
+    await tester.drag(
+      find.byKey(const Key('leaderboard_sheet_handle')),
+      const Offset(0, 420),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('leaderboard_sheet_handle')), findsOneWidget);
+
+    await tester.tap(find.text('Your ranked area'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Region Preview'), findsOneWidget);
+    expect(find.text('View More Ranking'), findsOneWidget);
 
     await tester.tap(find.bySemanticsLabel('Leaderboard information'));
     await tester.pumpAndSettle();
@@ -144,17 +175,18 @@ void main() {
 
     expect(find.text('Community motivation'), findsNothing);
     expect(find.text('No live ranking data yet'), findsNothing);
+    expect(find.text('Top 3 Runners'), findsNothing);
+    expect(find.textContaining('Alex'), findsNothing);
+    expect(find.textContaining('Maya'), findsNothing);
+    expect(find.textContaining('Ryan'), findsNothing);
     expect(find.text('520 XP'), findsNothing);
     expect(find.textContaining('#1'), findsNothing);
     expect(find.textContaining('#18'), findsNothing);
-    expect(find.text('Top 3 Runners'), findsNothing);
-    expect(find.text('View More Ranking'), findsNothing);
-    expect(find.text('Share My Rank'), findsNothing);
-    expect(find.textContaining('Alex'), findsNothing);
-    expect(find.textContaining('Maya'), findsNothing);
+    expect(find.textContaining('Lv.18'), findsNothing);
+    expect(find.textContaining('1,240 XP'), findsNothing);
+    expect(find.textContaining('1,180 XP'), findsNothing);
+    expect(find.textContaining('1,050 XP'), findsNothing);
     expect(find.textContaining('520'), findsNothing);
-    expect(find.textContaining('My Rank'), findsNothing);
-    expect(find.textContaining('Region preview'), findsNothing);
 
     await tester.tap(find.byTooltip('Close tips'));
     await tester.pumpAndSettle();
@@ -162,6 +194,7 @@ void main() {
     expect(find.text('Tips'), findsNothing);
     expect(find.text('Leagues'), findsNothing);
     expect(find.text('Rising Runner Division'), findsOneWidget);
+    expect(find.text('Region Preview'), findsOneWidget);
   });
 
   testWidgets('Run item opens and closes static full-screen launch surface', (
