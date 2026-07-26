@@ -31,6 +31,7 @@ void main() {
         'monthly_jurong-east_tier_02_2026-07': {
           'regionLabel': 'Jurong East',
           'divisionLabel': 'Bronze League',
+          'buildId': 'build-2026-07-26T09',
           'topEntries': [
             {
               'publicAlias': 'Ari S.',
@@ -46,6 +47,8 @@ void main() {
       ranks: const {
         'runner-1_monthly_2026-07': {
           'rankLabel': '#12',
+          'snapshotId': 'monthly_jurong-east_tier_01_2026-07',
+          'buildId': 'build-2026-07-26T08',
           'currentEntry': {'publicAlias': 'Jinseo', 'rankLabel': '#12'},
           'nearbyEntries': [
             {
@@ -76,51 +79,147 @@ void main() {
     expect(leaderboard.nearbyEntries.single.isCurrentUser, isTrue);
     expect(leaderboard.periodLabel, 'July 2026');
     expect(leaderboard.periodEndsAt, DateTime.utc(2026, 7, 31, 16));
+    // Both halves of the handle the public profile callable resolves a runner
+    // by. An empty build id would leave every row unopenable.
+    expect(
+      leaderboard.entries.single.snapshotId,
+      'monthly_jurong-east_tier_02_2026-07',
+    );
+    expect(
+      leaderboard.nearbyEntries.single.snapshotId,
+      'monthly_jurong-east_tier_01_2026-07',
+    );
+    // Each row keeps the build of the document it came from. The refresh job
+    // rewrites snapshots and rank projections in separate batches, so a load
+    // can see a new snapshot beside an older rank projection — stamping the
+    // snapshot's build on a stale nearby row would let it resolve against
+    // whoever inherited that rank.
+    expect(leaderboard.entries.single.buildId, 'build-2026-07-26T09');
+    expect(leaderboard.nearbyEntries.single.buildId, 'build-2026-07-26T08');
   });
 
-  test('shows the current rank when nearby projections omit its entry', () async {
-    final authRepository = FakeRuniacAuthRepository()
-      ..emitSignedIn(uid: 'runner-1');
-    final reader = _FakeLeaderboardDocumentReader(
-      period: const {'periodKey': '2026-07'},
-      currentView: const {
-        'homeRegionId': 'jurong-east',
-        'divisionKey': 'tier_02',
-        'status': 'ranked',
-        'activeSnapshotId': 'monthly_jurong-east_tier_02_2026-07',
-        'activeRankProjectionId': 'runner-1_monthly_2026-07',
-      },
-      profile: const {'locationLabel': 'Jurong East, Singapore'},
-      snapshots: const {
-        'monthly_jurong-east_tier_02_2026-07': {'topEntries': []},
-      },
-      ranks: const {
-        'runner-1_monthly_2026-07': {
-          'rankLabel': '#12',
-          'currentEntry': {
-            'publicAlias': 'Jinseo',
-            'rankLabel': '#12',
-            'scoreLabel': '1,320 XP',
-            'levelLabel': 'Level 18',
-            'divisionLabel': 'Bronze League',
-            'regionLabel': 'Jurong East',
-          },
-          'nearbyEntries': [],
+  test(
+    'stamps the rank build on a current entry the nearby list omits',
+    () async {
+      final authRepository = FakeRuniacAuthRepository()
+        ..emitSignedIn(uid: 'runner-1');
+      final reader = _FakeLeaderboardDocumentReader(
+        period: const {'periodKey': '2026-07'},
+        currentView: const {
+          'homeRegionId': 'jurong-east',
+          'divisionKey': 'tier_02',
+          'status': 'ranked',
+          'activeSnapshotId': 'monthly_jurong-east_tier_02_2026-07',
+          'activeRankProjectionId': 'runner-1_monthly_2026-07',
         },
-      },
-    );
-    final repository = FirestoreLeaderboardRepository(
-      authRepository: authRepository,
-      reader: reader,
-    );
+        profile: const {'locationLabel': 'Jurong East, Singapore'},
+        snapshots: const {
+          'monthly_jurong-east_tier_02_2026-07': {
+            'buildId': 'build-2026-07-26T09',
+            'topEntries': [],
+          },
+        },
+        ranks: const {
+          'runner-1_monthly_2026-07': {
+            'rankLabel': '#12',
+            'snapshotId': 'monthly_jurong-east_tier_01_2026-07',
+            'buildId': 'build-2026-07-26T08',
+            'currentEntry': {'publicAlias': 'Jinseo', 'rankLabel': '#12'},
+            'nearbyEntries': [],
+          },
+        },
+      );
+      final repository = FirestoreLeaderboardRepository(
+        authRepository: authRepository,
+        reader: reader,
+      );
 
-    final leaderboard = await repository.loadLeaderboard();
+      final leaderboard = await repository.loadLeaderboard();
 
-    expect(leaderboard.currentRunnerRankLabel, '#12');
-    expect(leaderboard.nearbyEntries, hasLength(1));
-    expect(leaderboard.nearbyEntries.single.displayName, 'Jinseo');
-    expect(leaderboard.nearbyEntries.single.isCurrentUser, isTrue);
-  });
+      expect(leaderboard.nearbyEntries.single.buildId, 'build-2026-07-26T08');
+    },
+  );
+
+  test(
+    'leaves the build id empty when the snapshot has not published one',
+    () async {
+      final authRepository = FakeRuniacAuthRepository()
+        ..emitSignedIn(uid: 'runner-1');
+      final reader = _FakeLeaderboardDocumentReader(
+        period: const {'periodKey': '2026-07'},
+        currentView: const {
+          'homeRegionId': 'jurong-east',
+          'divisionKey': 'tier_02',
+          'status': 'ranked',
+          'activeSnapshotId': 'monthly_jurong-east_tier_02_2026-07',
+        },
+        profile: const {'locationLabel': 'Jurong East, Singapore'},
+        snapshots: const {
+          'monthly_jurong-east_tier_02_2026-07': {'topEntries': []},
+        },
+        ranks: const {},
+      );
+      final repository = FirestoreLeaderboardRepository(
+        authRepository: authRepository,
+        reader: reader,
+      );
+
+      final leaderboard = await repository.loadLeaderboard();
+
+      expect(leaderboard.entries, isEmpty);
+      expect(
+        leaderboard.nearbyEntries.every((entry) => entry.buildId.isEmpty),
+        isTrue,
+      );
+    },
+  );
+
+  test(
+    'shows the current rank when nearby projections omit its entry',
+    () async {
+      final authRepository = FakeRuniacAuthRepository()
+        ..emitSignedIn(uid: 'runner-1');
+      final reader = _FakeLeaderboardDocumentReader(
+        period: const {'periodKey': '2026-07'},
+        currentView: const {
+          'homeRegionId': 'jurong-east',
+          'divisionKey': 'tier_02',
+          'status': 'ranked',
+          'activeSnapshotId': 'monthly_jurong-east_tier_02_2026-07',
+          'activeRankProjectionId': 'runner-1_monthly_2026-07',
+        },
+        profile: const {'locationLabel': 'Jurong East, Singapore'},
+        snapshots: const {
+          'monthly_jurong-east_tier_02_2026-07': {'topEntries': []},
+        },
+        ranks: const {
+          'runner-1_monthly_2026-07': {
+            'rankLabel': '#12',
+            'currentEntry': {
+              'publicAlias': 'Jinseo',
+              'rankLabel': '#12',
+              'scoreLabel': '1,320 XP',
+              'levelLabel': 'Level 18',
+              'divisionLabel': 'Bronze League',
+              'regionLabel': 'Jurong East',
+            },
+            'nearbyEntries': [],
+          },
+        },
+      );
+      final repository = FirestoreLeaderboardRepository(
+        authRepository: authRepository,
+        reader: reader,
+      );
+
+      final leaderboard = await repository.loadLeaderboard();
+
+      expect(leaderboard.currentRunnerRankLabel, '#12');
+      expect(leaderboard.nearbyEntries, hasLength(1));
+      expect(leaderboard.nearbyEntries.single.displayName, 'Jinseo');
+      expect(leaderboard.nearbyEntries.single.isCurrentUser, isTrue);
+    },
+  );
 
   test('uses selected profile planning area for an unranked owner', () async {
     final authRepository = FakeRuniacAuthRepository()
