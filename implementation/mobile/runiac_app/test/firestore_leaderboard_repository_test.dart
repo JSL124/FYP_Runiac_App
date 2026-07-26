@@ -47,6 +47,7 @@ void main() {
       ranks: const {
         'runner-1_monthly_2026-07': {
           'rankLabel': '#12',
+          'snapshotId': 'monthly_jurong-east_tier_01_2026-07',
           'buildId': 'build-2026-07-26T08',
           'currentEntry': {'publicAlias': 'Jinseo', 'rankLabel': '#12'},
           'nearbyEntries': [
@@ -80,7 +81,14 @@ void main() {
     expect(leaderboard.periodEndsAt, DateTime.utc(2026, 7, 31, 16));
     // Both halves of the handle the public profile callable resolves a runner
     // by. An empty build id would leave every row unopenable.
-    expect(leaderboard.snapshotId, 'monthly_jurong-east_tier_02_2026-07');
+    expect(
+      leaderboard.entries.single.snapshotId,
+      'monthly_jurong-east_tier_02_2026-07',
+    );
+    expect(
+      leaderboard.nearbyEntries.single.snapshotId,
+      'monthly_jurong-east_tier_01_2026-07',
+    );
     // Each row keeps the build of the document it came from. The refresh job
     // rewrites snapshots and rank projections in separate batches, so a load
     // can see a new snapshot beside an older rank projection — stamping the
@@ -114,6 +122,7 @@ void main() {
         ranks: const {
           'runner-1_monthly_2026-07': {
             'rankLabel': '#12',
+            'snapshotId': 'monthly_jurong-east_tier_01_2026-07',
             'buildId': 'build-2026-07-26T08',
             'currentEntry': {'publicAlias': 'Jinseo', 'rankLabel': '#12'},
             'nearbyEntries': [],

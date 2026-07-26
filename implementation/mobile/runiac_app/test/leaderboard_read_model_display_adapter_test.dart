@@ -12,6 +12,7 @@ void main() {
     String rankLabel = '#1',
     String scoreLabel = '100 XP',
     bool isCurrentUser = false,
+    String snapshotId = '',
     String buildId = '',
   }) {
     return LeaderboardRowReadModel(
@@ -20,6 +21,7 @@ void main() {
       rankLabel: rankLabel,
       scoreLabel: scoreLabel,
       isCurrentUser: isCurrentUser,
+      snapshotId: snapshotId,
       buildId: buildId,
     );
   }
@@ -30,7 +32,6 @@ void main() {
     List<LeaderboardRowReadModel> entries = const <LeaderboardRowReadModel>[],
     List<LeaderboardRowReadModel> nearbyEntries =
         const <LeaderboardRowReadModel>[],
-    String snapshotId = '',
   }) {
     return LeaderboardReadModel(
       status: status,
@@ -38,7 +39,6 @@ void main() {
       currentRunnerRankLabel: currentRunnerRankLabel,
       entries: entries,
       nearbyEntries: nearbyEntries,
-      snapshotId: snapshotId,
     );
   }
 
@@ -207,12 +207,21 @@ void main() {
       final snapshot = leaderboardDisplaySnapshotFromReadModel(
         model(
           entries: [
-            row(userId: 'a', rankLabel: '#1', buildId: 'build-2026-07-26T09'),
+            row(
+              userId: 'a',
+              rankLabel: '#1',
+              snapshotId: 'monthly_jurong-east_tier_03_2026-07',
+              buildId: 'build-2026-07-26T09',
+            ),
           ],
           nearbyEntries: [
-            row(userId: 'b', rankLabel: '#7', buildId: 'build-2026-07-26T08'),
+            row(
+              userId: 'b',
+              rankLabel: '#7',
+              snapshotId: 'monthly_jurong-east_tier_01_2026-07',
+              buildId: 'build-2026-07-26T08',
+            ),
           ],
-          snapshotId: 'monthly_jurong-east_tier_03_2026-07',
         ),
         now,
       );
@@ -226,9 +235,11 @@ void main() {
       );
       expect(snapshot.topRanks.single.profile.rankLabel, '#1');
       expect(snapshot.topRanks.single.profile.buildId, 'build-2026-07-26T09');
+      // The nearby row keeps its own board too: the rank projection can move
+      // to another division before the current view naming it catches up.
       expect(
         snapshot.nearbyRanks.single.profile.snapshotId,
-        'monthly_jurong-east_tier_03_2026-07',
+        'monthly_jurong-east_tier_01_2026-07',
       );
       expect(snapshot.nearbyRanks.single.profile.rankLabel, '#7');
       // The nearby row keeps its own source build, not the board's: it comes

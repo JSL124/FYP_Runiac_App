@@ -212,19 +212,23 @@ class FirestoreLeaderboardRepository
     final snapshot = loaded[0];
     final rank = loaded[1];
     final currentEntry = _map(rank?['currentEntry']);
-    // Each row is stamped with the build of the document it came from. The
-    // refresh job rewrites snapshots and rank projections in separate batches,
-    // so a load can legitimately see a new snapshot beside an old rank
-    // projection; stamping both with the snapshot's build would let a stale
-    // nearby row resolve against the new occupant of its rank.
+    // Each row carries the board and build of the document it came from, and
+    // never the board-level ones. The refresh job rewrites snapshots, rank
+    // projections, and current views in separate batches, so a single load can
+    // legitimately see any mix of them: a new snapshot beside an old rank
+    // projection, or a stale `activeSnapshotId` beside a rank projection that
+    // has already moved to another division. Either mismatch, paired up, would
+    // resolve a public profile against a rank some other runner now holds.
     final topEntries = _rowsFromList(
       snapshot?['topEntries'],
       currentEntry: currentEntry,
+      snapshotId: snapshotId,
       buildId: _string(snapshot?['buildId']),
     );
     final nearbyEntries = _rowsFromList(
       rank?['nearbyEntries'],
       currentEntry: currentEntry,
+      snapshotId: _string(rank?['snapshotId']),
       buildId: _string(rank?['buildId']),
     );
     final currentRankLabel = _string(rank?['rankLabel']);
@@ -253,17 +257,18 @@ class FirestoreLeaderboardRepository
       nearbyEntries: _withCurrentEntry(
         nearbyEntries,
         currentEntry: currentEntry,
+        snapshotId: _string(rank?['snapshotId']),
         buildId: _string(rank?['buildId']),
       ),
       periodEndsAt: periodEndsAt,
       periodLabel: periodLabel,
-      snapshotId: snapshotId,
     );
   }
 
   List<LeaderboardRowReadModel> _rowsFromList(
     Object? value, {
     required Map<Object?, Object?>? currentEntry,
+    required String snapshotId,
     required String buildId,
   }) {
     if (value is! List) {
@@ -288,6 +293,7 @@ class FirestoreLeaderboardRepository
                     _string(currentEntry['rankLabel']) &&
                 _string(entry['publicAlias']) ==
                     _string(currentEntry['publicAlias']),
+            snapshotId: snapshotId,
             buildId: buildId,
           ),
     ];
@@ -296,6 +302,7 @@ class FirestoreLeaderboardRepository
   List<LeaderboardRowReadModel> _withCurrentEntry(
     List<LeaderboardRowReadModel> entries, {
     required Map<Object?, Object?>? currentEntry,
+    required String snapshotId,
     required String buildId,
   }) {
     if (currentEntry == null || entries.any((entry) => entry.isCurrentUser)) {
@@ -314,6 +321,7 @@ class FirestoreLeaderboardRepository
         divisionLabel: _string(currentEntry['divisionLabel']),
         regionLabel: _string(currentEntry['regionLabel']),
         isCurrentUser: true,
+        snapshotId: snapshotId,
         buildId: buildId,
       ),
     ];

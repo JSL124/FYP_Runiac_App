@@ -28,7 +28,6 @@ class LeaderboardReadModel {
     this.periodEndsAt,
     this.periodLabel,
     this.refreshLabel,
-    this.snapshotId = '',
   }) : entries = List.unmodifiable(entries),
        nearbyEntries = List.unmodifiable(nearbyEntries);
 
@@ -45,16 +44,6 @@ class LeaderboardReadModel {
   final DateTime? periodEndsAt;
   final String? periodLabel;
   final String? refreshLabel;
-
-  /// Backend-owned id of the snapshot these entries were read from. It is the
-  /// only handle a viewer has for another runner on this board: the entries
-  /// themselves carry no uid, so `getRunnerPublicProfile` resolves the owner
-  /// server-side from (`snapshotId`, `rankLabel`, `buildId`). Empty for
-  /// static/demo sources. The build id lives on each row, not here: top and
-  /// nearby rows come from different documents that a refresh rewrites in
-  /// separate batches, so one board-level build id would mislabel whichever
-  /// half was read first.
-  final String snapshotId;
 }
 
 /// Backend-produced leaderboard row display contract.
@@ -68,6 +57,7 @@ class LeaderboardRowReadModel {
     this.divisionLabel = '',
     this.regionLabel = '',
     this.isCurrentUser = false,
+    this.snapshotId = '',
     this.buildId = '',
   });
 
@@ -80,10 +70,18 @@ class LeaderboardRowReadModel {
   final String regionLabel;
   final bool isCurrentUser;
 
-  /// Backend-owned id of the aggregation run that produced the document this
-  /// row was read from — the snapshot for a top row, the rank projection for a
-  /// nearby row. Paired with `rankLabel` it pins a public-profile lookup to
-  /// the exact board build the runner saw, so a row read across a refresh
-  /// resolves to nobody instead of to whoever inherited its rank.
+  /// The board this row was read from, taken from its own source document —
+  /// the snapshot for a top row, the rank projection for a nearby row. A
+  /// refresh rewrites those documents (and the current view that names them)
+  /// in separate batches, so a board-level id could pair a stale board with a
+  /// fresh row.
+  final String snapshotId;
+
+  /// Backend-owned id of the aggregation run that produced that same document.
+  ///
+  /// Together with [rankLabel] these three fields are one self-describing
+  /// handle: `getRunnerPublicProfile` resolves the owner from them
+  /// server-side, and a row read across a refresh resolves to nobody instead
+  /// of to whoever inherited its rank.
   final String buildId;
 }
