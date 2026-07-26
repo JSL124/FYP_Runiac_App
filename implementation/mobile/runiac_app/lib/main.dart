@@ -59,8 +59,16 @@ Future<void> main() async {
         config: runtimeConfig,
         enableAnonymousEmulatorSignIn: false,
       );
-      if (runtimeConfig.useFirebaseEmulator ||
-          runtimeConfig.useProductionFirebase) {
+      // Production builds only. Under the Firebase emulator there is nothing
+      // to attest to — `shouldEnforceAppCheck()` in the backend returns false
+      // whenever `FUNCTIONS_EMULATOR=true` — and the emulator's placeholder
+      // project has no App Check backend at all, so the debug provider's
+      // token exchange fails against the real firebaseappcheck.googleapis.com.
+      // Firestore does not fall back to a placeholder token the way Auth
+      // does: it turns that failure into a watch-stream error, which is what
+      // made every emulator read fail with "client is offline". Activating
+      // here would therefore break local QA while protecting nothing.
+      if (runtimeConfig.useProductionFirebase) {
         const appCheckDebugToken = String.fromEnvironment(
           'RUNIAC_APPCHECK_DEBUG_TOKEN',
         );
@@ -69,10 +77,7 @@ Future<void> main() async {
         // still passes enforced callables. Store/TestFlight builds ship without the
         // dart-define, so they keep real Play Integrity / App Attest attestation.
         await RuniacAppCheckBootstrap.activate(
-          useDebugProviders:
-              kDebugMode ||
-              runtimeConfig.useFirebaseEmulator ||
-              appCheckDebugToken.isNotEmpty,
+          useDebugProviders: kDebugMode || appCheckDebugToken.isNotEmpty,
           debugToken: appCheckDebugToken.isEmpty ? null : appCheckDebugToken,
         );
       }
