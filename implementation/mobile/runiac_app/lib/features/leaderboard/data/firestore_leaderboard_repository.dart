@@ -250,6 +250,10 @@ class FirestoreLeaderboardRepository
       periodEndsAt: periodEndsAt,
       periodLabel: periodLabel,
       snapshotId: snapshotId,
+      // Pairs with `snapshotId` to address a runner for the public profile
+      // callable. Without it every row is unaddressable, because the refresh
+      // job reuses one snapshot id and reassigns rank labels.
+      buildId: _string(snapshot?['buildId']),
     );
   }
 
