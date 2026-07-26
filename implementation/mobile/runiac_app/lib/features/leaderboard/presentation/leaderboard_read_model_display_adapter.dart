@@ -13,6 +13,7 @@ LeaderboardDetailDisplaySnapshot leaderboardDisplaySnapshotFromReadModel(
         entry,
         regionLabel: model.regionLabel,
         ordinal: index,
+        snapshotId: model.snapshotId,
       ),
   ];
   final nearbyRows = [
@@ -20,6 +21,7 @@ LeaderboardDetailDisplaySnapshot leaderboardDisplaySnapshotFromReadModel(
       leaderboardRankRowDisplaySnapshotFromReadModel(
         entry,
         regionLabel: model.regionLabel,
+        snapshotId: model.snapshotId,
       ),
   ];
   final currentUser = nearbyRows.where((row) => row.isCurrentUser).firstOrNull;
@@ -68,6 +70,7 @@ leaderboardRankRowDisplaySnapshotFromReadModel(
   LeaderboardRowReadModel entry, {
   required String regionLabel,
   int? ordinal,
+  String snapshotId = '',
 }) {
   final displayName = entry.displayName.trim().isEmpty
       ? 'Runiac Runner'
@@ -95,9 +98,15 @@ leaderboardRankRowDisplaySnapshotFromReadModel(
       totalDistanceLabel: 'Not shared',
       bestStreakLabel: 'Not shared',
       badges: const <RunnerAchievementBadgeSnapshot>[],
-      privacyNote: 'Only monthly ranking details are shown.',
+      privacyNote: 'Only public running achievements are shown.',
       isCurrentUser: entry.isCurrentUser,
       uid: entry.userId,
+      // '#--' is the unranked placeholder; the profile screen shows no rank
+      // chip at all rather than a placeholder one.
+      rankLabel: rankLabel == '#--' ? '' : rankLabel,
+      regionLabel: _regionDisplayLabel(regionLabel),
+      divisionLabel: divisionLabel,
+      snapshotId: snapshotId,
     ),
   );
 }
@@ -112,6 +121,13 @@ RegionPreviewMedalTone? _medalToneForOrdinal(int? ordinal) {
     2 => RegionPreviewMedalTone.bronze,
     _ => null,
   };
+}
+
+/// The region shown on its own, without the rank prefix, for surfaces that
+/// render rank and region as separate labels.
+String _regionDisplayLabel(String regionLabel) {
+  final region = regionLabel.trim();
+  return region.isEmpty ? '' : '$region, Singapore';
 }
 
 String _regionRankLabel(String regionLabel, String rankLabel) {

@@ -28,6 +28,7 @@ class LeaderboardReadModel {
     this.periodEndsAt,
     this.periodLabel,
     this.refreshLabel,
+    this.snapshotId = '',
   }) : entries = List.unmodifiable(entries),
        nearbyEntries = List.unmodifiable(nearbyEntries);
 
@@ -44,6 +45,13 @@ class LeaderboardReadModel {
   final DateTime? periodEndsAt;
   final String? periodLabel;
   final String? refreshLabel;
+
+  /// Backend-owned id of the snapshot these entries were read from. It is the
+  /// only handle a viewer has for another runner on this board: the entries
+  /// themselves carry no uid, so `getRunnerPublicProfile` resolves the owner
+  /// server-side from (`snapshotId`, `rankLabel`). Empty for static/demo
+  /// sources.
+  final String snapshotId;
 }
 
 /// Backend-produced leaderboard row display contract.

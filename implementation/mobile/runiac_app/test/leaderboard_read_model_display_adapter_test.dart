@@ -28,6 +28,7 @@ void main() {
     List<LeaderboardRowReadModel> entries = const <LeaderboardRowReadModel>[],
     List<LeaderboardRowReadModel> nearbyEntries =
         const <LeaderboardRowReadModel>[],
+    String snapshotId = '',
   }) {
     return LeaderboardReadModel(
       status: status,
@@ -35,6 +36,7 @@ void main() {
       currentRunnerRankLabel: currentRunnerRankLabel,
       entries: entries,
       nearbyEntries: nearbyEntries,
+      snapshotId: snapshotId,
     );
   }
 
@@ -144,6 +146,95 @@ void main() {
       final snapshot = leaderboardDisplaySnapshotFromReadModel(model(), now);
 
       expect(snapshot.nearbyRanksTitle, 'Ranks near you');
+    });
+  });
+
+  group('runner profile snapshot', () {
+    test('splits rank and region into separate profile labels', () {
+      final snapshot = leaderboardDisplaySnapshotFromReadModel(
+        model(
+          entries: [row(userId: 'runner-a', rankLabel: '#7')],
+        ),
+        now,
+      );
+      final profile = snapshot.topRanks.single.profile;
+
+      expect(profile.regionRankLabel, '#7 Jurong East, Singapore');
+      expect(profile.rankLabel, '#7');
+      expect(profile.regionLabel, 'Jurong East, Singapore');
+      expect(profile.uid, 'runner-a');
+    });
+
+    test('drops the unranked rank placeholder instead of showing it', () {
+      final snapshot = leaderboardDisplaySnapshotFromReadModel(
+        model(entries: [row(rankLabel: '#--')]),
+        now,
+      );
+
+      expect(snapshot.topRanks.single.profile.rankLabel, '');
+      expect(
+        snapshot.topRanks.single.profile.regionLabel,
+        'Jurong East, Singapore',
+      );
+    });
+
+    test('relays the backend division name for the profile badge', () {
+      final snapshot = leaderboardDisplaySnapshotFromReadModel(
+        model(
+          entries: [
+            LeaderboardRowReadModel(
+              userId: 'runner-a',
+              displayName: 'Runner',
+              rankLabel: '#1',
+              scoreLabel: '100 XP',
+              levelLabel: 'Level 8',
+              divisionLabel: 'Silver',
+            ),
+          ],
+        ),
+        now,
+      );
+      final profile = snapshot.topRanks.single.profile;
+
+      expect(profile.divisionLabel, 'Silver');
+      expect(profile.divisionLevelLabel, 'Silver \u00b7 Level 8');
+      expect(profile.levelBadgeLabel, 'Lv.8');
+    });
+
+    test('carries the snapshot id onto top and nearby row profiles', () {
+      final snapshot = leaderboardDisplaySnapshotFromReadModel(
+        model(
+          entries: [row(userId: 'a', rankLabel: '#1')],
+          nearbyEntries: [row(userId: 'b', rankLabel: '#7')],
+          snapshotId: 'monthly_jurong-east_tier_03_2026-07',
+        ),
+        now,
+      );
+
+      // Snapshot id + rank is how the profile screen addresses a runner whose
+      // uid the board deliberately never publishes.
+      expect(
+        snapshot.topRanks.single.profile.snapshotId,
+        'monthly_jurong-east_tier_03_2026-07',
+      );
+      expect(snapshot.topRanks.single.profile.rankLabel, '#1');
+      expect(
+        snapshot.nearbyRanks.single.profile.snapshotId,
+        'monthly_jurong-east_tier_03_2026-07',
+      );
+      expect(snapshot.nearbyRanks.single.profile.rankLabel, '#7');
+    });
+
+    test('states that only public running achievements are shown', () {
+      final snapshot = leaderboardDisplaySnapshotFromReadModel(
+        model(entries: [row()]),
+        now,
+      );
+
+      expect(
+        snapshot.topRanks.single.profile.privacyNote,
+        'Only public running achievements are shown.',
+      );
     });
   });
 }

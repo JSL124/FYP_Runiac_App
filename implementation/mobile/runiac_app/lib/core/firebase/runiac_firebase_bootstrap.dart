@@ -3,10 +3,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
+import '../../features/profile/data/cloud_functions_runner_public_profile_repository.dart';
 import '../../features/profile/data/firestore_user_account_repository.dart';
 import '../../features/profile/data/firestore_user_profile_persistence_repository.dart';
 import '../../features/profile/data/firestore_user_profile_repository.dart';
 import '../../features/profile/data/static_user_profile_repository.dart';
+import '../../features/profile/domain/repositories/runner_public_profile_repository.dart';
 import '../../features/profile/domain/repositories/user_account_repository.dart';
 import '../../features/profile/domain/repositories/user_profile_persistence_repository.dart';
 import '../../features/profile/domain/repositories/user_profile_repository.dart';
@@ -96,6 +98,8 @@ class RuniacFirebaseBootstrap {
           friendsRepository: const StaticFriendsRepository(),
           profileRepository: const StaticUserProfileRepository(),
           userAccountRepository: const StaticUserAccountRepository(),
+          runnerPublicProfileRepository:
+              const UnavailableRunnerPublicProfileRepository(),
           paywallConfigRepository: const StaticPaywallConfigRepository(),
           featureAccessRepository: const StaticFeatureAccessRepository(),
           characterAccessRepository: const StaticCharacterAccessRepository(),
@@ -162,6 +166,8 @@ class RuniacFirebaseBootstrap {
         userAccountRepository: FirestoreUserAccountRepository(
           authRepository: authRepository,
         ),
+        runnerPublicProfileRepository:
+            CloudFunctionsRunnerPublicProfileRepository(),
         paywallConfigRepository: FirestorePaywallConfigRepository(),
         featureAccessRepository: FirestoreFeatureAccessRepository(),
         characterAccessRepository: FirestoreCharacterAccessRepository(),
@@ -248,6 +254,8 @@ class RuniacFirebaseBootstrap {
       userAccountRepository: FirestoreUserAccountRepository(
         authRepository: authRepository,
       ),
+      runnerPublicProfileRepository:
+          CloudFunctionsRunnerPublicProfileRepository(),
       paywallConfigRepository: FirestorePaywallConfigRepository(),
       featureAccessRepository: FirestoreFeatureAccessRepository(),
       characterAccessRepository: FirestoreCharacterAccessRepository(),
@@ -348,6 +356,7 @@ class RuniacFirebaseBootstrapResult {
     required this.friendsRepository,
     required this.profileRepository,
     required this.userAccountRepository,
+    required this.runnerPublicProfileRepository,
     required this.paywallConfigRepository,
     required this.featureAccessRepository,
     required this.characterAccessRepository,
@@ -377,6 +386,10 @@ class RuniacFirebaseBootstrapResult {
   /// Read-only trusted `users/{uid}` account seam backing the app-level
   /// subscription-status stream.
   final UserAccountRepository userAccountRepository;
+
+  /// Read-only callable seam for another runner's public profile, opened from
+  /// a leaderboard rank row.
+  final RunnerPublicProfileRepository runnerPublicProfileRepository;
 
   /// Read-only seam for the admin-published `config/paywall` display copy.
   final PaywallConfigRepository paywallConfigRepository;

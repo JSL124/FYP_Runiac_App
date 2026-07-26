@@ -249,6 +249,7 @@ class FirestoreLeaderboardRepository
       ),
       periodEndsAt: periodEndsAt,
       periodLabel: periodLabel,
+      snapshotId: snapshotId,
     );
   }
 

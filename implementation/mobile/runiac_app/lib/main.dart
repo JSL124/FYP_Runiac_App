@@ -90,6 +90,8 @@ Future<void> main() async {
           activityHistoryRepository: bootstrap.activityHistoryRepository,
           userProgressRepository: bootstrap.userProgressRepository,
           leaderboardRepository: bootstrap.leaderboardRepository,
+          runnerPublicProfileRepository:
+              bootstrap.runnerPublicProfileRepository,
           friendsRepository: bootstrap.friendsRepository,
           challengeRepository: bootstrap.challengeRepository,
           challengeResultPresenter: bootstrap.challengeResultPresenter,

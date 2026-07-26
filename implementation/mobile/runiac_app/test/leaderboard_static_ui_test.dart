@@ -13,6 +13,7 @@ import 'package:runiac_app/features/leaderboard/presentation/data/leaderboard_de
 import 'package:runiac_app/features/leaderboard/presentation/leaderboard_tab.dart';
 import 'package:runiac_app/features/leaderboard/presentation/models/leaderboard_display_models.dart';
 import 'package:runiac_app/features/leaderboard/presentation/widgets/leaderboard_map_background.dart';
+import 'package:runiac_app/features/profile/presentation/widgets/account_challenge_badge_case.dart';
 
 void _useCompactShareSheetSurface(WidgetTester tester) {
   tester.view
@@ -20,11 +21,6 @@ void _useCompactShareSheetSurface(WidgetTester tester) {
     ..devicePixelRatio = 1;
   addTearDown(tester.view.reset);
 }
-
-final _isWithinMetricFontRange = allOf(
-  greaterThanOrEqualTo(16),
-  lessThanOrEqualTo(24),
-);
 
 void main() {
   testWidgets('Leaderboard tab displays backend-owned repository rows', (
@@ -427,7 +423,7 @@ void main() {
 
     expect(find.text('Runner profile'), findsOneWidget);
     expect(find.text('Alex T.'), findsOneWidget);
-    expect(find.text('#1 Jurong East, Singapore'), findsOneWidget);
+    expect(find.text('#1'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Back to Rankings'));
     await tester.pumpAndSettle();
@@ -439,7 +435,7 @@ void main() {
 
     expect(find.text('Runner profile'), findsOneWidget);
     expect(find.text('Jinseo (You)'), findsOneWidget);
-    expect(find.text('#18 Jurong East, Singapore'), findsOneWidget);
+    expect(find.text('#18'), findsOneWidget);
     expect(find.text('520 XP'), findsNothing);
   });
 
@@ -1098,30 +1094,39 @@ void main() {
     expect(find.text('Runner profile'), findsOneWidget);
     expect(find.text('PUBLIC'), findsNothing);
     expect(find.text('Alex T.'), findsOneWidget);
-    expect(find.text('#1 Jurong East, Singapore'), findsOneWidget);
-    expect(find.text('Bronze · Level 18'), findsOneWidget);
+    // Rank and region render as the two separate labels of the shared
+    // account identity card.
+    expect(find.text('#1'), findsOneWidget);
+    expect(find.text('Jurong East, Singapore'), findsOneWidget);
+    // The same four cards the runner sees on their own profile, and only
+    // those: identity, level gauge, lifetime totals, badge case.
     expect(
-      find.byKey(const Key('runner_profile_total_distance_metric')),
+      find.byKey(const ValueKey('account-profile-level-badge')),
       findsOneWidget,
     );
     expect(
-      find.byKey(const Key('runner_profile_max_streak_metric')),
+      find.byKey(const ValueKey('account-level-up-gauge')),
       findsOneWidget,
     );
-    expect(find.text('Not shared'), findsNWidgets(2));
+    expect(
+      find.byKey(const ValueKey('account-lifetime-stats')),
+      findsOneWidget,
+    );
+    expect(find.byType(AccountChallengeBadgeCase), findsOneWidget);
     expect(find.text('Total distance'), findsOneWidget);
     expect(find.text('Total distance (km)'), findsNothing);
     expect(find.text('Max streak'), findsOneWidget);
-    expect(find.text('Achievements'), findsOneWidget);
-    expect(find.text('0 earned'), findsOneWidget);
-    expect(find.text('First 5K'), findsNothing);
+    // Account-only sections never appear on another runner's profile.
+    expect(find.text('RUNNING SETUP'), findsNothing);
+    expect(find.text('MANAGE'), findsNothing);
+    expect(find.text('Edit profile'), findsNothing);
+    expect(find.text('Settings'), findsNothing);
     expect(
-      find.text('Only monthly ranking details are shown.'),
+      find.text('Only public running achievements are shown.'),
       findsOneWidget,
     );
     expect(find.text('Experience'), findsNothing);
     expect(find.text('1,240 XP'), findsNothing);
-    expect(find.byKey(const Key('runner_profile_level_metric')), findsNothing);
     expect(find.text('Recent Public Achievements'), findsNothing);
     expect(find.textContaining('GPS'), findsNothing);
     expect(find.textContaining('pace'), findsNothing);
@@ -1143,7 +1148,7 @@ void main() {
 
     expect(find.text('Runner profile'), findsOneWidget);
     expect(find.text('Daniel W.'), findsOneWidget);
-    expect(find.text('#17 Jurong East, Singapore'), findsOneWidget);
+    expect(find.text('#17'), findsOneWidget);
     expect(find.text('640 XP'), findsNothing);
 
     await tester.tap(find.byTooltip('Back to Rankings'));
@@ -1159,7 +1164,7 @@ void main() {
 
     expect(find.text('Runner profile'), findsOneWidget);
     expect(find.text('Jinseo (You)'), findsOneWidget);
-    expect(find.text('#18 Jurong East, Singapore'), findsOneWidget);
+    expect(find.text('#18'), findsOneWidget);
     expect(find.text('520 XP'), findsNothing);
     // Pushed profile route covers the shell bottom navigation.
     expect(find.byTooltip('You'), findsNothing);
@@ -1195,7 +1200,6 @@ void main() {
     expect(modelSource, contains('class RunnerAchievementBadgeSnapshot'));
     expect(modelSource, contains('enum RegionPreviewMedalTone'));
     expect(modelSource, contains('class LeagueTaxonomyEntry'));
-    expect(runnerProfileSource, contains('class RunnerMetricValueText'));
     expect(demoSource, contains('const leaderboardPreviewDemoSnapshot'));
     expect(demoSource, contains('const leaderboardLeagueDemoSnapshot'));
     expect(demoSource, contains('const leaderboardRegionDemoSnapshot'));
@@ -1243,35 +1247,10 @@ void main() {
       expect(source, isNot(contains(forbidden)));
     }
 
-    final metricValueStart = runnerProfileSource.indexOf(
-      'class RunnerMetricValueText',
-    );
-    final metricValueEnd = runnerProfileSource.indexOf(
-      'class _RunnerAchievementsSection',
-      metricValueStart,
-    );
-    final metricValueSource = runnerProfileSource.substring(
-      metricValueStart,
-      metricValueEnd,
-    );
-
-    expect(metricValueSource, contains('minFontSize = 16'));
-    expect(metricValueSource, isNot(contains('TextOverflow.ellipsis')));
-  });
-
-  test('Runner metric value font size adapts without changing labels', () {
-    expect(
-      resolveRunnerMetricValueFontSize(value: '10000 km', maxWidth: 240),
-      _isWithinMetricFontRange,
-    );
-    expect(
-      resolveRunnerMetricValueFontSize(value: '365 days', maxWidth: 240),
-      _isWithinMetricFontRange,
-    );
-    expect(
-      resolveRunnerMetricValueFontSize(value: '10000 km', maxWidth: 72),
-      greaterThanOrEqualTo(16),
-    );
+    // The runner profile now renders through the shared account profile
+    // cards, so it must not carry a second copy of that presentation.
+    expect(runnerProfileSource, contains('AccountIdentityCard'));
+    expect(runnerProfileSource, contains('AccountChallengeBadgeCase'));
   });
 
   test('Leaderboard period label falls back without date derivation', () {

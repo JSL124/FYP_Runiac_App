@@ -206,6 +206,10 @@ class RunnerAchievementProfileSnapshot {
     this.privacyNote = 'Only public running achievements are shown.',
     this.isCurrentUser = false,
     this.uid = '',
+    this.rankLabel = '',
+    this.regionLabel = '',
+    this.divisionLabel = '',
+    this.snapshotId = '',
   });
 
   final String name;
@@ -213,6 +217,10 @@ class RunnerAchievementProfileSnapshot {
   final String regionRankLabel;
   final String levelBadgeLabel;
   final String divisionLevelLabel;
+
+  /// Leaderboard-row fallbacks shown until the runner's backend-owned public
+  /// profile resolves. Never a substitute for it: the profile screen replaces
+  /// each of these with the trusted value as soon as it arrives.
   final String totalDistanceLabel;
   final String bestStreakLabel;
   final String privacyNote;
@@ -225,6 +233,21 @@ class RunnerAchievementProfileSnapshot {
   /// snapshots that have no real backing user, which also hides the report
   /// affordance for those.
   final String uid;
+
+  /// Backend-provided monthly rank of this runner, such as `#1`. Empty when
+  /// the runner is unranked. Display only; the client never computes rank.
+  final String rankLabel;
+
+  /// Region the rank belongs to, such as `Jurong East, Singapore`.
+  final String regionLabel;
+
+  /// Backend-provided division name for this runner, such as `Bronze`.
+  final String divisionLabel;
+
+  /// Backend-owned snapshot this row was read from. Paired with [rankLabel] it
+  /// addresses the runner for `getRunnerPublicProfile`, which resolves the uid
+  /// server-side — the public snapshot never carries one.
+  final String snapshotId;
 }
 
 class RunnerAchievementBadgeSnapshot {
