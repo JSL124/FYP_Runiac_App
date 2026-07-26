@@ -47,15 +47,16 @@ export function createRunnerPublicProfilePorts(firestore: Firestore): RunnerPubl
       const snapshot = await firestore.collection(`users/${uid}/challengeBadges`).limit(BADGE_READ_LIMIT).get();
       return snapshot.docs.map((document) => document.id);
     },
-    async resolveLeaderboardEntryOwner(snapshotId, rankLabel) {
-      // Two equality filters, no ordering — served by single-field indexes, so
-      // this needs no composite index. `limit(2)` is what makes an ambiguous
-      // match detectable: exactly one rank projection may claim a rank within
-      // a snapshot, and anything else fails closed.
+    async resolveLeaderboardEntryOwner(snapshotId, rankLabel, buildId) {
+      // Equality filters only, no ordering — served by single-field indexes,
+      // so this needs no composite index. `limit(2)` is what makes an
+      // ambiguous match detectable: exactly one rank projection may claim a
+      // rank within a snapshot build, and anything else fails closed.
       const snapshot = await firestore
         .collection("leaderboardUserRanks")
         .where("snapshotId", "==", snapshotId)
         .where("rankLabel", "==", rankLabel)
+        .where("buildId", "==", buildId)
         .limit(2)
         .get();
       if (snapshot.size !== 1) return undefined;

@@ -22,25 +22,10 @@ const _rankRow = RunnerAchievementProfileSnapshot(
   regionLabel: 'Jurong East, Singapore',
   divisionLabel: 'Silver',
   snapshotId: 'monthly_jurong-east_tier_03_2026-07',
+  buildId: 'build-2026-07-26T09',
 );
 
-/// A row that carries a uid outright — the only other addressable form.
-const _rankRowWithUid = RunnerAchievementProfileSnapshot(
-  name: 'Jinseo_main',
-  initial: 'J',
-  regionRankLabel: '#1 Jurong East, Singapore',
-  levelBadgeLabel: 'Lv.8',
-  divisionLevelLabel: 'Silver · Level 8',
-  totalDistanceLabel: 'Not shared',
-  bestStreakLabel: 'Not shared',
-  badges: <RunnerAchievementBadgeSnapshot>[],
-  uid: 'runner-a',
-  rankLabel: '#1',
-  regionLabel: 'Jurong East, Singapore',
-  divisionLabel: 'Silver',
-);
-
-/// A demo row with neither a uid nor a snapshot — nothing to resolve.
+/// A demo row with no backing entry — nothing to resolve.
 const _previewRow = RunnerAchievementProfileSnapshot(
   name: 'Jinseo_main',
   initial: 'J',
@@ -55,7 +40,6 @@ const _previewRow = RunnerAchievementProfileSnapshot(
 );
 
 const _publicProfile = RunnerPublicProfileReadModel(
-  uid: 'runner-a',
   displayName: 'Jinseo_main',
   avatarInitials: 'JI',
   regionLabel: 'Jurong East, Singapore',
@@ -123,6 +107,7 @@ void main() {
       <String, Object?>{
         'snapshotId': 'monthly_jurong-east_tier_03_2026-07',
         'rankLabel': '#1',
+        'buildId': 'build-2026-07-26T09',
       },
     ]);
     expect(find.text('Jinseo_main'), findsOneWidget);
@@ -219,21 +204,6 @@ void main() {
     );
   });
 
-  testWidgets('addresses a row that already carries a uid by that uid', (
-    WidgetTester tester,
-  ) async {
-    final repository = _FakeRunnerPublicProfileRepository(
-      profile: _publicProfile,
-    );
-
-    await tester.pumpWidget(_screen(repository, row: _rankRowWithUid));
-    await tester.pumpAndSettle();
-
-    expect(repository.requestedPayloads, <Map<String, Object?>>[
-      <String, Object?>{'uid': 'runner-a'},
-    ]);
-  });
-
   testWidgets('never calls the backend for a row with nothing to resolve', (
     WidgetTester tester,
   ) async {
@@ -248,6 +218,25 @@ void main() {
     expect(find.text('Not shared'), findsNWidgets(2));
   });
 
+  testWidgets('surfaces a superseded board build as unavailable', (
+    WidgetTester tester,
+  ) async {
+    // The backend answers not-found when the rank was reassigned since this
+    // row was rendered; the screen must say so rather than show another runner.
+    await tester.pumpWidget(
+      _screen(
+        _FakeRunnerPublicProfileRepository(
+          failure: const RunnerPublicProfileFailure(
+            'This runner profile is not available.',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('This runner profile is not available.'), findsOneWidget);
+  });
+
   group('Cloud Functions runner public profile repository', () {
     test('maps the callable payload into the read model', () async {
       Map<String, Object?>? sentPayload;
@@ -255,7 +244,6 @@ void main() {
         callable: (payload) async {
           sentPayload = payload;
           return <Object?, Object?>{
-            'uid': 'runner-a',
             'displayName': 'Jinseo_main',
             'avatarInitials': 'JI',
             'regionLabel': 'Jurong East, Singapore',
@@ -279,15 +267,16 @@ void main() {
         query: const RunnerPublicProfileQuery.leaderboardEntry(
           snapshotId: 'monthly_jurong-east_tier_03_2026-07',
           rankLabel: '#3',
+          buildId: 'build-2026-07-26T09',
         ),
       );
 
       expect(sentPayload, <String, Object?>{
         'snapshotId': 'monthly_jurong-east_tier_03_2026-07',
         'rankLabel': '#3',
+        'buildId': 'build-2026-07-26T09',
       });
-      expect(profile!.uid, 'runner-a');
-      expect(profile.displayName, 'Jinseo_main');
+      expect(profile!.displayName, 'Jinseo_main');
       expect(profile.levelBadgeLabel, 'Lv.8');
       expect(profile.levelProgressFraction, closeTo(0.975, 0.0001));
       expect(profile.xpToNextLevel, 20);
@@ -303,7 +292,11 @@ void main() {
 
       expect(
         () => repository.loadRunnerPublicProfile(
-          query: const RunnerPublicProfileQuery.uid('runner-a'),
+          query: const RunnerPublicProfileQuery.leaderboardEntry(
+            snapshotId: 'monthly_jurong-east_tier_03_2026-07',
+            rankLabel: '#3',
+            buildId: 'build-2026-07-26T09',
+          ),
         ),
         throwsA(isA<RunnerPublicProfileFailure>()),
       );

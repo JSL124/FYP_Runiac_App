@@ -125,12 +125,7 @@ class AccountChallengeBadgeCase extends StatelessWidget {
 }
 
 class _BadgeSlot {
-  const _BadgeSlot(
-    this.centerX,
-    this.centerY,
-    this.sizeFraction,
-    this.tierId,
-  );
+  const _BadgeSlot(this.centerX, this.centerY, this.sizeFraction, this.tierId);
 
   final double centerX;
   final double centerY;

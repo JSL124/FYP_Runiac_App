@@ -60,12 +60,8 @@ class CloudFunctionsRunnerPublicProfileRepository
     };
   }
 
-  /// The backend echoes the resolved uid, which is the only place the client
-  /// learns it for a leaderboard entry — and only for the one runner the
-  /// viewer explicitly opened.
   RunnerPublicProfileReadModel _readModelFrom(Map<Object?, Object?> data) {
     return RunnerPublicProfileReadModel(
-      uid: _string(data['uid']),
       displayName: _string(data['displayName']),
       avatarInitials: _string(data['avatarInitials']),
       regionLabel: _string(data['regionLabel']),

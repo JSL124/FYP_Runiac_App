@@ -60,25 +60,24 @@ class _RunnerAchievementProfileScreenState
   @override
   void didUpdateWidget(covariant RunnerAchievementProfileScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.profile.uid != widget.profile.uid ||
-        oldWidget.profile.snapshotId != widget.profile.snapshotId ||
+    if (oldWidget.profile.snapshotId != widget.profile.snapshotId ||
         oldWidget.profile.rankLabel != widget.profile.rankLabel ||
+        oldWidget.profile.buildId != widget.profile.buildId ||
         oldWidget.publicProfileRepository != widget.publicProfileRepository) {
       _loadPublicProfile();
     }
   }
 
-  /// A leaderboard row names the runner by the entry that was tapped, because
-  /// the backend snapshot carries no uid; the server resolves the owner. A uid
-  /// is used directly only when the viewer legitimately holds one already.
+  /// A leaderboard row names the runner by the entry that was tapped — the
+  /// backend snapshot carries no uid, so the server resolves the owner and
+  /// keeps it. The build id pins the lookup to the board that was on screen,
+  /// so a row rendered before a refresh resolves to nobody rather than to
+  /// whoever inherited its rank.
   RunnerPublicProfileQuery _query() {
-    final uid = widget.profile.uid;
-    if (uid.isNotEmpty) {
-      return RunnerPublicProfileQuery.uid(uid);
-    }
     return RunnerPublicProfileQuery.leaderboardEntry(
       snapshotId: widget.profile.snapshotId,
       rankLabel: widget.profile.rankLabel,
+      buildId: widget.profile.buildId,
     );
   }
 
@@ -119,20 +118,15 @@ class _RunnerAchievementProfileScreenState
     }
   }
 
-  /// The uid a report would address. A leaderboard row has none of its own,
-  /// so it is the uid the backend resolved and echoed back for the runner the
-  /// viewer opened — the report write needs a real `targetId`.
-  String get _reportableUid {
-    final uid = widget.profile.uid;
-    return uid.isNotEmpty ? uid : (_publicProfile?.uid ?? '');
-  }
-
   // Never offer reporting yourself, and never offer it for a profile with no
-  // real backing uid (demo/preview snapshots) — the security rules would
-  // reject both anyway, but hiding the affordance keeps the UI honest.
+  // real backing uid — the security rules would reject both anyway, but
+  // hiding the affordance keeps the UI honest. A leaderboard row carries no
+  // uid and the profile projection deliberately returns none, so reporting a
+  // runner reached from the board needs its own server-resolved write before
+  // it can be offered here.
   bool get _canReport =>
       !widget.profile.isCurrentUser &&
-      _reportableUid.isNotEmpty &&
+      widget.profile.uid.isNotEmpty &&
       _currentReporterUid() != null;
 
   // Guarded the same way activity_route_snapshot_thumbnail_cache.dart guards
@@ -156,7 +150,7 @@ class _RunnerAchievementProfileScreenState
       targetDisplayName: widget.profile.name,
       onSubmit: (reason, description) => reportUser(
         reporterUid: reporterUid,
-        targetId: _reportableUid,
+        targetId: widget.profile.uid,
         reason: reason,
         description: description,
       ),

@@ -29,6 +29,7 @@ void main() {
     List<LeaderboardRowReadModel> nearbyEntries =
         const <LeaderboardRowReadModel>[],
     String snapshotId = '',
+    String buildId = '',
   }) {
     return LeaderboardReadModel(
       status: status,
@@ -37,6 +38,7 @@ void main() {
       entries: entries,
       nearbyEntries: nearbyEntries,
       snapshotId: snapshotId,
+      buildId: buildId,
     );
   }
 
@@ -201,28 +203,35 @@ void main() {
       expect(profile.levelBadgeLabel, 'Lv.8');
     });
 
-    test('carries the snapshot id onto top and nearby row profiles', () {
+    test('carries the snapshot and build id onto top and nearby profiles', () {
       final snapshot = leaderboardDisplaySnapshotFromReadModel(
         model(
           entries: [row(userId: 'a', rankLabel: '#1')],
           nearbyEntries: [row(userId: 'b', rankLabel: '#7')],
           snapshotId: 'monthly_jurong-east_tier_03_2026-07',
+          buildId: 'build-2026-07-26T09',
         ),
         now,
       );
 
-      // Snapshot id + rank is how the profile screen addresses a runner whose
-      // uid the board deliberately never publishes.
+      // Snapshot + build + rank is how the profile screen addresses a runner
+      // whose uid the board deliberately never publishes. The build id is what
+      // stops a stale row from resolving to whoever inherited its rank.
       expect(
         snapshot.topRanks.single.profile.snapshotId,
         'monthly_jurong-east_tier_03_2026-07',
       );
       expect(snapshot.topRanks.single.profile.rankLabel, '#1');
+      expect(snapshot.topRanks.single.profile.buildId, 'build-2026-07-26T09');
       expect(
         snapshot.nearbyRanks.single.profile.snapshotId,
         'monthly_jurong-east_tier_03_2026-07',
       );
       expect(snapshot.nearbyRanks.single.profile.rankLabel, '#7');
+      expect(
+        snapshot.nearbyRanks.single.profile.buildId,
+        'build-2026-07-26T09',
+      );
     });
 
     test('states that only public running achievements are shown', () {

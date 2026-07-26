@@ -5,35 +5,33 @@ import '../models/runner_public_profile_read_model.dart';
 /// A leaderboard row carries no uid — the backend snapshot deliberately omits
 /// it so the board cannot be read as a uid directory — so a viewer names the
 /// runner by the entry they tapped, and the backend resolves the owner.
+///
+/// [buildId] pins that entry to the aggregation run the viewer actually saw.
+/// The monthly refresh reuses one snapshot id and reassigns rank labels, so a
+/// rank alone would resolve to whoever holds the position now rather than the
+/// runner on screen.
 class RunnerPublicProfileQuery {
-  /// A uid the viewer already legitimately holds (their own, or one a future
-  /// friends/feed surface supplies).
-  const RunnerPublicProfileQuery.uid(this.uid)
-    : snapshotId = '',
-      rankLabel = '';
-
-  /// One entry of a backend-owned leaderboard snapshot.
   const RunnerPublicProfileQuery.leaderboardEntry({
     required this.snapshotId,
     required this.rankLabel,
-  }) : uid = '';
+    required this.buildId,
+  });
 
-  final String uid;
   final String snapshotId;
   final String rankLabel;
+  final String buildId;
 
-  /// False when neither form is addressable, which is the case for demo and
-  /// preview rows that have no backing runner at all.
+  /// False for demo and preview rows, which have no backing entry at all.
   bool get isResolvable =>
-      uid.isNotEmpty || (snapshotId.isNotEmpty && rankLabel.isNotEmpty);
+      snapshotId.isNotEmpty && rankLabel.isNotEmpty && buildId.isNotEmpty;
 
-  /// The callable payload. Exactly one form is sent; the backend rejects any
-  /// mixed or partial shape.
+  /// The callable payload. The backend rejects any other shape.
   Map<String, Object?> toPayload() {
-    if (uid.isNotEmpty) {
-      return <String, Object?>{'uid': uid};
-    }
-    return <String, Object?>{'snapshotId': snapshotId, 'rankLabel': rankLabel};
+    return <String, Object?>{
+      'snapshotId': snapshotId,
+      'rankLabel': rankLabel,
+      'buildId': buildId,
+    };
   }
 }
 

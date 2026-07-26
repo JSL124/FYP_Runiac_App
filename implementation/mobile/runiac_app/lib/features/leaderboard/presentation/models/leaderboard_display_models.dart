@@ -210,6 +210,7 @@ class RunnerAchievementProfileSnapshot {
     this.regionLabel = '',
     this.divisionLabel = '',
     this.snapshotId = '',
+    this.buildId = '',
   });
 
   final String name;
@@ -244,10 +245,14 @@ class RunnerAchievementProfileSnapshot {
   /// Backend-provided division name for this runner, such as `Bronze`.
   final String divisionLabel;
 
-  /// Backend-owned snapshot this row was read from. Paired with [rankLabel] it
-  /// addresses the runner for `getRunnerPublicProfile`, which resolves the uid
-  /// server-side — the public snapshot never carries one.
+  /// Backend-owned snapshot this row was read from. Paired with [rankLabel]
+  /// and [buildId] it addresses the runner for `getRunnerPublicProfile`, which
+  /// resolves the uid server-side — the public snapshot never carries one.
   final String snapshotId;
+
+  /// Aggregation build this row was read from. Sent along so a row rendered
+  /// before a refresh can never resolve to whoever inherited its rank.
+  final String buildId;
 }
 
 class RunnerAchievementBadgeSnapshot {

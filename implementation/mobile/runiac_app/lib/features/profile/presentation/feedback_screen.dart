@@ -178,9 +178,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: FilledButton(
-                          key: const ValueKey<String>(
-                            'feedbackSubmitButton',
-                          ),
+                          key: const ValueKey<String>('feedbackSubmitButton'),
                           onPressed: _canSubmit ? _handleSubmit : null,
                           style: RuniacButtonStyles.primary(
                             disabledBackgroundColor:

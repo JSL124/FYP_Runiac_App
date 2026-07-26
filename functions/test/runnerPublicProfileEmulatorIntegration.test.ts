@@ -20,7 +20,9 @@ const blocker = "rpp-blocker";
 const suspended = "rpp-suspended";
 const seededUids = [viewer, runner, blocker, suspended] as const;
 const snapshotId = "monthly_jurong-east_tier_03_2026-07";
-const rankIds = ["rpp-rank-runner", "rpp-rank-blocker", "rpp-rank-duplicate"] as const;
+const buildId = "build-2026-07-26T09";
+const entry = (rankLabel: string, build: string = buildId) => ({ snapshotId, rankLabel, buildId: build });
+const rankIds = ["rpp-rank-runner", "rpp-rank-blocker", "rpp-rank-suspended", "rpp-rank-viewer", "rpp-rank-duplicate"] as const;
 
 if (getApps().length === 0) initializeApp();
 const db = getFirestore();
@@ -62,8 +64,10 @@ before(async () => {
   await db.doc(`users/${suspended}`).set({ accountStatus: "suspended" });
   // The backend-written rank projection: the only place a leaderboard entry
   // maps back to a uid. Shaped exactly like `monthlyLeaderboardWriter` writes it.
-  await db.doc("leaderboardUserRanks/rpp-rank-runner").set({ ownerUid: runner, snapshotId, rankLabel: "#3", periodKey: "2026-07", regionId: "jurong-east", divisionKey: "tier_03" });
-  await db.doc("leaderboardUserRanks/rpp-rank-blocker").set({ ownerUid: blocker, snapshotId, rankLabel: "#4", periodKey: "2026-07", regionId: "jurong-east", divisionKey: "tier_03" });
+  await db.doc("leaderboardUserRanks/rpp-rank-runner").set({ ownerUid: runner, snapshotId, buildId, rankLabel: "#3", periodKey: "2026-07", regionId: "jurong-east", divisionKey: "tier_03" });
+  await db.doc("leaderboardUserRanks/rpp-rank-blocker").set({ ownerUid: blocker, snapshotId, buildId, rankLabel: "#4", periodKey: "2026-07", regionId: "jurong-east", divisionKey: "tier_03" });
+  await db.doc("leaderboardUserRanks/rpp-rank-suspended").set({ ownerUid: suspended, snapshotId, buildId, rankLabel: "#5", periodKey: "2026-07", regionId: "jurong-east", divisionKey: "tier_03" });
+  await db.doc("leaderboardUserRanks/rpp-rank-viewer").set({ ownerUid: viewer, snapshotId, buildId, rankLabel: "#6", periodKey: "2026-07", regionId: "jurong-east", divisionKey: "tier_03" });
 });
 
 after(async () => {
@@ -72,7 +76,7 @@ after(async () => {
 
 describe("Runner public profile emulator integration", () => {
   it("projects a real runner document, account tier, and earned badges", async () => {
-    const profile = await getRunnerPublicProfile({ auth: { uid: viewer }, data: { uid: runner } }, ports);
+    const profile = await getRunnerPublicProfile({ auth: { uid: viewer }, data: entry("#3") }, ports);
 
     assert.equal(profile.displayName, "Jinseo_main");
     assert.equal(profile.avatarInitials, "JI");
@@ -87,7 +91,7 @@ describe("Runner public profile emulator integration", () => {
   });
 
   it("leaves the private half of the stored document behind", async () => {
-    const profile = await getRunnerPublicProfile({ auth: { uid: viewer }, data: { uid: runner } }, ports);
+    const profile = await getRunnerPublicProfile({ auth: { uid: viewer }, data: entry("#3") }, ports);
     const serialized = JSON.stringify(profile);
 
     for (const privateValue of ["Jinseo Lee", "2000-01-01", "68.5", "26"]) {
@@ -99,22 +103,22 @@ describe("Runner public profile emulator integration", () => {
   });
 
   it("serves a runner with no badge documents as owning none", async () => {
-    const profile = await getRunnerPublicProfile({ auth: { uid: runner } , data: { uid: viewer } }, ports);
+    const profile = await getRunnerPublicProfile({ auth: { uid: runner }, data: entry("#6") }, ports);
 
     assert.deepEqual(profile.ownedBadgeTierIds, []);
     assert.equal(profile.subscriptionStatusLabel, "Basic");
   });
 
   it("hides a runner who blocked the viewer", async () => {
-    await assertRejects(() => getRunnerPublicProfile({ auth: { uid: viewer }, data: { uid: blocker } }, ports), "permission-denied");
+    await assertRejects(() => getRunnerPublicProfile({ auth: { uid: viewer }, data: entry("#4") }, ports), "permission-denied");
   });
 
   it("hides a suspended runner", async () => {
-    await assertRejects(() => getRunnerPublicProfile({ auth: { uid: viewer }, data: { uid: suspended } }, ports), "permission-denied");
+    await assertRejects(() => getRunnerPublicProfile({ auth: { uid: viewer }, data: entry("#5") }, ports), "permission-denied");
   });
 
   it("resolves a leaderboard entry through the real rank projection", async () => {
-    const profile = await getRunnerPublicProfile({ auth: { uid: viewer }, data: { snapshotId, rankLabel: "#3" } }, ports);
+    const profile = await getRunnerPublicProfile({ auth: { uid: viewer }, data: entry("#3") }, ports);
 
     assert.equal(profile.displayName, "Jinseo_main");
     assert.equal(profile.totalDistanceLabel, "69.8 km");
@@ -122,24 +126,30 @@ describe("Runner public profile emulator integration", () => {
   });
 
   it("hides a leaderboard entry whose owner blocked the viewer", async () => {
-    await assertRejects(() => getRunnerPublicProfile({ auth: { uid: viewer }, data: { snapshotId, rankLabel: "#4" } }, ports), "permission-denied");
+    await assertRejects(() => getRunnerPublicProfile({ auth: { uid: viewer }, data: entry("#4") }, ports), "permission-denied");
   });
 
   it("fails closed when two rank projections claim the same rank", async () => {
-    await db.doc("leaderboardUserRanks/rpp-rank-duplicate").set({ ownerUid: suspended, snapshotId, rankLabel: "#3", periodKey: "2026-07" });
+    await db.doc("leaderboardUserRanks/rpp-rank-duplicate").set({ ownerUid: suspended, snapshotId, buildId, rankLabel: "#3", periodKey: "2026-07" });
     try {
-      await assertRejects(() => getRunnerPublicProfile({ auth: { uid: viewer }, data: { snapshotId, rankLabel: "#3" } }, ports), "not-found");
+      await assertRejects(() => getRunnerPublicProfile({ auth: { uid: viewer }, data: entry("#3") }, ports), "not-found");
     } finally {
       await db.doc("leaderboardUserRanks/rpp-rank-duplicate").delete();
     }
   });
 
   it("reports an unranked position as not found", async () => {
-    await assertRejects(() => getRunnerPublicProfile({ auth: { uid: viewer }, data: { snapshotId, rankLabel: "#99" } }, ports), "not-found");
+    await assertRejects(() => getRunnerPublicProfile({ auth: { uid: viewer }, data: entry("#99") }, ports), "not-found");
   });
 
-  it("reports an unknown runner as not found", async () => {
-    await assertRejects(() => getRunnerPublicProfile({ auth: { uid: viewer }, data: { uid: "rpp-nobody" } }, ports), "not-found");
+  it("refuses an entry from a superseded board build", async () => {
+    // The refresh job reuses the monthly snapshot id and reassigns ranks, so a
+    // stale row must never resolve to whoever holds that rank now.
+    await assertRejects(() => getRunnerPublicProfile({ auth: { uid: viewer }, data: entry("#3", "build-older") }, ports), "not-found");
+  });
+
+  it("reports an unknown entry as not found", async () => {
+    await assertRejects(() => getRunnerPublicProfile({ auth: { uid: viewer }, data: entry("#404") }, ports), "not-found");
   });
 });
 

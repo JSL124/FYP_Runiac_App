@@ -17,7 +17,6 @@ import { isSuspendedAccount } from "../../security/accountStatus.js";
  * or GPS value.
  */
 export type RunnerPublicProfile = {
-  readonly uid: string;
   readonly displayName: string;
   readonly avatarInitials: string;
   readonly regionLabel: string;
@@ -52,15 +51,24 @@ export interface RunnerPublicProfilePorts {
   readOwnedBadgeTierIds(uid: string): Promise<readonly string[]>;
   /**
    * The uid behind one leaderboard entry, addressed the only way a viewer can
-   * address it: by the snapshot it appears in and its rank within that
-   * snapshot. `undefined` when no single rank projection matches.
+   * address it: by the snapshot it appears in, its rank within that snapshot,
+   * and the aggregation build that produced both. `undefined` when no single
+   * rank projection matches all three.
    *
    * This exists because `leaderboardSnapshots` is readable by every signed-in
    * user and therefore carries NO uid — publishing one there would hand out a
    * uid directory. The reverse mapping stays server-side, in the
-   * backend-written `leaderboardUserRanks` projection.
+   * backend-written `leaderboardUserRanks` projection, and the uid never
+   * travels back to the caller either.
+   *
+   * [buildId] is what makes the entry immutable. `refreshLeaderboardSnapshots`
+   * reuses one monthly `snapshotId` and reassigns rank labels on every run, so
+   * a rank alone would resolve to whoever holds that position NOW — not the
+   * runner the viewer tapped. The writer stamps the same build id on the
+   * snapshot the viewer read and on every rank projection from that run, so
+   * requiring them to agree pins the lookup to the board that was on screen.
    */
-  resolveLeaderboardEntryOwner(snapshotId: string, rankLabel: string): Promise<string | undefined>;
+  resolveLeaderboardEntryOwner(snapshotId: string, rankLabel: string, buildId: string): Promise<string | undefined>;
 }
 
 const UNAVAILABLE_MESSAGE = "This runner profile is not available.";
@@ -73,11 +81,10 @@ export async function getRunnerPublicProfile(
   if (callerUid === undefined || callerUid.length === 0) throw new HttpsError("unauthenticated", "Authentication is required.");
   const target = parseTarget(request.data);
   if (target === undefined) throw new HttpsError("invalid-argument", "Invalid runner profile request.");
-  const targetUid = target.kind === "uid"
-    ? target.uid
-    : await ports.resolveLeaderboardEntryOwner(target.snapshotId, target.rankLabel);
-  // A rank that resolves to no owner, or to more than one, is treated exactly
-  // like a runner who does not exist: the viewer learns nothing either way.
+  const targetUid = await ports.resolveLeaderboardEntryOwner(target.snapshotId, target.rankLabel, target.buildId);
+  // An entry that resolves to no owner, to more than one, or to a rank the
+  // board has since reassigned is treated exactly like a runner who does not
+  // exist: the viewer learns nothing either way, and never a wrong runner.
   if (targetUid === undefined || targetUid.length === 0) throw new HttpsError("not-found", UNAVAILABLE_MESSAGE);
 
   if (targetUid !== callerUid) {
@@ -93,8 +100,10 @@ export async function getRunnerPublicProfile(
   if (isSuspendedAccount(account)) throw new HttpsError("permission-denied", UNAVAILABLE_MESSAGE);
 
   const ownedBadgeTierIds = await ports.readOwnedBadgeTierIds(targetUid);
+  // The resolved uid stays here. Echoing it back would let any signed-in
+  // caller walk every rank of every public snapshot and rebuild the uid
+  // directory this whole design exists to avoid.
   return {
-    uid: targetUid,
     displayName: profileDisplayName(profile),
     avatarInitials: trimmedString(profile["avatarInitials"]),
     regionLabel: trimmedString(profile["locationLabel"]),
@@ -136,31 +145,26 @@ function subscriptionStatusLabel(account: Readonly<Record<string, unknown>> | un
 }
 
 /**
- * The two ways a viewer may address a runner:
- * - `{uid}` — a uid the viewer legitimately holds already (their own, or one
- *   a future friends/feed surface passes in).
- * - `{snapshotId, rankLabel}` — a leaderboard entry, which is all a viewer
- *   ever has for another runner, because the public snapshot carries no uid.
- * Exactly one form, with exactly its own keys and nothing else.
+ * The one way a viewer may address a runner: the leaderboard entry they
+ * tapped, pinned to the aggregation build that produced it. There is no
+ * uid-addressed form — a viewer never holds another runner's uid, and
+ * accepting one would let a caller probe any uid they obtained elsewhere.
  */
-type RunnerTarget =
-  | { readonly kind: "uid"; readonly uid: string }
-  | { readonly kind: "leaderboardEntry"; readonly snapshotId: string; readonly rankLabel: string };
+type RunnerTarget = {
+  readonly snapshotId: string;
+  readonly rankLabel: string;
+  readonly buildId: string;
+};
 
 function parseTarget(raw: unknown): RunnerTarget | undefined {
   if (!isRecord(raw)) return undefined;
   const keys = Object.keys(raw).sort();
-  if (keys.length === 1 && keys[0] === "uid") {
-    const uid = safeIdentifier(raw["uid"], 128);
-    return uid === undefined ? undefined : { kind: "uid", uid };
-  }
-  if (keys.length === 2 && keys[0] === "rankLabel" && keys[1] === "snapshotId") {
-    const snapshotId = safeIdentifier(raw["snapshotId"], 256);
-    const rankLabel = safeIdentifier(raw["rankLabel"], 16);
-    if (snapshotId === undefined || rankLabel === undefined) return undefined;
-    return { kind: "leaderboardEntry", snapshotId, rankLabel };
-  }
-  return undefined;
+  if (keys.length !== 3 || keys[0] !== "buildId" || keys[1] !== "rankLabel" || keys[2] !== "snapshotId") return undefined;
+  const snapshotId = safeIdentifier(raw["snapshotId"], 256);
+  const rankLabel = safeIdentifier(raw["rankLabel"], 16);
+  const buildId = safeIdentifier(raw["buildId"], 128);
+  if (snapshotId === undefined || rankLabel === undefined || buildId === undefined) return undefined;
+  return { snapshotId, rankLabel, buildId };
 }
 
 function safeIdentifier(value: unknown, maxLength: number): string | undefined {

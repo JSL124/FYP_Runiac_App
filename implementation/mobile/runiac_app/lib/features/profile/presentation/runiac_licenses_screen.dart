@@ -203,9 +203,7 @@ class _LicensePackageRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final licenseCount = entries.length;
-    final subtitle = licenseCount == 1
-        ? '1 license'
-        : '$licenseCount licenses';
+    final subtitle = licenseCount == 1 ? '1 license' : '$licenseCount licenses';
     return RuniacTappableSurface(
       semanticLabel: packageName,
       borderRadius: BorderRadius.zero,

@@ -10,7 +10,10 @@ abstract interface class SubmitFeedbackCallable {
 /// server is the source of truth for validation and rate limiting; this
 /// exception only translates its response into copy the screen can show.
 class SubmitFeedbackException implements Exception {
-  const SubmitFeedbackException({required this.code, required this.userMessage});
+  const SubmitFeedbackException({
+    required this.code,
+    required this.userMessage,
+  });
 
   final String code;
   final String userMessage;

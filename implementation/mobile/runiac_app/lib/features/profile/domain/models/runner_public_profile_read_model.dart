@@ -6,9 +6,12 @@ import '../../../challenge/domain/models/challenge_enums.dart';
 /// Every value here is a trusted backend output the client only relays. The
 /// client never derives level, XP, streak, distance, division, subscription
 /// tier, or badge ownership from anything else.
+///
+/// Deliberately carries no uid: the backend resolves the runner and keeps
+/// their uid, so a caller cannot walk a public board's ranks and collect a
+/// uid directory.
 class RunnerPublicProfileReadModel {
   const RunnerPublicProfileReadModel({
-    required this.uid,
     this.displayName = '',
     this.avatarInitials = '',
     this.regionLabel = '',
@@ -26,7 +29,6 @@ class RunnerPublicProfileReadModel {
     this.ownedTierIds = const <ChallengeTierId>{},
   });
 
-  final String uid;
   final String displayName;
   final String avatarInitials;
   final String regionLabel;

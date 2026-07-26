@@ -29,6 +29,7 @@ class LeaderboardReadModel {
     this.periodLabel,
     this.refreshLabel,
     this.snapshotId = '',
+    this.buildId = '',
   }) : entries = List.unmodifiable(entries),
        nearbyEntries = List.unmodifiable(nearbyEntries);
 
@@ -49,9 +50,14 @@ class LeaderboardReadModel {
   /// Backend-owned id of the snapshot these entries were read from. It is the
   /// only handle a viewer has for another runner on this board: the entries
   /// themselves carry no uid, so `getRunnerPublicProfile` resolves the owner
-  /// server-side from (`snapshotId`, `rankLabel`). Empty for static/demo
-  /// sources.
+  /// server-side from (`snapshotId`, `rankLabel`, `buildId`). Empty for
+  /// static/demo sources.
   final String snapshotId;
+
+  /// Backend-owned id of the aggregation run that produced this snapshot. The
+  /// monthly refresh reuses one snapshot id and reassigns rank labels, so this
+  /// is what pins an entry to the board the runner actually saw.
+  final String buildId;
 }
 
 /// Backend-produced leaderboard row display contract.
