@@ -1,0 +1,195 @@
+import { HttpsError } from "firebase-functions/v2/https";
+import { isSuspendedAccount } from "../../security/accountStatus.js";
+
+/**
+ * The public running-achievement projection of one runner, as shown on the
+ * runner profile screen a viewer opens from the leaderboard.
+ *
+ * Every field here is a value a Cloud Function already computed and wrote to
+ * `userProfiles/{uid}` (or a badge document a settled challenge wrote). This
+ * projection only relays them: it must never derive a level from XP, a rank
+ * from a score, a streak from run dates, or badge ownership from anything
+ * other than the durable badge documents.
+ *
+ * Deliberately excluded — these are the private half of a profile and must
+ * not leak through this callable: email, full name, date of birth, age,
+ * weight, onboarding answers, plan setup, activity history, and every route
+ * or GPS value.
+ */
+export type RunnerPublicProfile = {
+  readonly displayName: string;
+  readonly avatarInitials: string;
+  readonly regionLabel: string;
+  readonly levelLabel: string;
+  readonly level: number;
+  readonly levelProgressPercent: number;
+  readonly totalXp: number | null;
+  readonly nextLevelXp: number | null;
+  readonly xpToNextLevel: number | null;
+  readonly isMaxLevel: boolean;
+  readonly divisionKey: string;
+  readonly divisionLabel: string;
+  readonly longestStreakLabel: string;
+  readonly totalDistanceLabel: string;
+  readonly subscriptionStatusLabel: string;
+  readonly ownedBadgeTierIds: readonly string[];
+};
+
+export type RunnerPublicProfileRequest = { readonly auth?: { readonly uid: string }; readonly data: unknown };
+
+export type BlockEdges = { readonly callerBlockedTarget: boolean; readonly targetBlockedCaller: boolean };
+
+export interface RunnerPublicProfilePorts {
+  /**
+   * Block edges in both directions. A block either way hides the profile, the
+   * same symmetry the Feed relationship check applies.
+   */
+  readBlockEdges(callerUid: string, targetUid: string): Promise<BlockEdges>;
+  readProfile(uid: string): Promise<Readonly<Record<string, unknown>> | undefined>;
+  readAccount(uid: string): Promise<Readonly<Record<string, unknown>> | undefined>;
+  /** Document ids of `users/{uid}/challengeBadges`, i.e. the earned tier ids. */
+  readOwnedBadgeTierIds(uid: string): Promise<readonly string[]>;
+  /**
+   * The uid behind one leaderboard entry, addressed the only way a viewer can
+   * address it: by the snapshot it appears in, its rank within that snapshot,
+   * and the aggregation build that produced both. `undefined` when no single
+   * rank projection matches all three.
+   *
+   * This exists because `leaderboardSnapshots` is readable by every signed-in
+   * user and therefore carries NO uid — publishing one there would hand out a
+   * uid directory. The reverse mapping stays server-side, in the
+   * backend-written `leaderboardUserRanks` projection, and the uid never
+   * travels back to the caller either.
+   *
+   * [buildId] is what makes the entry immutable. `refreshLeaderboardSnapshots`
+   * reuses one monthly `snapshotId` and reassigns rank labels on every run, so
+   * a rank alone would resolve to whoever holds that position NOW — not the
+   * runner the viewer tapped. The writer stamps the same build id on the
+   * snapshot the viewer read and on every rank projection from that run, so
+   * requiring them to agree pins the lookup to the board that was on screen.
+   */
+  resolveLeaderboardEntryOwner(snapshotId: string, rankLabel: string, buildId: string): Promise<string | undefined>;
+}
+
+const UNAVAILABLE_MESSAGE = "This runner profile is not available.";
+
+export async function getRunnerPublicProfile(
+  request: RunnerPublicProfileRequest,
+  ports: RunnerPublicProfilePorts,
+): Promise<RunnerPublicProfile> {
+  const callerUid = request.auth?.uid;
+  if (callerUid === undefined || callerUid.length === 0) throw new HttpsError("unauthenticated", "Authentication is required.");
+  const target = parseTarget(request.data);
+  if (target === undefined) throw new HttpsError("invalid-argument", "Invalid runner profile request.");
+  const targetUid = await ports.resolveLeaderboardEntryOwner(target.snapshotId, target.rankLabel, target.buildId);
+  // An entry that resolves to no owner, to more than one, or to a rank the
+  // board has since reassigned is treated exactly like a runner who does not
+  // exist: the viewer learns nothing either way, and never a wrong runner.
+  if (targetUid === undefined || targetUid.length === 0) throw new HttpsError("not-found", UNAVAILABLE_MESSAGE);
+
+  if (targetUid !== callerUid) {
+    const edges = await ports.readBlockEdges(callerUid, targetUid);
+    if (edges.callerBlockedTarget || edges.targetBlockedCaller) throw new HttpsError("permission-denied", UNAVAILABLE_MESSAGE);
+  }
+
+  const [profile, account] = await Promise.all([ports.readProfile(targetUid), ports.readAccount(targetUid)]);
+  if (profile === undefined) throw new HttpsError("not-found", UNAVAILABLE_MESSAGE);
+  // A suspended or banned runner's profile stops being viewable at all, so a
+  // moderation action removes them from every viewer's reach, not just from
+  // the leaderboard.
+  if (isSuspendedAccount(account)) throw new HttpsError("permission-denied", UNAVAILABLE_MESSAGE);
+
+  const ownedBadgeTierIds = await ports.readOwnedBadgeTierIds(targetUid);
+  // The resolved uid stays here. Echoing it back would let any signed-in
+  // caller walk every rank of every public snapshot and rebuild the uid
+  // directory this whole design exists to avoid.
+  return {
+    displayName: profileDisplayName(profile),
+    avatarInitials: trimmedString(profile["avatarInitials"]),
+    regionLabel: trimmedString(profile["locationLabel"]),
+    levelLabel: trimmedString(profile["levelLabel"]),
+    level: nonNegativeInteger(profile["level"]),
+    levelProgressPercent: clampedPercent(profile["levelProgressPercent"]),
+    totalXp: nonNegativeIntegerOrNull(profile["totalXp"]),
+    nextLevelXp: nonNegativeIntegerOrNull(profile["nextLevelXp"]),
+    xpToNextLevel: nonNegativeIntegerOrNull(profile["xpToNextLevel"]),
+    // Max level is asserted by the backend writing an explicit null, exactly
+    // the signal the runner's own progress read model uses. An absent field
+    // means "not published yet", never "max level".
+    isMaxLevel: "xpToNextLevel" in profile && profile["xpToNextLevel"] === null,
+    divisionKey: trimmedString(profile["divisionKey"]),
+    divisionLabel: trimmedString(profile["divisionLabel"]),
+    longestStreakLabel: trimmedString(profile["longestStreakLabel"]),
+    totalDistanceLabel: trimmedString(profile["totalDistanceLabel"]),
+    subscriptionStatusLabel: subscriptionStatusLabel(account),
+    ownedBadgeTierIds,
+  };
+}
+
+/**
+ * The nickname wins when the runner set one, matching how they see their own
+ * account screen and how the leaderboard labels their row.
+ */
+function profileDisplayName(profile: Readonly<Record<string, unknown>>): string {
+  const nickname = trimmedString(profile["nickname"]);
+  return nickname.length > 0 ? nickname : trimmedString(profile["displayName"]);
+}
+
+/**
+ * Relays the trusted Basic/Premium tier. An unknown or missing value resolves
+ * to Basic so an unrecognised value is never shown as Premium.
+ */
+function subscriptionStatusLabel(account: Readonly<Record<string, unknown>> | undefined): string {
+  const status = account?.["subscriptionStatus"];
+  return typeof status === "string" && status.trim().toLowerCase() === "premium" ? "Premium" : "Basic";
+}
+
+/**
+ * The one way a viewer may address a runner: the leaderboard entry they
+ * tapped, pinned to the aggregation build that produced it. There is no
+ * uid-addressed form — a viewer never holds another runner's uid, and
+ * accepting one would let a caller probe any uid they obtained elsewhere.
+ */
+type RunnerTarget = {
+  readonly snapshotId: string;
+  readonly rankLabel: string;
+  readonly buildId: string;
+};
+
+function parseTarget(raw: unknown): RunnerTarget | undefined {
+  if (!isRecord(raw)) return undefined;
+  const keys = Object.keys(raw).sort();
+  if (keys.length !== 3 || keys[0] !== "buildId" || keys[1] !== "rankLabel" || keys[2] !== "snapshotId") return undefined;
+  const snapshotId = safeIdentifier(raw["snapshotId"], 256);
+  const rankLabel = safeIdentifier(raw["rankLabel"], 16);
+  const buildId = safeIdentifier(raw["buildId"], 128);
+  if (snapshotId === undefined || rankLabel === undefined || buildId === undefined) return undefined;
+  return { snapshotId, rankLabel, buildId };
+}
+
+function safeIdentifier(value: unknown, maxLength: number): string | undefined {
+  if (typeof value !== "string" || value.length === 0 || value.length > maxLength) return undefined;
+  if (value.includes("/") || value.includes("..") || /[\u0000-\u001F\u007F]/u.test(value)) return undefined;
+  return value;
+}
+
+function trimmedString(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function nonNegativeInteger(value: unknown): number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : 0;
+}
+
+function nonNegativeIntegerOrNull(value: unknown): number | null {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : null;
+}
+
+function clampedPercent(value: unknown): number {
+  const percent = typeof value === "number" && Number.isFinite(value) ? value : 0;
+  return Math.min(100, Math.max(0, percent));
+}
+
+function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}

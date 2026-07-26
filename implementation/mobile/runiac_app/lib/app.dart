@@ -11,6 +11,7 @@ import 'core/observability/error_screen_tracker.dart';
 import 'core/theme/runiac_theme.dart';
 import 'features/profile/data/static_user_profile_repository.dart';
 import 'features/profile/domain/models/user_profile_read_model.dart';
+import 'features/profile/domain/repositories/runner_public_profile_repository.dart';
 import 'features/profile/domain/repositories/user_account_repository.dart';
 import 'features/profile/domain/repositories/user_profile_persistence_repository.dart';
 import 'features/profile/domain/repositories/user_profile_repository.dart';
@@ -87,6 +88,8 @@ class RuniacApp extends StatefulWidget {
     this.activityHistoryRepository = const StaticActivityHistoryRepository(),
     this.userProgressRepository = const StaticUserProgressRepository(),
     this.leaderboardRepository = const StaticLeaderboardRepository(),
+    this.runnerPublicProfileRepository =
+        const UnavailableRunnerPublicProfileRepository(),
     this.friendsRepository = const StaticFriendsRepository(),
     this.challengeRepository = const StaticChallengeRepository(),
     this.challengeResultPresenter,
@@ -130,6 +133,10 @@ class RuniacApp extends StatefulWidget {
   final ActivityHistoryRepository activityHistoryRepository;
   final UserProgressRepository userProgressRepository;
   final LeaderboardRepository leaderboardRepository;
+
+  /// Backend source for another runner's public profile, opened from a
+  /// leaderboard rank row.
+  final RunnerPublicProfileRepository runnerPublicProfileRepository;
   final FriendsRepository friendsRepository;
 
   /// Challenge distance-system repository seam, threaded through
@@ -769,6 +776,7 @@ class _RuniacAppState extends State<RuniacApp> {
           feedRepository: _feedRepository,
           userProgressRepository: widget.userProgressRepository,
           leaderboardRepository: widget.leaderboardRepository,
+          runnerPublicProfileRepository: widget.runnerPublicProfileRepository,
           friendsRepository: widget.friendsRepository,
           challengeRepository: widget.challengeRepository,
           challengeResultPresenter: widget.challengeResultPresenter,

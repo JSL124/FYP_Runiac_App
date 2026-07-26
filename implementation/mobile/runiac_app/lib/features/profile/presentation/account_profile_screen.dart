@@ -27,6 +27,7 @@ import '../domain/repositories/user_profile_repository.dart';
 import 'account_edit_profile_screen.dart';
 import 'current_session_user_account.dart';
 import 'data/account_profile_demo_snapshots.dart';
+import 'level_progress_labels.dart';
 import 'widgets/account_challenge_badge_case.dart';
 import 'widgets/account_profile_identity.dart';
 import 'widgets/account_profile_sections.dart';
@@ -518,57 +519,27 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
     );
   }
 
-  String _nextLevelBadge(UserProgressReadModel? progress) {
-    if (progress == null || progress.isMaxLevel) {
-      return '';
-    }
-    return 'Lv.${progress.level + 1}';
+  // Gauge labels are composed by the shared resolver so this screen and the
+  // public runner profile always read identically.
+  LevelProgressLabels _levelLabels(UserProgressReadModel? progress) {
+    return resolveLevelProgressLabels(
+      hasProgress: progress != null,
+      level: progress?.level ?? 0,
+      isMaxLevel: progress?.isMaxLevel ?? false,
+      totalXp: progress?.totalXp,
+      nextLevelXp: progress?.nextLevelXp,
+      xpToNextLevel: progress?.xpToNextLevel,
+    );
   }
 
-  // Displays the backend-owned XP-to-next-level value only; the client never
-  // derives it from other XP fields.
-  String _levelUpCaption(UserProgressReadModel? progress) {
-    if (progress == null) {
-      return '';
-    }
-    if (progress.isMaxLevel) {
-      return 'Max level reached';
-    }
-    final xpToNextLevel = progress.xpToNextLevel;
-    if (xpToNextLevel == null) {
-      return '';
-    }
-    return '${_formatThousands(xpToNextLevel)} XP to level up';
-  }
+  String _nextLevelBadge(UserProgressReadModel? progress) =>
+      _levelLabels(progress).nextLevelBadge;
 
-  // Joins the backend-owned lifetime XP total and next-level XP target;
-  // the client never derives either value.
-  String _levelXpSummary(UserProgressReadModel? progress) {
-    final totalXp = progress?.totalXp;
-    if (progress == null || totalXp == null) {
-      return '';
-    }
-    if (progress.isMaxLevel) {
-      return '${_formatThousands(totalXp)} XP';
-    }
-    final nextLevelXp = progress.nextLevelXp;
-    if (nextLevelXp == null) {
-      return '';
-    }
-    return '${_formatThousands(totalXp)} / ${_formatThousands(nextLevelXp)} XP';
-  }
+  String _levelUpCaption(UserProgressReadModel? progress) =>
+      _levelLabels(progress).levelUpCaption;
 
-  static String _formatThousands(int value) {
-    final digits = value.abs().toString();
-    final buffer = StringBuffer();
-    for (var index = 0; index < digits.length; index += 1) {
-      if (index != 0 && (digits.length - index) % 3 == 0) {
-        buffer.write(',');
-      }
-      buffer.write(digits[index]);
-    }
-    return '${value < 0 ? '-' : ''}$buffer';
-  }
+  String _levelXpSummary(UserProgressReadModel? progress) =>
+      _levelLabels(progress).levelXpSummary;
 
   /// Trusted, backend-owned regional rank for the current runner in their home
   /// region. The client only relays this label; it never computes rank.

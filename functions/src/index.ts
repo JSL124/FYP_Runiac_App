@@ -53,3 +53,4 @@ export {
   migrateUnicodeNicknameClaims,
 } from "./friends/callable.js";
 export { getFriendLevels } from "./friends/friendLevels/callable.js";
+export { getRunnerPublicProfile } from "./profile/publicProfile/callable.js";

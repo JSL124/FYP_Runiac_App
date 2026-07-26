@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/runiac_colors.dart';
 import '../profile/domain/models/user_profile_read_model.dart';
+import '../profile/domain/repositories/runner_public_profile_repository.dart';
 import '../profile/domain/repositories/user_profile_repository.dart';
 import '../profile/domain/repositories/user_profile_persistence_repository.dart';
 import '../auth/domain/runiac_auth_service.dart';
@@ -53,6 +54,8 @@ class RuniacShell extends StatefulWidget {
     this.activityHistoryRepository = const StaticActivityHistoryRepository(),
     this.userProgressRepository = const StaticUserProgressRepository(),
     this.leaderboardRepository = const StaticLeaderboardRepository(),
+    this.runnerPublicProfileRepository =
+        const UnavailableRunnerPublicProfileRepository(),
     this.friendsRepository = const StaticFriendsRepository(),
     this.challengeRepository = const StaticChallengeRepository(),
     this.challengeResultPresenter,
@@ -82,6 +85,10 @@ class RuniacShell extends StatefulWidget {
   final ActivityHistoryRepository activityHistoryRepository;
   final UserProgressRepository userProgressRepository;
   final LeaderboardRepository leaderboardRepository;
+
+  /// Backend source for another runner's public profile, opened from a
+  /// leaderboard rank row.
+  final RunnerPublicProfileRepository runnerPublicProfileRepository;
   final FriendsRepository friendsRepository;
 
   /// Server-owned Challenge source threaded to [HomeTab] and the Account badge
@@ -524,6 +531,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
         3: LeaderboardTab(
           key: const ValueKey<String>('runiac-shell-tab-leaderboard'),
           repository: widget.leaderboardRepository,
+          runnerPublicProfileRepository: widget.runnerPublicProfileRepository,
         ),
       if (_visitedTabIndexes.contains(4))
         4: YouTab(

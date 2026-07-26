@@ -3,10 +3,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
+import '../../features/profile/data/cloud_functions_runner_public_profile_repository.dart';
 import '../../features/profile/data/firestore_user_account_repository.dart';
 import '../../features/profile/data/firestore_user_profile_persistence_repository.dart';
 import '../../features/profile/data/firestore_user_profile_repository.dart';
 import '../../features/profile/data/static_user_profile_repository.dart';
+import '../../features/profile/domain/repositories/runner_public_profile_repository.dart';
 import '../../features/profile/domain/repositories/user_account_repository.dart';
 import '../../features/profile/domain/repositories/user_profile_persistence_repository.dart';
 import '../../features/profile/domain/repositories/user_profile_repository.dart';
@@ -96,6 +98,8 @@ class RuniacFirebaseBootstrap {
           friendsRepository: const StaticFriendsRepository(),
           profileRepository: const StaticUserProfileRepository(),
           userAccountRepository: const StaticUserAccountRepository(),
+          runnerPublicProfileRepository:
+              const UnavailableRunnerPublicProfileRepository(),
           paywallConfigRepository: const StaticPaywallConfigRepository(),
           featureAccessRepository: const StaticFeatureAccessRepository(),
           characterAccessRepository: const StaticCharacterAccessRepository(),
@@ -162,6 +166,8 @@ class RuniacFirebaseBootstrap {
         userAccountRepository: FirestoreUserAccountRepository(
           authRepository: authRepository,
         ),
+        runnerPublicProfileRepository:
+            CloudFunctionsRunnerPublicProfileRepository(),
         paywallConfigRepository: FirestorePaywallConfigRepository(),
         featureAccessRepository: FirestoreFeatureAccessRepository(),
         characterAccessRepository: FirestoreCharacterAccessRepository(),
@@ -192,7 +198,9 @@ class RuniacFirebaseBootstrap {
     }
 
     if (Firebase.apps.isEmpty) {
-      await Firebase.initializeApp(options: emulatorFirebaseOptions);
+      await Firebase.initializeApp(
+        options: firebaseOptionsForEmulator(runtimeConfig),
+      );
     }
 
     final firebaseAuth = FirebaseAuth.instance;
@@ -248,6 +256,8 @@ class RuniacFirebaseBootstrap {
       userAccountRepository: FirestoreUserAccountRepository(
         authRepository: authRepository,
       ),
+      runnerPublicProfileRepository:
+          CloudFunctionsRunnerPublicProfileRepository(),
       paywallConfigRepository: FirestorePaywallConfigRepository(),
       featureAccessRepository: FirestoreFeatureAccessRepository(),
       characterAccessRepository: FirestoreCharacterAccessRepository(),
@@ -306,6 +316,23 @@ class RuniacFirebaseBootstrap {
     return firebaseAuth.useAuthEmulator(runtimeConfig.emulatorHost, 9099);
   }
 
+  /// The Firebase app identity an emulator run should use.
+  ///
+  /// Prefers the real project's options when they are supplied, because
+  /// App Check is the one component that never talks to the emulator: it
+  /// exchanges a token with the real `firebaseappcheck.googleapis.com`. With
+  /// the placeholder project that exchange can only fail, and the iOS
+  /// Firestore SDK turns an App Check failure into a watch-stream error and
+  /// never opens its connection — every emulator read then fails with
+  /// "client is offline". Real options + the registered debug token make the
+  /// exchange succeed; all data traffic still goes to the emulator hosts
+  /// configured right below.
+  static FirebaseOptions firebaseOptionsForEmulator(
+    RuniacFirebaseRuntimeConfig runtimeConfig,
+  ) {
+    return _productionOptionsFor(runtimeConfig) ?? emulatorFirebaseOptions;
+  }
+
   static FirebaseOptions? _productionOptionsFor(
     RuniacFirebaseRuntimeConfig runtimeConfig,
   ) {
@@ -348,6 +375,7 @@ class RuniacFirebaseBootstrapResult {
     required this.friendsRepository,
     required this.profileRepository,
     required this.userAccountRepository,
+    required this.runnerPublicProfileRepository,
     required this.paywallConfigRepository,
     required this.featureAccessRepository,
     required this.characterAccessRepository,
@@ -377,6 +405,10 @@ class RuniacFirebaseBootstrapResult {
   /// Read-only trusted `users/{uid}` account seam backing the app-level
   /// subscription-status stream.
   final UserAccountRepository userAccountRepository;
+
+  /// Read-only callable seam for another runner's public profile, opened from
+  /// a leaderboard rank row.
+  final RunnerPublicProfileRepository runnerPublicProfileRepository;
 
   /// Read-only seam for the admin-published `config/paywall` display copy.
   final PaywallConfigRepository paywallConfigRepository;

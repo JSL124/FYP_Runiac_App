@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
 import '../../paywall/presentation/premium_gate.dart';
+import '../../profile/domain/repositories/runner_public_profile_repository.dart';
 import '../data/static_leaderboard_repository.dart';
 import '../domain/models/leaderboard_league_catalog.dart';
 import '../domain/models/leaderboard_read_model.dart';
@@ -20,18 +21,20 @@ import 'widgets/leaderboard_top_overlay.dart';
 import 'widgets/runner_achievement_profile_screen.dart';
 import 'widgets/share_rank_floating_panel.dart';
 
-export 'widgets/runner_achievement_profile_screen.dart'
-    show resolveRunnerMetricValueFontSize;
-
 class LeaderboardTab extends StatefulWidget {
   const LeaderboardTab({
     super.key,
     this.repository = const StaticLeaderboardRepository(),
     this.clock = _systemClock,
+    this.runnerPublicProfileRepository =
+        const UnavailableRunnerPublicProfileRepository(),
   });
 
   final LeaderboardRepository repository;
   final DateTime Function() clock;
+
+  /// Backend source for the public profile of a runner tapped in any rank row.
+  final RunnerPublicProfileRepository runnerPublicProfileRepository;
 
   @override
   State<LeaderboardTab> createState() => _LeaderboardTabState();
@@ -225,7 +228,10 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
     }
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => LeaderboardRankingScreen(snapshot: snapshot),
+        builder: (_) => LeaderboardRankingScreen(
+          snapshot: snapshot,
+          runnerPublicProfileRepository: widget.runnerPublicProfileRepository,
+        ),
       ),
     );
   }
@@ -308,6 +314,7 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
       return RunnerAchievementProfileScreen(
         profile: selectedProfile,
         onBack: _closeRunnerProfile,
+        publicProfileRepository: widget.runnerPublicProfileRepository,
       );
     }
     final snapshot = _selectedRegion;
