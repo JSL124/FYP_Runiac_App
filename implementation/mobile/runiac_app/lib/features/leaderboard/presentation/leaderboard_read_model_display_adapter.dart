@@ -14,7 +14,6 @@ LeaderboardDetailDisplaySnapshot leaderboardDisplaySnapshotFromReadModel(
         regionLabel: model.regionLabel,
         ordinal: index,
         snapshotId: model.snapshotId,
-        buildId: model.buildId,
       ),
   ];
   final nearbyRows = [
@@ -23,7 +22,6 @@ LeaderboardDetailDisplaySnapshot leaderboardDisplaySnapshotFromReadModel(
         entry,
         regionLabel: model.regionLabel,
         snapshotId: model.snapshotId,
-        buildId: model.buildId,
       ),
   ];
   final currentUser = nearbyRows.where((row) => row.isCurrentUser).firstOrNull;
@@ -73,7 +71,6 @@ leaderboardRankRowDisplaySnapshotFromReadModel(
   required String regionLabel,
   int? ordinal,
   String snapshotId = '',
-  String buildId = '',
 }) {
   final displayName = entry.displayName.trim().isEmpty
       ? 'Runiac Runner'
@@ -110,7 +107,9 @@ leaderboardRankRowDisplaySnapshotFromReadModel(
       regionLabel: _regionDisplayLabel(regionLabel),
       divisionLabel: divisionLabel,
       snapshotId: snapshotId,
-      buildId: buildId,
+      // The row's own build, not the board's: a nearby row read across a
+      // refresh carries the rank projection's build and must stay pinned to it.
+      buildId: entry.buildId,
     ),
   );
 }
