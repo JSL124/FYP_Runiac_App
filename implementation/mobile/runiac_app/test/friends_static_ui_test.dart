@@ -176,6 +176,40 @@ void main() {
   });
 
   testWidgets(
+    'FriendRowBadge exposes a profile-link semantics label by default',
+    (tester) async {
+      final semantics = tester.ensureSemantics();
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(body: FriendRowBadge(user: _longNameUser)),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.bySemanticsLabel('View $_longName profile'), findsOneWidget);
+      semantics.dispose();
+    },
+  );
+
+  testWidgets(
+    'FriendRowBadge suppresses the profile-link semantics when disabled',
+    (tester) async {
+      final semantics = tester.ensureSemantics();
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: FriendRowBadge(user: _longNameUser, enableProfileLink: false),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.bySemanticsLabel('View $_longName profile'), findsNothing);
+      semantics.dispose();
+    },
+  );
+
+  testWidgets(
     'No fabricated XP, rank, or streak content beyond supplied labels',
     (tester) async {
       await tester.pumpWidget(_harness());

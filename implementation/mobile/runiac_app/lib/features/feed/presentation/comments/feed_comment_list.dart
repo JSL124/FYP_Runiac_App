@@ -71,6 +71,7 @@ extension _FeedCommentList on _FeedCommentSheetState {
                     comment: comment,
                     currentAuthorProfile: widget._source.currentAuthorProfile,
                     ownsComment: ownsComment,
+                    viewerIdentified: widget._source.viewerUserId != null,
                     actionsEnabled: !_isOffline && !_isSubmitting,
                     onOwnerActions: () => _showOwnerActions(comment),
                   );
@@ -84,6 +85,7 @@ class _CommentRow extends StatelessWidget {
     required this.comment,
     required this.currentAuthorProfile,
     required this.ownsComment,
+    required this.viewerIdentified,
     required this.actionsEnabled,
     required this.onOwnerActions,
     super.key,
@@ -92,6 +94,11 @@ class _CommentRow extends StatelessWidget {
   final FeedCommentReadModel comment;
   final FeedAuthorProfileSnapshot? currentAuthorProfile;
   final bool ownsComment;
+
+  /// False when this build cannot tell who the viewer is (the fallback path
+  /// with no repository). Without that, `ownsComment` is always false and the
+  /// runner's own comment avatar would link to their own read-only profile.
+  final bool viewerIdentified;
   final bool actionsEnabled;
   final VoidCallback onOwnerActions;
 
@@ -101,7 +108,12 @@ class _CommentRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ExcludeSemantics(
+        RunnerProfileAvatarLink(
+          uid: comment.authorUserId,
+          displayName: comment.authorDisplayName,
+          avatarInitials: authorProfile.avatarInitials,
+          levelBadgeLabel: authorProfile.compactLevelLabel,
+          enabled: viewerIdentified && !ownsComment,
           child: RuniacLevelProfileBadge.row(
             key: ValueKey('feed-comment-author-profile-${comment.commentId}'),
             initials: authorProfile.avatarInitials,

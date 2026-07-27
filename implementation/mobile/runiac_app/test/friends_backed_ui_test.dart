@@ -67,6 +67,50 @@ void main() {
     semantics.dispose();
   });
 
+  testWidgets(
+    'Friends tab, Requests tab, and Search results expose a profile link; '
+    'Blocked tab does not',
+    (tester) async {
+      final semantics = tester.ensureSemantics();
+      repository.overview = repository.overview.copyWith(
+        incomingRequests: const <FriendUserReadModel>[_jasmine],
+      );
+      await tester.pumpWidget(harness());
+      await tester.pumpAndSettle();
+
+      final aishaLink = tester.getSemantics(
+        find.bySemanticsLabel('View Aisha Rahman profile'),
+      );
+      expect(aishaLink.getSemanticsData().flagsCollection.isButton, isTrue);
+
+      await tester.tap(find.text('Requests'));
+      await tester.pumpAndSettle();
+      final jasmineLink = tester.getSemantics(
+        find.bySemanticsLabel('View Jasmine Koh profile'),
+      );
+      expect(jasmineLink.getSemanticsData().flagsCollection.isButton, isTrue);
+
+      await tester.tap(find.text('Search'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'Grace');
+      await tester.testTextInput.receiveAction(TextInputAction.search);
+      await tester.pumpAndSettle();
+      final graceLink = tester.getSemantics(
+        find.bySemanticsLabel('View Grace Teo profile'),
+      );
+      expect(graceLink.getSemanticsData().flagsCollection.isButton, isTrue);
+
+      await tester.tap(find.text('Blocked'));
+      await tester.pumpAndSettle();
+      expect(
+        find.bySemanticsLabel('View Blocked Runner profile'),
+        findsNothing,
+      );
+
+      semantics.dispose();
+    },
+  );
+
   testWidgets('search only runs on exact submit and preserves the query', (
     tester,
   ) async {

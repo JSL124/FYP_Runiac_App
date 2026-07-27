@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/runiac_colors.dart';
 import '../../../../core/widgets/runiac_level_profile_badge.dart';
+import '../../../profile/presentation/widgets/runner_profile_avatar_link.dart';
 import '../../../you/presentation/widgets/you_surface_primitives.dart';
 import '../../domain/models/feed_display_models.dart';
 import '../feed_timeline_screen_controller.dart';
@@ -30,7 +31,19 @@ class FeedPostSection extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 16, 10, 12),
           child: Row(
             children: [
-              ExcludeSemantics(
+              RunnerProfileAvatarLink(
+                uid: post.authorUserId,
+                displayName: post.authorDisplayName,
+                avatarInitials: authorProfile.avatarInitials,
+                levelBadgeLabel: authorProfile.compactLevelLabel,
+                // A null viewer uid means this build cannot tell whose post
+                // this is (the demo/no-viewer-context path), so it must not
+                // guess: linking then risks handing the runner their own
+                // read-only profile, and those rows carry fixture uids the
+                // backend would reject anyway.
+                enabled:
+                    controller.viewerUserId != null &&
+                    post.authorUserId != controller.viewerUserId,
                 child: RuniacLevelProfileBadge.row(
                   key: ValueKey('feed-author-profile-${post.postId}'),
                   initials: authorProfile.avatarInitials,

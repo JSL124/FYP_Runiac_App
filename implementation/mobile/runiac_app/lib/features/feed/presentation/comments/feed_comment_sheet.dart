@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/runiac_colors.dart';
 import '../../../../core/widgets/runiac_level_profile_badge.dart';
+import '../../../profile/presentation/widgets/runner_profile_avatar_link.dart';
 import '../../../you/presentation/widgets/you_surface_primitives.dart';
 import '../../domain/models/feed_display_models.dart';
 import '../../domain/repositories/feed_repository.dart';
