@@ -4,6 +4,7 @@ import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_back_header.dart';
 import '../../../core/widgets/runiac_buttons.dart';
 import '../../../core/widgets/runiac_level_profile_badge.dart';
+import '../../profile/presentation/widgets/runner_profile_avatar_link.dart';
 import '../domain/challenge_copy.dart';
 import 'widgets/challenge_widgets.dart';
 
@@ -177,12 +178,32 @@ class _FriendPickRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // `explicitChildNodes: true` keeps this row's own button/label semantics
+    // separate from the avatar's nested `RunnerProfileAvatarLink` semantics
+    // below, instead of the two merging into one node with a garbled,
+    // concatenated label. `onTap` is attached here directly (in addition to
+    // the real `RuniacTappableSurface.onTap` used for the actual gesture)
+    // because `explicitChildNodes` also stops the inner `InkWell`'s tap
+    // action from merging upward, so this node needs its own action wired to
+    // stay activatable via assistive tech.
+    //
+    // The label deliberately stays on this outer node rather than moving to
+    // `RuniacTappableSurface.semanticLabel`: that parameter forces
+    // `excludeSemantics: true` on whatever node it produces (see
+    // `RuniacTappableSurface`), which — per `RenderObject
+    // .visitChildrenForSemantics` — drops ALL descendant semantics nodes,
+    // including the avatar's own explicit "View <name> profile" button node.
+    // Since this row is the first place a `RunnerProfileAvatarLink` sits
+    // inside a `RuniacTappableSurface` with a competing row-level action,
+    // that swallow behaviour is new territory this row must avoid.
     return Semantics(
       container: true,
+      explicitChildNodes: true,
       button: true,
       selected: selected,
       enabled: !disabled,
       label: friend.displayName,
+      onTap: onTap,
       child: RuniacTappableSurface(
         onTap: onTap,
         semanticsButton: false,
@@ -199,13 +220,19 @@ class _FriendPickRow extends StatelessWidget {
         constraints: const BoxConstraints(minHeight: 44),
         child: Row(
           children: [
-            ExcludeSemantics(
-              child: RuniacLevelProfileBadge.row(
-                initials: friend.initials,
-                levelLabel: friend.levelLabel.trim().isEmpty
-                    ? 'Lv.0'
-                    : friend.levelLabel,
-                progressFraction: 0,
+            RunnerProfileAvatarLink(
+              uid: friend.uid,
+              displayName: friend.displayName,
+              avatarInitials: friend.initials,
+              levelBadgeLabel: friend.levelLabel,
+              child: ExcludeSemantics(
+                child: RuniacLevelProfileBadge.row(
+                  initials: friend.initials,
+                  levelLabel: friend.levelLabel.trim().isEmpty
+                      ? 'Lv.0'
+                      : friend.levelLabel,
+                  progressFraction: 0,
+                ),
               ),
             ),
             const SizedBox(width: 12),

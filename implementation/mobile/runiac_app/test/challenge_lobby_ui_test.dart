@@ -243,6 +243,53 @@ void main() {
     expect(find.text('Declined'), findsOneWidget);
   });
 
+  testWidgets(
+    'roster avatars link to profiles for others but not the current user; '
+    'the pending-invitation avatar is inert',
+    (tester) async {
+      final semantics = tester.ensureSemantics();
+      final repository = FakeChallengeRepository(
+        activeOverride: () => _lobby(
+          isOwner: false,
+          participants: [
+            _owner(isCurrentUser: false, displayName: 'jinseo'),
+            _member(isCurrentUser: true),
+          ],
+        ),
+      );
+      final invitations = <ChallengeInvitationSummary>[
+        const ChallengeInvitationSummary(
+          inviteId: 'i1',
+          challengeId: 'lobby-1',
+          tierId: ChallengeTierId.k10,
+          ownerUid: 'me',
+          status: ChallengeInvitationStatus.pending,
+          createdAtMs: 0,
+          expiresAtMs: 0,
+          rules: null,
+        ),
+      ];
+      await tester.pumpWidget(
+        _harness(
+          _screen(repository: repository, pendingInvitations: invitations),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Another participant's avatar exposes profile-link button semantics.
+      expect(find.bySemanticsLabel('View jinseo profile'), findsOneWidget);
+      // The current user's own row is never tappable.
+      expect(find.bySemanticsLabel('View Sam Runner profile'), findsNothing);
+      // The pending-invitation tile ("Invited runner") stays anonymous.
+      expect(
+        find.bySemanticsLabel('View Invited runner profile'),
+        findsNothing,
+      );
+
+      semantics.dispose();
+    },
+  );
+
   testWidgets('start confirm sheet uses solo wording when alone', (
     tester,
   ) async {
@@ -378,6 +425,42 @@ void main() {
     // The second row is now over cap and disabled.
     expect(find.text('Invite limit reached'), findsOneWidget);
   });
+
+  testWidgets(
+    'friend picker avatar exposes profile semantics and the row still '
+    'toggles selection',
+    (tester) async {
+      final semantics = tester.ensureSemantics();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChallengeFriendPickerScreen(
+            cap: 1,
+            onBack: () {},
+            friends: const [
+              ChallengeInvitableFriend(
+                uid: 'a',
+                displayName: 'Ann',
+                initials: 'AN',
+                levelLabel: 'Lv.9',
+              ),
+            ],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // The avatar exposes its own profile-link button semantics.
+      expect(find.bySemanticsLabel('View Ann profile'), findsOneWidget);
+
+      // Tapping the row body (not the avatar) still toggles selection.
+      await tester.tap(find.text('Ann'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Invited 1 of 1'), findsWidgets);
+
+      semantics.dispose();
+    },
+  );
 
   testWidgets('lobby lays out at 360px and textScale 1.3 without overflow', (
     tester,
