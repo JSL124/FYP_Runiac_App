@@ -33,10 +33,10 @@ class SharedPreferencesPlanNotificationLedger
   }
 
   @override
-  Future<List<ScheduledPlanNotification>> loadEntries() async {
+  Future<List<PlanNotificationLedgerEntry>> loadEntries() async {
     final key = _key();
     if (key == null) {
-      return const <ScheduledPlanNotification>[];
+      return const <PlanNotificationLedgerEntry>[];
     }
     final preferences = await SharedPreferences.getInstance();
     return _decode(preferences.getString(key));
@@ -71,7 +71,10 @@ class SharedPreferencesPlanNotificationLedger
       ..._decode(
         preferences.getString(key),
       ).where((entry) => entry.id != notification.id),
-      notification,
+      PlanNotificationLedgerEntry(
+        notification: notification,
+        planSyncOwned: false,
+      ),
     ]..sort((left, right) => left.scheduledAt.compareTo(right.scheduledAt));
     await _write(preferences, key, entries);
   }
@@ -106,7 +109,7 @@ class SharedPreferencesPlanNotificationLedger
   Future<void> _write(
     SharedPreferences preferences,
     String key,
-    List<ScheduledPlanNotification> entries,
+    List<PlanNotificationLedgerEntry> entries,
   ) async {
     if (entries.isEmpty) {
       await preferences.remove(key);
@@ -118,22 +121,22 @@ class SharedPreferencesPlanNotificationLedger
     );
   }
 
-  List<ScheduledPlanNotification> _decode(String? raw) {
+  List<PlanNotificationLedgerEntry> _decode(String? raw) {
     if (raw == null || raw.isEmpty) {
-      return const <ScheduledPlanNotification>[];
+      return const <PlanNotificationLedgerEntry>[];
     }
     final Object? decoded;
     try {
       decoded = jsonDecode(raw);
     } on FormatException {
-      return const <ScheduledPlanNotification>[];
+      return const <PlanNotificationLedgerEntry>[];
     }
     if (decoded is! List) {
-      return const <ScheduledPlanNotification>[];
+      return const <PlanNotificationLedgerEntry>[];
     }
     return [
       for (final item in decoded)
-        ?ScheduledPlanNotification.fromLedgerJson(item),
+        ?PlanNotificationLedgerEntry.fromLedgerJson(item),
     ];
   }
 }

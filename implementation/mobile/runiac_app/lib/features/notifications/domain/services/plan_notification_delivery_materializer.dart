@@ -1,5 +1,4 @@
 import '../models/notification_inbox_item.dart';
-import '../models/plan_notification_schedule.dart';
 import '../repositories/notification_inbox_repository.dart';
 import '../repositories/plan_notification_ledger.dart';
 import '../repositories/plan_notification_scheduler.dart';
@@ -46,7 +45,7 @@ class PlanNotificationDeliveryMaterializer {
     }
 
     final entries = await ledger.loadEntries();
-    final entriesById = <String, ScheduledPlanNotification>{
+    final entriesById = <String, PlanNotificationLedgerEntry>{
       for (final entry in entries) entry.id: entry,
     };
     final materialized = <String>{};
@@ -57,6 +56,16 @@ class PlanNotificationDeliveryMaterializer {
       if (entry == null || materialized.contains(entry.id)) {
         // Not one of ours, or already handled. Push notifications land here
         // and are ignored: the app writes those to the inbox on receipt.
+        continue;
+      }
+      if (entry.scheduledAt.isAfter(delivery.deliveredAt)) {
+        // A notification scheduled for later cannot be the one that was
+        // delivered. Ids are deterministic and reused across schedules, and
+        // iOS keeps reporting a delivered notification for as long as it sits
+        // in the notification centre, so without this an old report would be
+        // misattributed to the next schedule sharing its id — marking it
+        // delivered early and clearing the read state the runner had set.
+        // The time backstop below still covers it once its moment passes.
         continue;
       }
       if (await _write(entry, delivery.deliveredAt)) {
@@ -83,17 +92,21 @@ class PlanNotificationDeliveryMaterializer {
   /// Returns whether the item reached the inbox. A failed write leaves the
   /// ledger entry in place so the next pass retries it.
   Future<bool> _write(
-    ScheduledPlanNotification entry,
+    PlanNotificationLedgerEntry entry,
     DateTime deliveredAt,
   ) async {
+    final notification = entry.notification;
     try {
-      await inboxRepository.saveInboxItem(
+      await inboxRepository.recordDelivery(
         NotificationInboxItem(
-          id: entry.id,
-          title: entry.title,
-          body: entry.body,
+          id: notification.id,
+          title: notification.title,
+          body: notification.body,
           createdAt: deliveredAt,
-          data: <String, Object?>{'kind': entry.kind.name, ...entry.payload},
+          data: <String, Object?>{
+            'kind': notification.kind.name,
+            ...notification.payload,
+          },
           clientManaged: true,
         ),
       );

@@ -146,6 +146,7 @@ class _FakeNotificationInboxDocumentStore
   final List<NotificationInboxDocument> items;
   final watchedUids = <String>[];
   final savedItems = <_SaveCall>[];
+  final clearReadStateCalls = <bool>[];
   final markReadCalls = <_WriteCall>[];
   final softDeleteCalls = <_WriteCall>[];
 
@@ -161,8 +162,10 @@ class _FakeNotificationInboxDocumentStore
   Future<void> saveInboxItem({
     required String uid,
     required NotificationInboxDocument item,
+    bool clearReadState = false,
   }) async {
     savedItems.add(_SaveCall(uid, item.toReadModel()));
+    clearReadStateCalls.add(clearReadState);
   }
 
   @override

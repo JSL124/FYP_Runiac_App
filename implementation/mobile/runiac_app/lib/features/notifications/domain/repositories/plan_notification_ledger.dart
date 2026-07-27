@@ -1,5 +1,46 @@
 import '../models/plan_notification_schedule.dart';
 
+/// One notification handed to the OS, plus who scheduled it.
+class PlanNotificationLedgerEntry {
+  const PlanNotificationLedgerEntry({
+    required this.notification,
+    required this.planSyncOwned,
+  });
+
+  final ScheduledPlanNotification notification;
+
+  /// True when the plan sync scheduled it. Only plan-owned entries are evicted
+  /// when a later sync stops listing them, mirroring the native side: the
+  /// scheduler's `cancelPlanNotifications` only cancels ids the plan sync
+  /// registered, so a one-off schedule survives natively and must survive here
+  /// too. Without this the ledger and the OS disagree, and a notification that
+  /// really does fire never reaches the inbox.
+  final bool planSyncOwned;
+
+  String get id => notification.id;
+
+  DateTime get scheduledAt => notification.scheduledAt;
+
+  Map<String, Object?> toLedgerJson() {
+    return <String, Object?>{
+      ...notification.toLedgerJson(),
+      'planSyncOwned': planSyncOwned,
+    };
+  }
+
+  static PlanNotificationLedgerEntry? fromLedgerJson(Object? json) {
+    final notification = ScheduledPlanNotification.fromLedgerJson(json);
+    if (notification == null) {
+      return null;
+    }
+    return PlanNotificationLedgerEntry(
+      notification: notification,
+      // Records written before ownership was tracked were all plan-owned.
+      planSyncOwned: json is Map ? json['planSyncOwned'] != false : true,
+    );
+  }
+}
+
 /// A local record of the plan notifications actually handed to the OS.
 ///
 /// The inbox is a catch-up surface for notifications the runner missed, so an
@@ -9,7 +50,7 @@ import '../models/plan_notification_schedule.dart';
 /// identifier so a delivery can be turned back into an inbox item, and so a
 /// notification cancelled before it ever fired can be recognised and dropped.
 abstract class PlanNotificationLedger {
-  Future<List<ScheduledPlanNotification>> loadEntries();
+  Future<List<PlanNotificationLedgerEntry>> loadEntries();
 
   /// Records the set just handed to the OS, per [mergePlanNotificationLedger].
   Future<void> replaceScheduled(
@@ -34,38 +75,44 @@ abstract class PlanNotificationLedger {
 /// five minutes before launch would be dropped by the sync that runs on the
 /// shell's first build and would never reach the inbox.
 ///
-/// Entries still in the future that the new set omits are dropped — that is
-/// exactly a cancelled notification (a completed workout's missed-run nudge,
-/// say), and it must never become an inbox row.
-List<ScheduledPlanNotification> mergePlanNotificationLedger(
-  List<ScheduledPlanNotification> existing,
+/// A plan-owned entry still in the future that the new set omits is dropped —
+/// that is exactly a cancelled notification (a completed workout's missed-run
+/// nudge, say), and it must never become an inbox row. Entries scheduled
+/// outside the plan sync are never evicted here, because this sync does not
+/// cancel them natively either.
+List<PlanNotificationLedgerEntry> mergePlanNotificationLedger(
+  List<PlanNotificationLedgerEntry> existing,
   List<ScheduledPlanNotification> scheduled, {
   required DateTime now,
 }) {
-  final merged = <String, ScheduledPlanNotification>{
+  final merged = <String, PlanNotificationLedgerEntry>{
     for (final entry in existing)
-      if (!entry.scheduledAt.isAfter(now)) entry.id: entry,
+      if (!entry.planSyncOwned || !entry.scheduledAt.isAfter(now))
+        entry.id: entry,
   };
-  for (final entry in scheduled) {
-    merged[entry.id] = entry;
+  for (final notification in scheduled) {
+    merged[notification.id] = PlanNotificationLedgerEntry(
+      notification: notification,
+      planSyncOwned: true,
+    );
   }
   final entries = merged.values.toList()
     ..sort((left, right) => left.scheduledAt.compareTo(right.scheduledAt));
-  return List<ScheduledPlanNotification>.unmodifiable(entries);
+  return List<PlanNotificationLedgerEntry>.unmodifiable(entries);
 }
 
 /// Test double and the no-op used wherever local plan notifications are off.
 class InMemoryPlanNotificationLedger implements PlanNotificationLedger {
   InMemoryPlanNotificationLedger({
-    List<ScheduledPlanNotification> entries =
-        const <ScheduledPlanNotification>[],
-  }) : _entries = List<ScheduledPlanNotification>.of(entries);
+    List<PlanNotificationLedgerEntry> entries =
+        const <PlanNotificationLedgerEntry>[],
+  }) : _entries = List<PlanNotificationLedgerEntry>.of(entries);
 
-  List<ScheduledPlanNotification> _entries;
+  List<PlanNotificationLedgerEntry> _entries;
 
   @override
-  Future<List<ScheduledPlanNotification>> loadEntries() async {
-    return List<ScheduledPlanNotification>.unmodifiable(_entries);
+  Future<List<PlanNotificationLedgerEntry>> loadEntries() async {
+    return List<PlanNotificationLedgerEntry>.unmodifiable(_entries);
   }
 
   @override
@@ -80,7 +127,10 @@ class InMemoryPlanNotificationLedger implements PlanNotificationLedger {
   Future<void> addScheduled(ScheduledPlanNotification notification) async {
     _entries = [
       ..._entries.where((entry) => entry.id != notification.id),
-      notification,
+      PlanNotificationLedgerEntry(
+        notification: notification,
+        planSyncOwned: false,
+      ),
     ]..sort((left, right) => left.scheduledAt.compareTo(right.scheduledAt));
   }
 
@@ -94,6 +144,6 @@ class InMemoryPlanNotificationLedger implements PlanNotificationLedger {
 
   @override
   Future<void> clear() async {
-    _entries = const <ScheduledPlanNotification>[];
+    _entries = const <PlanNotificationLedgerEntry>[];
   }
 }

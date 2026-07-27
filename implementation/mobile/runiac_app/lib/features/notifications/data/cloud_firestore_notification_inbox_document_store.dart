@@ -11,10 +11,14 @@ import 'firestore_notification_inbox_repository.dart';
 /// so the unread badge could never be brought down. Omitting the keys lets the
 /// merge preserve them. `firestore.rules` validates both conditionally
 /// (`!('readAt' in request.resource.data) || ...`), so their absence is allowed.
+/// When [clearReadState] is true the two keys are cleared instead, which is how
+/// a fresh delivery reuses an id the one-time legacy sweep already marked
+/// deleted.
 Map<String, Object?> notificationInboxDocumentPayload({
   required String uid,
   required NotificationInboxDocument item,
   required DateTime updatedAt,
+  bool clearReadState = false,
 }) {
   return <String, Object?>{
     'ownerUid': uid,
@@ -22,8 +26,13 @@ Map<String, Object?> notificationInboxDocumentPayload({
     'title': item.title,
     'body': item.body,
     'createdAt': Timestamp.fromDate(item.createdAt.toUtc()),
-    if (item.readAt != null) 'readAt': Timestamp.fromDate(item.readAt!.toUtc()),
-    if (item.deletedAt != null)
+    if (clearReadState)
+      'readAt': FieldValue.delete()
+    else if (item.readAt != null)
+      'readAt': Timestamp.fromDate(item.readAt!.toUtc()),
+    if (clearReadState)
+      'deletedAt': FieldValue.delete()
+    else if (item.deletedAt != null)
       'deletedAt': Timestamp.fromDate(item.deletedAt!.toUtc()),
     'data': item.data,
     'updatedAt': Timestamp.fromDate(updatedAt.toUtc()),
@@ -64,6 +73,7 @@ class CloudFirestoreNotificationInboxDocumentStore
   Future<void> saveInboxItem({
     required String uid,
     required NotificationInboxDocument item,
+    bool clearReadState = false,
   }) {
     return _items(uid)
         .doc(item.id)
@@ -72,6 +82,7 @@ class CloudFirestoreNotificationInboxDocumentStore
             uid: uid,
             item: item,
             updatedAt: DateTime.now(),
+            clearReadState: clearReadState,
           ),
           SetOptions(merge: true),
         );

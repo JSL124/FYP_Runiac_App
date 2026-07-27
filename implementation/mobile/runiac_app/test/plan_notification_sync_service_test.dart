@@ -147,12 +147,15 @@ void main() {
       final scheduler = _RecordingPlanNotificationScheduler();
       final ledger = InMemoryPlanNotificationLedger(
         entries: [
-          ScheduledPlanNotification(
-            id: 'stale',
-            kind: PlanNotificationKind.todaysPlanReminder,
-            scheduledAt: DateTime(2026, 7, 9),
-            title: 'Stale',
-            body: 'Stale',
+          PlanNotificationLedgerEntry(
+            notification: ScheduledPlanNotification(
+              id: 'stale',
+              kind: PlanNotificationKind.todaysPlanReminder,
+              scheduledAt: DateTime(2026, 7, 9),
+              title: 'Stale',
+              body: 'Stale',
+            ),
+            planSyncOwned: true,
           ),
         ],
       );
@@ -173,6 +176,44 @@ void main() {
 
       // Then: cancelled notifications cannot later be mistaken for deliveries.
       expect(await ledger.loadEntries(), isEmpty);
+    });
+
+    test('keeps a one-off notification when the plan syncs after it', () async {
+      // Given: the shell schedules the QA smoke notification and then syncs the
+      // generated plan on the same launch. The smoke notification is still in
+      // the future and is not part of the plan's set, but the native scheduler
+      // does not cancel it — only ids the plan sync registered are cancelled.
+      final settingsRepository = InMemoryNotificationCenterSettingsRepository(
+        initialSettings: NotificationCenterSettings.defaults,
+      );
+      final scheduler = _RecordingPlanNotificationScheduler();
+      final ledger = InMemoryPlanNotificationLedger();
+      final service = PlanNotificationSyncService(
+        settingsRepository: settingsRepository,
+        scheduler: scheduler,
+        ledger: ledger,
+      );
+
+      // When
+      await service.scheduleSmokeTestNotification(
+        now: DateTime(2026, 7, 8, 5),
+        delay: const Duration(seconds: 45),
+      );
+      await service.syncGeneratedPlan(
+        _snapshot(
+          startsOnDate: '2026-07-06',
+          workout: _workout(dayLabel: 'Wed', scheduleTimeLabel: '7:30 AM'),
+        ),
+        now: DateTime(2026, 7, 8, 5),
+      );
+
+      // Then: evicting it would leave the ledger disagreeing with the OS, and
+      // the notification would fire with nothing to build an inbox item from.
+      final entries = await ledger.loadEntries();
+      expect(
+        entries.map((entry) => entry.id),
+        contains('local-notification-smoke-test'),
+      );
     });
 
     test('schedules a QA smoke notification after a short delay', () async {

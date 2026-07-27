@@ -12,7 +12,7 @@ void main() {
       // Given: the platform reported that a scheduled reminder was presented.
       final ledger = InMemoryPlanNotificationLedger(
         entries: [
-          _notification(id: 'fired', scheduledAt: DateTime(2026, 7, 8, 7, 30)),
+          _entry(id: 'fired', scheduledAt: DateTime(2026, 7, 8, 7, 30)),
         ],
       );
       final inbox = InMemoryNotificationInboxRepository();
@@ -49,10 +49,7 @@ void main() {
         // never tapped, so a passed schedule is the only remaining evidence.
         final ledger = InMemoryPlanNotificationLedger(
           entries: [
-            _notification(
-              id: 'silent',
-              scheduledAt: DateTime(2026, 7, 8, 7, 30),
-            ),
+            _entry(id: 'silent', scheduledAt: DateTime(2026, 7, 8, 7, 30)),
           ],
         );
         final inbox = InMemoryNotificationInboxRepository();
@@ -78,10 +75,7 @@ void main() {
       // Given
       final ledger = InMemoryPlanNotificationLedger(
         entries: [
-          _notification(
-            id: 'upcoming',
-            scheduledAt: DateTime(2026, 7, 9, 7, 30),
-          ),
+          _entry(id: 'upcoming', scheduledAt: DateTime(2026, 7, 9, 7, 30)),
         ],
       );
       final inbox = InMemoryNotificationInboxRepository();
@@ -125,11 +119,90 @@ void main() {
       expect(await inbox.listInboxItems(), isEmpty);
     });
 
+    test('shows a delivery whose id the legacy sweep had deleted', () async {
+      // Given: the one-time sweep soft-deleted the whole client-written
+      // backlog, including this notification's deterministic id, and only
+      // afterwards did the notification actually fire.
+      final ledger = InMemoryPlanNotificationLedger(
+        entries: [
+          _entry(id: 'swept', scheduledAt: DateTime(2026, 7, 8, 7, 30)),
+        ],
+      );
+      final inbox = InMemoryNotificationInboxRepository(
+        items: [
+          NotificationInboxItem(
+            id: 'swept',
+            title: 'Still planning to run?',
+            body: 'Easy Run was scheduled 1 hour ago.',
+            createdAt: DateTime(2026, 7, 8, 7, 30),
+            deletedAt: DateTime(2026, 7, 8, 6),
+            clientManaged: true,
+          ),
+        ],
+      );
+      final materializer = _materializer(
+        ledger: ledger,
+        inbox: inbox,
+        deliveries: const <PlanNotificationDelivery>[],
+        now: DateTime(2026, 7, 8, 9),
+      );
+
+      // When
+      await materializer.materializeDeliveries();
+
+      // Then: preserving the sweep's deletedAt here would hide every plan
+      // notification that fires after the upgrade.
+      expect((await inbox.listInboxItems()).single.id, 'swept');
+    });
+
+    test('ignores a stale report for a re-scheduled id', () async {
+      // Given: the runner already read this notification, and iOS still
+      // reports it as delivered because it sits undismissed in the
+      // notification centre. Meanwhile the same deterministic id has been
+      // scheduled again for a later moment.
+      final ledger = InMemoryPlanNotificationLedger(
+        entries: [
+          _entry(id: 'reused', scheduledAt: DateTime(2026, 7, 9, 7, 30)),
+        ],
+      );
+      final inbox = InMemoryNotificationInboxRepository(
+        items: [
+          NotificationInboxItem(
+            id: 'reused',
+            title: 'Still planning to run?',
+            body: 'Easy Run was scheduled 1 hour ago.',
+            createdAt: DateTime(2026, 7, 8, 7, 30),
+            readAt: DateTime(2026, 7, 8, 8),
+            clientManaged: true,
+          ),
+        ],
+      );
+      final materializer = _materializer(
+        ledger: ledger,
+        inbox: inbox,
+        deliveries: [
+          PlanNotificationDelivery(
+            id: 'reused',
+            deliveredAt: DateTime(2026, 7, 8, 7, 30),
+          ),
+        ],
+        now: DateTime(2026, 7, 8, 9),
+      );
+
+      // When
+      await materializer.materializeDeliveries();
+
+      // Then: the stale report must not mark the new schedule delivered, nor
+      // reset the read state the runner already set.
+      expect((await inbox.listInboxItems()).single.isRead, isTrue);
+      expect((await ledger.loadEntries()).single.id, 'reused');
+    });
+
     test('is idempotent across repeated passes', () async {
       // Given
       final ledger = InMemoryPlanNotificationLedger(
         entries: [
-          _notification(id: 'fired', scheduledAt: DateTime(2026, 7, 8, 7, 30)),
+          _entry(id: 'fired', scheduledAt: DateTime(2026, 7, 8, 7, 30)),
         ],
       );
       final inbox = InMemoryNotificationInboxRepository();
@@ -166,7 +239,7 @@ void main() {
       // Given: an inbox write needs an owner, and draining is destructive.
       final ledger = InMemoryPlanNotificationLedger(
         entries: [
-          _notification(id: 'fired', scheduledAt: DateTime(2026, 7, 8, 7, 30)),
+          _entry(id: 'fired', scheduledAt: DateTime(2026, 7, 8, 7, 30)),
         ],
       );
       final inbox = InMemoryNotificationInboxRepository();
@@ -197,7 +270,7 @@ void main() {
       // Given
       final ledger = InMemoryPlanNotificationLedger(
         entries: [
-          _notification(id: 'fired', scheduledAt: DateTime(2026, 7, 8, 7, 30)),
+          _entry(id: 'fired', scheduledAt: DateTime(2026, 7, 8, 7, 30)),
         ],
       );
       final materializer = PlanNotificationDeliveryMaterializer(
@@ -229,6 +302,17 @@ PlanNotificationDeliveryMaterializer _materializer({
     inboxRepository: inbox,
     ownerUidProvider: () => 'runner-1',
     clock: () => now,
+  );
+}
+
+PlanNotificationLedgerEntry _entry({
+  required String id,
+  required DateTime scheduledAt,
+  bool planSyncOwned = true,
+}) {
+  return PlanNotificationLedgerEntry(
+    notification: _notification(id: id, scheduledAt: scheduledAt),
+    planSyncOwned: planSyncOwned,
   );
 }
 
@@ -281,6 +365,11 @@ class _ThrowingNotificationInboxRepository extends NotificationInboxRepository {
 
   @override
   Future<void> saveInboxItem(NotificationInboxItem item) async {
+    throw StateError('offline');
+  }
+
+  @override
+  Future<void> recordDelivery(NotificationInboxItem item) async {
     throw StateError('offline');
   }
 

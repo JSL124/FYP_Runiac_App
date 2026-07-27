@@ -56,6 +56,7 @@ abstract class NotificationInboxDocumentStore {
   Future<void> saveInboxItem({
     required String uid,
     required NotificationInboxDocument item,
+    bool clearReadState,
   });
 
   Future<void> softDelete({
@@ -99,7 +100,19 @@ class FirestoreNotificationInboxRepository
   }
 
   @override
+  Future<void> recordDelivery(NotificationInboxItem item) {
+    return _write(item, clearReadState: true);
+  }
+
+  @override
   Future<void> saveInboxItem(NotificationInboxItem item) {
+    return _write(item, clearReadState: false);
+  }
+
+  Future<void> _write(
+    NotificationInboxItem item, {
+    required bool clearReadState,
+  }) {
     final uid = ownerUid;
     if (uid.isEmpty) {
       if (_debugNotificationInboxWrites) {
@@ -128,6 +141,7 @@ class FirestoreNotificationInboxRepository
         data: item.data,
         clientManaged: true,
       ),
+      clearReadState: clearReadState,
     );
   }
 

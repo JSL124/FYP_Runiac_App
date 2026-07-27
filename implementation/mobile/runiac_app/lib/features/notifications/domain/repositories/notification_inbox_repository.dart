@@ -11,7 +11,19 @@ abstract class NotificationInboxRepository {
 
   Stream<int> watchUnreadCount();
 
+  /// Upserts an item, preserving whatever read/dismissed state it already has.
   Future<void> saveInboxItem(NotificationInboxItem item);
+
+  /// Records a notification that has just been delivered, clearing any read or
+  /// dismissed state on the stored document.
+  ///
+  /// This is deliberately not [saveInboxItem]. A delivery is a new arrival, and
+  /// notification ids are deterministic, so the id may already carry a
+  /// `deletedAt` — every id in the one-time legacy sweep does. Preserving that
+  /// state here would silently suppress a notification the runner really did
+  /// miss. Nothing re-writes a delivered item afterwards (its ledger entry is
+  /// spent), so this cannot resurrect something the runner dismissed.
+  Future<void> recordDelivery(NotificationInboxItem item);
 
   Future<void> markRead(String itemId);
 
@@ -36,6 +48,9 @@ class StaticNotificationInboxRepository implements NotificationInboxRepository {
 
   @override
   Future<void> saveInboxItem(NotificationInboxItem item) async {}
+
+  @override
+  Future<void> recordDelivery(NotificationInboxItem item) async {}
 
   @override
   Future<void> markRead(String itemId) async {}
@@ -91,6 +106,21 @@ class InMemoryNotificationInboxRepository
 
   @override
   Future<void> saveInboxItem(NotificationInboxItem item) async {
+    final index = _items.indexWhere((existing) => existing.id == item.id);
+    if (index == -1) {
+      _items.add(item);
+    } else {
+      final existing = _items[index];
+      _items[index] = item.copyWith(
+        readAt: existing.readAt,
+        deletedAt: existing.deletedAt,
+      );
+    }
+    _emit();
+  }
+
+  @override
+  Future<void> recordDelivery(NotificationInboxItem item) async {
     final index = _items.indexWhere((existing) => existing.id == item.id);
     if (index == -1) {
       _items.add(item);
