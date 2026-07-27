@@ -111,14 +111,20 @@ class FeedTimelinePagingSession {
     state = FeedTimelineStateMutator.withoutAuthor(state, author);
   }
 
-  /// Overlays a live, backend-resolved author level onto every post in
-  /// [page] that has one, in place. Leaves a post's stored `authorLevelLabel`
-  /// (and its progress fraction unresolved) when the resolver has nothing
-  /// for its author, or resolves an empty `levelLabel` — including when the
-  /// resolver itself fails, since it swallows its own errors, and when the
-  /// backend returns an empty label because the author's profile is missing
-  /// or carries no level. An empty resolved label must never erase a
-  /// post's existing stored label.
+  /// Overlays the live, backend-resolved author identity and level onto every
+  /// post in [page] that has one, in place.
+  ///
+  /// A post's `authorDisplayName`, `authorAvatarInitials`, and
+  /// `authorLevelLabel` are all frozen at publish time, and `feedPosts` is
+  /// closed to client writes, so this overlay is the only thing that shows a
+  /// renamed author under their current name on posts they already published.
+  ///
+  /// Each field is overlaid independently and only when the backend resolved
+  /// a non-empty value. A post keeps its stored value when the resolver has
+  /// nothing for its author — including when the resolver itself fails, since
+  /// it swallows its own errors, and when an older backend deployment returns
+  /// no identity at all. An empty resolved value must never erase what the
+  /// post already carries.
   Future<void> _overlayAuthorLevels(
     List<FeedPostReadModel> page,
     bool Function() isDisposed,
@@ -129,10 +135,20 @@ class FeedTimelinePagingSession {
     if (isDisposed()) return;
     for (var index = 0; index < page.length; index++) {
       final resolved = levelResolver[page[index].authorUserId];
-      if (resolved == null || resolved.levelLabel.trim().isEmpty) continue;
+      if (resolved == null) continue;
+      final levelLabel = resolved.levelLabel.trim();
+      final displayName = resolved.displayName.trim();
+      final avatarInitials = resolved.avatarInitials.trim();
+      if (levelLabel.isEmpty && displayName.isEmpty && avatarInitials.isEmpty) {
+        continue;
+      }
       page[index] = page[index].copyWith(
-        authorLevelLabel: resolved.levelLabel,
-        authorLevelProgressFraction: resolved.levelProgressFraction,
+        authorDisplayName: displayName.isEmpty ? null : displayName,
+        authorAvatarInitials: avatarInitials.isEmpty ? null : avatarInitials,
+        authorLevelLabel: levelLabel.isEmpty ? null : levelLabel,
+        authorLevelProgressFraction: levelLabel.isEmpty
+            ? null
+            : resolved.levelProgressFraction,
       );
     }
   }

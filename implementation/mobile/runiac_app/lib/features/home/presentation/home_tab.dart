@@ -81,6 +81,7 @@ class HomeTab extends StatefulWidget {
     this.enableForegroundGps = true,
     this.activeRunSessionCoordinator,
     this.onNotificationSettingsChanged,
+    this.onAccountProfileChanged,
   });
 
   final RuniacAuthRepository authRepository;
@@ -143,6 +144,10 @@ class HomeTab extends StatefulWidget {
   final bool enableForegroundGps;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
   final VoidCallback? onNotificationSettingsChanged;
+
+  /// Fired after the Account profile screen closes, because an edit there —
+  /// a nickname above all — changes identity the shell hands to other tabs.
+  final VoidCallback? onAccountProfileChanged;
 
   @override
   State<HomeTab> createState() => _HomeTabState();
@@ -564,6 +569,10 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
     if (!mounted) {
       return;
     }
+    // A nickname edit changes what every Runiac surface calls this runner,
+    // not just Home: the shell re-reads the profile it hands the Feed so the
+    // viewer's own posts stop showing the name they just replaced.
+    widget.onAccountProfileChanged?.call();
     setState(() {
       _setUserProgressFuture(refresh: true);
       _setUserProfileFuture(refresh: true);

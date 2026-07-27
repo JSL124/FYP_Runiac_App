@@ -622,8 +622,36 @@ is_admin_automation_policy_path() {
   esac
 }
 
+is_feed_author_identity_profile_entry_capsule_active() {
+  grep -Eq '^- Newly routed feed author identity overlay and runner profile entry points on 2026-07-27 Asia/Singapore: `implementation/roadmap/capsules/feed-author-identity-and-profile-entry\.md`' implementation/roadmap/CURRENT.md
+}
+
+# Backend paths touched by the routed feed author identity capsule. It widens
+# the already-deployed getFeedAuthorLevels result with the author's current
+# name and routes the runner public profile projection through the same new
+# identity reader; it adds no new Function export and changes no authorization.
+is_feed_author_identity_profile_entry_path() {
+  case "$1" in
+    implementation/roadmap/capsules/feed-author-identity-and-profile-entry.md|\
+    functions/src/profile/profileIdentityDisplay.ts|\
+    functions/src/profile/publicProfile/core.ts|\
+    functions/src/feed/authorLevels/core.ts|\
+    functions/src/feed/authorLevels/callable.ts|\
+    functions/test/feedAuthorLevels.test.ts)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_forbidden_config_or_secret() {
   if is_error_reporting_pipeline_path "$1" && is_error_reporting_pipeline_capsule_active; then
+    return 1
+  fi
+
+  if is_feed_author_identity_profile_entry_path "$1" && is_feed_author_identity_profile_entry_capsule_active; then
     return 1
   fi
 
@@ -700,6 +728,9 @@ is_forbidden_config_or_secret() {
       ;;
     functions/*)
       if is_historical_backend_functions_path "$1"; then
+        return 1
+      fi
+      if is_feed_author_identity_profile_entry_path "$1" && is_feed_author_identity_profile_entry_capsule_active; then
         return 1
       fi
       if is_friends_backend_mvp_functions_path "$1" && is_friends_backend_mvp_capsule_active; then

@@ -7,6 +7,7 @@ const viewer = "viewer-a";
 const friend = "friend-a";
 const stranger = "stranger-a";
 const blocked = "blocked-a";
+const post = "post-a";
 
 describe("Feed author levels core", () => {
   it("resolves the caller's own uid, a reciprocal friend, and omits a denied/blocked uid", async () => {
@@ -16,8 +17,8 @@ describe("Feed author levels core", () => {
     ports.relationships.set(stranger, { viewerHasAuthorFriend: false, authorHasViewerFriend: false, viewerBlockedAuthor: false, authorBlockedViewer: false });
     ports.relationships.set(blocked, { viewerHasAuthorFriend: true, authorHasViewerFriend: true, viewerBlockedAuthor: true, authorBlockedViewer: false });
     const result = await getFeedAuthorLevels({ auth: { uid: viewer }, data: { uids: [viewer, friend, stranger, blocked] } }, ports);
-    assert.deepEqual(result.levels[viewer], { levelLabel: "Champion", levelProgressPercent: 42 });
-    assert.deepEqual(result.levels[friend], { levelLabel: "Rookie", levelProgressPercent: 10 });
+    assert.deepEqual(result.levels[viewer], { levelLabel: "Champion", levelProgressPercent: 42, displayName: "", avatarInitials: "" });
+    assert.deepEqual(result.levels[friend], { levelLabel: "Rookie", levelProgressPercent: 10, displayName: "", avatarInitials: "" });
     assert.equal(stranger in result.levels, false);
     assert.equal(blocked in result.levels, false);
   });
@@ -27,7 +28,7 @@ describe("Feed author levels core", () => {
     ports.profiles.set(friend, { levelLabel: "Rookie", levelProgressPercent: 10 });
     const result = await getFeedAuthorLevels({ auth: { uid: viewer }, data: { uids: [friend, friend, friend] } }, ports);
     assert.equal(Object.keys(result.levels).length, 1);
-    assert.deepEqual(result.levels[friend], { levelLabel: "Rookie", levelProgressPercent: 10 });
+    assert.deepEqual(result.levels[friend], { levelLabel: "Rookie", levelProgressPercent: 10, displayName: "", avatarInitials: "" });
     assert.equal(ports.readProfilesCalls.length, 1);
     assert.equal(ports.readProfilesCalls[0]?.length, 1);
   });
@@ -48,14 +49,35 @@ describe("Feed author levels core", () => {
   it("resolves a missing profile document to an empty label and zero percent", async () => {
     const ports = fakePorts();
     const result = await getFeedAuthorLevels({ auth: { uid: viewer }, data: { uids: [viewer] } }, ports);
-    assert.deepEqual(result.levels[viewer], { levelLabel: "", levelProgressPercent: 0 });
+    assert.deepEqual(result.levels[viewer], { levelLabel: "", levelProgressPercent: 0, displayName: "", avatarInitials: "" });
   });
 
   it("falls back to Lv.{level} when levelLabel is absent", async () => {
     const ports = fakePorts();
     ports.profiles.set(viewer, { level: 7 });
     const result = await getFeedAuthorLevels({ auth: { uid: viewer }, data: { uids: [viewer] } }, ports);
-    assert.deepEqual(result.levels[viewer], { levelLabel: "Lv.7", levelProgressPercent: 0 });
+    assert.deepEqual(result.levels[viewer], { levelLabel: "Lv.7", levelProgressPercent: 0, displayName: "", avatarInitials: "" });
+  });
+
+  // A Feed post freezes the author's name at publish time, so the overlay this
+  // result feeds is the only thing that can show a renamed runner's current
+  // name on the posts they already published.
+  it("resolves the author's current nickname over their displayName", async () => {
+    const ports = fakePorts();
+    ports.profiles.set(friend, { levelLabel: "Rookie", levelProgressPercent: 10, displayName: "Old Name", nickname: "New Name", avatarInitials: "NN" });
+    const result = await getFeedAuthorLevels({ auth: { uid: viewer }, data: { uids: [friend] } }, ports);
+    assert.deepEqual(result.levels[friend], { levelLabel: "Rookie", levelProgressPercent: 10, displayName: "New Name", avatarInitials: "NN" });
+  });
+
+  it("trims a stored identity and leaves a missing one empty so the client keeps its stored value", async () => {
+    const ports = fakePorts();
+    ports.profiles.set(friend, { displayName: "  Spaced Runner  ", avatarInitials: " SR " });
+    const result = await getFeedAuthorLevels({ auth: { uid: viewer }, data: { uids: [friend] } }, ports);
+    assert.equal(result.levels[friend]?.displayName, "Spaced Runner");
+    assert.equal(result.levels[friend]?.avatarInitials, "SR");
+    ports.profiles.set(blocked, {});
+    const missing = await getFeedAuthorLevels({ auth: { uid: viewer }, data: { uids: [blocked] } }, ports);
+    assert.equal(missing.levels[blocked]?.displayName, "");
   });
 
   it("clamps an out-of-range levelProgressPercent into 0..100", async () => {
@@ -88,13 +110,92 @@ describe("Feed author levels core", () => {
     const ports = fakePorts();
     await rejects(() => getFeedAuthorLevels({ data: { uids: [viewer] } }, ports), "unauthenticated");
   });
+
+  // firestore.rules authorizes a comment through its POST, not its commenter:
+  // two runners who share a friend but not each other still read each other's
+  // comments on that friend's post. Without the post-scoped grant the overlay
+  // resolves nothing for them and the rename defect survives right there.
+  describe("post-scoped grants", () => {
+    it("resolves a non-friend who commented on a post the viewer may read", async () => {
+      const ports = fakePorts();
+      ports.profiles.set(stranger, { displayName: "Old", nickname: "Renamed", avatarInitials: "RN" });
+      ports.relationships.set(stranger, { viewerHasAuthorFriend: false, authorHasViewerFriend: false });
+      ports.posts.set(post, { status: "published", authorUid: friend });
+      ports.commentAuthors.set(post, [stranger]);
+      const scoped = await getFeedAuthorLevels({ auth: { uid: viewer }, data: { postId: post, uids: [stranger] } }, ports);
+      assert.equal(scoped.levels[stranger]?.displayName, "Renamed");
+      // Same uid, no post in scope: still omitted, so the grant is the post's
+      // doing and not a blanket widening.
+      const unscoped = await getFeedAuthorLevels({ auth: { uid: viewer }, data: { uids: [stranger] } }, ports);
+      assert.equal(stranger in unscoped.levels, false);
+    });
+
+    it("omits a non-friend who did not comment on that post", async () => {
+      const ports = fakePorts();
+      ports.relationships.set(stranger, { viewerHasAuthorFriend: false, authorHasViewerFriend: false });
+      ports.posts.set(post, { status: "published", authorUid: friend });
+      ports.commentAuthors.set(post, ["someone-else"]);
+      const result = await getFeedAuthorLevels({ auth: { uid: viewer }, data: { postId: post, uids: [stranger] } }, ports);
+      assert.equal(stranger in result.levels, false);
+    });
+
+    it("never relaxes a block, in either direction", async () => {
+      const ports = fakePorts();
+      ports.posts.set(post, { status: "published", authorUid: friend });
+      ports.commentAuthors.set(post, [blocked, "blocked-by-b"]);
+      ports.relationships.set(blocked, { viewerHasAuthorFriend: false, authorHasViewerFriend: false, viewerBlockedAuthor: true });
+      ports.relationships.set("blocked-by-b", { viewerHasAuthorFriend: false, authorHasViewerFriend: false, authorBlockedViewer: true });
+      const result = await getFeedAuthorLevels({ auth: { uid: viewer }, data: { postId: post, uids: [blocked, "blocked-by-b"] } }, ports);
+      assert.deepEqual(result.levels, {});
+    });
+
+    it("omits everyone when the viewer cannot read the post itself", async () => {
+      const ports = fakePorts();
+      ports.relationships.set(stranger, { viewerHasAuthorFriend: false, authorHasViewerFriend: false });
+      ports.relationships.set("post-owner", { viewerHasAuthorFriend: false, authorHasViewerFriend: false });
+      ports.posts.set(post, { status: "published", authorUid: "post-owner" });
+      ports.commentAuthors.set(post, [stranger]);
+      const result = await getFeedAuthorLevels({ auth: { uid: viewer }, data: { postId: post, uids: [stranger] } }, ports);
+      assert.deepEqual(result.levels, {});
+    });
+
+    it("omits everyone for an unpublished or missing post", async () => {
+      const ports = fakePorts();
+      ports.relationships.set(stranger, { viewerHasAuthorFriend: false, authorHasViewerFriend: false });
+      ports.commentAuthors.set(post, [stranger]);
+      ports.posts.set(post, { status: "draft", authorUid: friend });
+      const draft = await getFeedAuthorLevels({ auth: { uid: viewer }, data: { postId: post, uids: [stranger] } }, ports);
+      assert.deepEqual(draft.levels, {});
+      ports.posts.delete(post);
+      const missing = await getFeedAuthorLevels({ auth: { uid: viewer }, data: { postId: post, uids: [stranger] } }, ports);
+      assert.deepEqual(missing.levels, {});
+    });
+
+    it("costs no post read when every requested uid is already a friend", async () => {
+      const ports = fakePorts();
+      ports.profiles.set(friend, { levelLabel: "Rookie" });
+      const result = await getFeedAuthorLevels({ auth: { uid: viewer }, data: { postId: post, uids: [friend] } }, ports);
+      assert.equal(result.levels[friend]?.levelLabel, "Rookie");
+      assert.equal(ports.readPostCalls.length, 0);
+    });
+
+    it("rejects a malformed postId with invalid-argument", async () => {
+      const ports = fakePorts();
+      for (const postId of ["", "a/b", "../escape", "with\u0000null", 42]) {
+        await rejects(() => getFeedAuthorLevels({ auth: { uid: viewer }, data: { postId, uids: [stranger] } }, ports), "invalid-argument");
+      }
+    });
+  });
 });
 
-type Profile = { readonly levelLabel?: string; readonly level?: number; readonly levelProgressPercent?: number };
+type Profile = { readonly levelLabel?: string; readonly level?: number; readonly levelProgressPercent?: number; readonly displayName?: string; readonly nickname?: string; readonly avatarInitials?: string };
 class FakePorts implements FeedAuthorLevelsPorts {
   profiles = new Map<string, Profile>();
   relationships = new Map<string, Partial<FeedRelationshipCheckInput>>();
+  posts = new Map<string, { readonly status: string; readonly authorUid: string }>();
+  commentAuthors = new Map<string, readonly string[]>();
   readProfilesCalls: (readonly string[])[] = [];
+  readPostCalls: string[] = [];
   async relationshipFor(viewerUid: string, authorUid: string): Promise<FeedRelationshipCheckInput> {
     const overrides = this.relationships.get(authorUid) ?? { viewerHasAuthorFriend: true, authorHasViewerFriend: true, viewerBlockedAuthor: false, authorBlockedViewer: false };
     return { viewerUid, authorUid, viewerHasAuthorFriend: true, authorHasViewerFriend: true, viewerBlockedAuthor: false, authorBlockedViewer: false, ...overrides };
@@ -102,6 +203,14 @@ class FakePorts implements FeedAuthorLevelsPorts {
   async readProfiles(uids: readonly string[]): Promise<readonly (Readonly<Record<string, unknown>> | undefined)[]> {
     this.readProfilesCalls.push(uids);
     return uids.map((uid) => this.profiles.get(uid));
+  }
+  async readPost(postId: string) {
+    this.readPostCalls.push(postId);
+    return this.posts.get(postId);
+  }
+  async commentAuthorsAmong(postId: string, uids: readonly string[]): Promise<readonly string[]> {
+    const authors = new Set(this.commentAuthors.get(postId) ?? []);
+    return uids.filter((uid) => authors.has(uid));
   }
 }
 function fakePorts(): FakePorts { return new FakePorts(); }

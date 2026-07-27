@@ -28,7 +28,13 @@ class FeedAuthorLevelResolver {
   /// Fetches and caches live levels for every uid in [uids] not already
   /// cached. Swallows every error from the port so callers can always fall
   /// back to a post or comment's stored `authorLevelLabel`.
-  Future<void> ensureResolved(Iterable<String> uids) async {
+  ///
+  /// [postId] is the post whose comments these uids authored, passed straight
+  /// through to the backend so it can authorize a commenter the viewer is not
+  /// friends with but whose comment they can already read. Omitted for the
+  /// timeline, where every author is a post author and the friendship check
+  /// already covers them.
+  Future<void> ensureResolved(Iterable<String> uids, {String? postId}) async {
     final missing = <String>{
       for (final uid in uids)
         if (!_cache.containsKey(uid)) uid,
@@ -37,6 +43,7 @@ class FeedAuthorLevelResolver {
     try {
       final resolved = await _port.fetchAuthorLevels(
         missing.toList(growable: false),
+        postId: postId,
       );
       _cache.addAll(resolved);
     } catch (_) {

@@ -76,6 +76,10 @@ class FeedTestDataPort implements FeedDataPort {
   final Map<String, FeedAuthorLevel> authorLevels = <String, FeedAuthorLevel>{};
   final List<List<String>> authorLevelQueries = <List<String>>[];
 
+  /// The `postId` scope handed to each [fetchAuthorLevels] call, positionally
+  /// aligned with [authorLevelQueries]. `null` means the uid-only form.
+  final List<String?> authorLevelPostIds = <String?>[];
+
   /// Set to make [fetchAuthorLevels] throw, simulating an offline device or
   /// a not-yet-deployed callable.
   Object? authorLevelsError;
@@ -184,9 +188,11 @@ class FeedTestDataPort implements FeedDataPort {
 
   @override
   Future<Map<String, FeedAuthorLevel>> fetchAuthorLevels(
-    List<String> uids,
-  ) async {
+    List<String> uids, {
+    String? postId,
+  }) async {
     authorLevelQueries.add(uids);
+    authorLevelPostIds.add(postId);
     final error = authorLevelsError;
     if (error != null) {
       throw error;

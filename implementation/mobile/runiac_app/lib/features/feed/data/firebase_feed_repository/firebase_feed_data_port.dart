@@ -238,14 +238,22 @@ class FirebaseFeedDataPort implements FeedDataPort {
 
   @override
   Future<Map<String, FeedAuthorLevel>> fetchAuthorLevels(
-    List<String> uids,
-  ) async {
+    List<String> uids, {
+    String? postId,
+  }) async {
     final distinct = uids.toSet().toList(growable: false);
     if (distinct.isEmpty) return const <String, FeedAuthorLevel>{};
     final callable = _functions.httpsCallable('getFeedAuthorLevels');
     final levels = <String, FeedAuthorLevel>{};
+    final scopedPostId = postId?.trim() ?? '';
     for (final chunk in chunkFeedAuthorUids(distinct)) {
-      final result = await callable.call(<String, Object>{'uids': chunk});
+      // The uid-only payload stays byte-identical when no post is in scope,
+      // so a backend that predates the post-scoped form keeps answering it.
+      final result = await callable.call(
+        scopedPostId.isEmpty
+            ? <String, Object>{'uids': chunk}
+            : <String, Object>{'uids': chunk, 'postId': scopedPostId},
+      );
       levels.addAll(parseFeedAuthorLevelsResponse(result.data));
     }
     return levels;
@@ -284,11 +292,18 @@ class FirebaseFeedDataPort implements FeedDataPort {
       if (uid is! String || value is! Map<Object?, Object?>) continue;
       final label = value['levelLabel'];
       final percent = value['levelProgressPercent'];
+      // displayName/avatarInitials arrived with a later backend revision, so
+      // an older deployment simply omits them and every caller keeps the
+      // identity stored on the post or comment.
+      final displayName = value['displayName'];
+      final avatarInitials = value['avatarInitials'];
       result[uid] = FeedAuthorLevel(
         levelLabel: label is String ? label : '',
         levelProgressFraction: percent is num
             ? (percent / 100).clamp(0.0, 1.0).toDouble()
             : 0.0,
+        displayName: displayName is String ? displayName : '',
+        avatarInitials: avatarInitials is String ? avatarInitials : '',
       );
     }
     return result;

@@ -19,18 +19,29 @@ class FeedCommentPageLoader {
     final authorUids = {
       for (final comment in page.comments) comment.authorUid,
     };
-    await levelResolver.ensureResolved(authorUids);
+    // Scoped to this post: a commenter the viewer is not friends with is only
+    // resolvable through the post that made their comment readable.
+    await levelResolver.ensureResolved(authorUids, postId: postId);
     return FeedCommentPage(
       comments: page.comments
           .map((comment) {
             final resolved = levelResolver[comment.authorUid];
             final hasResolvedLabel =
                 resolved != null && resolved.levelLabel.trim().isNotEmpty;
+            // A comment freezes its author's name the same way a post does, so
+            // the live identity wins whenever the backend resolved one; an
+            // empty value keeps the stored copy rather than blanking the row.
+            final resolvedName = resolved?.displayName.trim() ?? '';
+            final resolvedInitials = resolved?.avatarInitials.trim() ?? '';
             return FeedCommentReadModel(
               commentId: comment.commentId,
               authorUserId: comment.authorUid,
-              authorDisplayName: comment.authorDisplayName,
-              authorAvatarInitials: comment.authorAvatarInitials,
+              authorDisplayName: resolvedName.isEmpty
+                  ? comment.authorDisplayName
+                  : resolvedName,
+              authorAvatarInitials: resolvedInitials.isEmpty
+                  ? comment.authorAvatarInitials
+                  : resolvedInitials,
               authorLevelLabel: hasResolvedLabel
                   ? resolved.levelLabel
                   : comment.authorLevelLabel,

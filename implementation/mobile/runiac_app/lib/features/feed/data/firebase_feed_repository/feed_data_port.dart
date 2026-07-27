@@ -101,23 +101,38 @@ class FeedCommentDocumentPage {
   final FeedCommentCursor? nextCursor;
 }
 
-/// A live, backend-owned author level snapshot resolved at display time.
+/// A live, backend-owned author snapshot resolved at display time.
 ///
-/// A post or comment's stored `authorLevelLabel` is frozen at publish time
-/// and can go stale, or be entirely absent on older content. This type
-/// carries the author's CURRENT level as returned by the backend so the
-/// client can overlay it. The client only transports and renders these
+/// A post or comment stores `authorDisplayName`, `authorAvatarInitials`, and
+/// `authorLevelLabel` frozen at write time. All three go stale — a runner who
+/// renames themselves would otherwise keep appearing under their old name on
+/// every post they already published, and `feedPosts` is closed to client
+/// writes so nothing can rewrite the stored copy. This type carries the
+/// author's CURRENT identity and level as returned by the backend so the
+/// client can overlay them. The client only transports and renders these
 /// values; it never computes them.
+///
+/// An empty [displayName], [avatarInitials], or [levelLabel] means the backend
+/// resolved nothing for that field, and the caller must keep its stored value
+/// rather than blanking the author out.
 class FeedAuthorLevel {
   const FeedAuthorLevel({
     required this.levelLabel,
     required this.levelProgressFraction,
+    this.displayName = '',
+    this.avatarInitials = '',
   });
 
   final String levelLabel;
 
   /// 0.0..1.0, already converted from the backend's 0..100 percent.
   final double levelProgressFraction;
+
+  /// The author's current name, nickname-first, as the backend resolved it.
+  final String displayName;
+
+  /// The author's current avatar initials.
+  final String avatarInitials;
 }
 
 /// Typed Firestore/Functions boundary. Tests replace it without Firebase.
@@ -172,5 +187,18 @@ abstract interface class FeedDataPort {
   /// Resolves live author levels for [uids]. A uid the viewer may not see,
   /// or that the backend has no snapshot for, is simply absent from the
   /// result — callers must fall back to their own stored label.
-  Future<Map<String, FeedAuthorLevel>> fetchAuthorLevels(List<String> uids);
+  /// Live identity and level for [uids].
+  ///
+  /// [postId] names the post whose comments these uids authored, when the
+  /// caller is resolving a comment page. It exists because `firestore.rules`
+  /// authorizes a comment through its POST, not its commenter: two runners
+  /// who share a friend but not each other still read each other's comments
+  /// on that friend's post, and without the post as context the backend has
+  /// no permitted way to resolve the other commenter. The server proves the
+  /// post is readable and that each uid really commented on it; a wrong or
+  /// invented [postId] resolves nothing.
+  Future<Map<String, FeedAuthorLevel>> fetchAuthorLevels(
+    List<String> uids, {
+    String? postId,
+  });
 }

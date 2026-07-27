@@ -773,7 +773,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Your journey map is waiting'), findsOneWidget);
-    expect(progressRepository.loadCalls, 3);
+    // Two reads on the way back: Home refreshes its own progress, and the
+    // shell re-reads the feed-author profile because an Account edit can have
+    // renamed the runner, and every Feed surface labels them by that name.
+    expect(progressRepository.loadCalls, 4);
     expect(progressRepository.refreshCalls, 1);
   });
 
