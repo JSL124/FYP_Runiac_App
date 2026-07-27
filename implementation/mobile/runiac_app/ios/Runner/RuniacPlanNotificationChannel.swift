@@ -5,9 +5,13 @@ import UserNotifications
 final class RuniacPlanNotificationChannel {
   private static let channelName = "runiac/plan_notifications"
   private static let scheduledIdsKey = "runiac.planNotificationIds"
+  private static let deliveriesKey = "runiac.planNotificationDeliveries"
+  private static let maxDeliveryRecords = 200
+  private static var channel: FlutterMethodChannel?
 
   static func register(with messenger: FlutterBinaryMessenger) {
     let channel = FlutterMethodChannel(name: channelName, binaryMessenger: messenger)
+    Self.channel = channel
     let scheduler = RuniacPlanNotificationChannel()
     channel.setMethodCallHandler { call, result in
       switch call.method {
@@ -20,8 +24,73 @@ final class RuniacPlanNotificationChannel {
       case "cancelPlanNotifications":
         scheduler.cancelPlanNotifications()
         result(nil)
+      case "consumeDeliveredNotifications":
+        scheduler.consumeDeliveredNotifications(arguments: call.arguments, result: result)
       default:
         result(FlutterMethodNotImplemented)
+      }
+    }
+  }
+
+  /// Records that the system presented a notification, from the app delegate's
+  /// `willPresent` (foreground) and `didReceive` (tap) callbacks.
+  ///
+  /// Neither callback fires for a notification that was delivered in the
+  /// background and never tapped, which is why
+  /// `consumeDeliveredNotifications` also sweeps
+  /// `getDeliveredNotifications()`, and why Dart keeps a time-based backstop
+  /// on top of both.
+  static func recordDelivery(identifier: String, at date: Date) {
+    guard !identifier.isEmpty else {
+      return
+    }
+    var records = storedDeliveries()
+    records.append([
+      "id": identifier,
+      "deliveredAtMillis": NSNumber(value: Int64(date.timeIntervalSince1970 * 1000)),
+    ])
+    if records.count > maxDeliveryRecords {
+      records.removeFirst(records.count - maxDeliveryRecords)
+    }
+    UserDefaults.standard.set(records, forKey: deliveriesKey)
+    channel?.invokeMethod("onPlanNotificationDelivered", arguments: nil)
+  }
+
+  private static func storedDeliveries() -> [[String: Any]] {
+    UserDefaults.standard.array(forKey: deliveriesKey) as? [[String: Any]] ?? []
+  }
+
+  /// Returns every delivery this device recorded and clears the stored ones.
+  ///
+  /// Identifiers are reported unfiltered; Dart matches them against its own
+  /// ledger, so a push notification's identifier is simply ignored there. The
+  /// notification centre sweep deliberately does not clear the tray, and
+  /// re-reporting an already-materialized identifier is harmless because its
+  /// ledger entry is gone by then.
+  private func consumeDeliveredNotifications(arguments: Any?, result: @escaping FlutterResult) {
+    let debugLogs = debugLogsEnabled(arguments)
+    let stored = Self.storedDeliveries()
+    UserDefaults.standard.removeObject(forKey: Self.deliveriesKey)
+
+    UNUserNotificationCenter.current().getDeliveredNotifications { notifications in
+      var merged = stored
+      var seen = Set(stored.compactMap { $0["id"] as? String })
+      for notification in notifications {
+        let identifier = notification.request.identifier
+        guard !identifier.isEmpty, !seen.contains(identifier) else {
+          continue
+        }
+        seen.insert(identifier)
+        merged.append([
+          "id": identifier,
+          "deliveredAtMillis": NSNumber(
+            value: Int64(notification.date.timeIntervalSince1970 * 1000)
+          ),
+        ])
+      }
+      self.log("consumeDeliveredNotifications count=\(merged.count)", enabled: debugLogs)
+      DispatchQueue.main.async {
+        result(merged)
       }
     }
   }

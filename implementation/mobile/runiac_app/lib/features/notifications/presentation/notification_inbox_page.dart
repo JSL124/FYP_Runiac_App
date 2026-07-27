@@ -262,7 +262,10 @@ class _NotificationInboxEmptyState extends StatelessWidget {
 }
 
 String _formatRelativeTime(DateTime createdAt, DateTime now) {
-  final difference = now.difference(createdAt);
+  final elapsed = now.difference(createdAt);
+  // Inbox items record deliveries, so `createdAt` is never ahead of now in
+  // practice; clamping keeps a clock skew from reading as a negative age.
+  final difference = elapsed.isNegative ? Duration.zero : elapsed;
   if (difference.inMinutes < 1) {
     return 'Now';
   }

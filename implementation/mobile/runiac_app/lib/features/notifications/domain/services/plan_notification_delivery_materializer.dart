@@ -1,0 +1,106 @@
+import '../models/notification_inbox_item.dart';
+import '../models/plan_notification_schedule.dart';
+import '../repositories/notification_inbox_repository.dart';
+import '../repositories/plan_notification_ledger.dart';
+import '../repositories/plan_notification_scheduler.dart';
+
+/// Turns local plan notifications that actually fired into inbox items.
+///
+/// The inbox is a catch-up surface, so an item may only appear once the runner
+/// has genuinely missed something. Two signals feed it, in order of trust:
+///
+/// 1. A platform delivery report. Android records one from the broadcast
+///    receiver that posts the notification, iOS from the `willPresent` /
+///    `didReceive` delegates plus a sweep of the notification centre.
+/// 2. A time-based backstop over the ledger. iOS reports nothing for a
+///    notification delivered in the background and never tapped once it has
+///    been swiped away, so anything whose scheduled instant has passed and
+///    that the platform never mentioned is treated as delivered.
+///
+/// A notification cancelled before it fired is absent from the ledger by then,
+/// so neither path can resurrect it.
+class PlanNotificationDeliveryMaterializer {
+  const PlanNotificationDeliveryMaterializer({
+    required this.ledger,
+    required this.deliveryReader,
+    required this.inboxRepository,
+    required this.ownerUidProvider,
+    this.clock = DateTime.now,
+    this.debugLog,
+  });
+
+  final PlanNotificationLedger ledger;
+  final PlanNotificationDeliveryReader deliveryReader;
+  final NotificationInboxRepository inboxRepository;
+  final String? Function() ownerUidProvider;
+  final DateTime Function() clock;
+  final void Function(String message)? debugLog;
+
+  Future<void> materializeDeliveries() async {
+    final uid = ownerUidProvider();
+    if (uid == null || uid.isEmpty) {
+      // Draining is destructive, and an inbox write needs an owner. Leave the
+      // platform's records in place until someone is signed in to claim them.
+      debugLog?.call('materializeDeliveries skipped: signed out');
+      return;
+    }
+
+    final entries = await ledger.loadEntries();
+    final entriesById = <String, ScheduledPlanNotification>{
+      for (final entry in entries) entry.id: entry,
+    };
+    final materialized = <String>{};
+
+    for (final delivery
+        in await deliveryReader.consumeDeliveredNotifications()) {
+      final entry = entriesById[delivery.id];
+      if (entry == null || materialized.contains(entry.id)) {
+        // Not one of ours, or already handled. Push notifications land here
+        // and are ignored: the app writes those to the inbox on receipt.
+        continue;
+      }
+      if (await _write(entry, delivery.deliveredAt)) {
+        materialized.add(entry.id);
+      }
+    }
+
+    final now = clock();
+    for (final entry in entries) {
+      if (materialized.contains(entry.id) || entry.scheduledAt.isAfter(now)) {
+        continue;
+      }
+      if (await _write(entry, entry.scheduledAt)) {
+        materialized.add(entry.id);
+      }
+    }
+
+    if (materialized.isNotEmpty) {
+      debugLog?.call('materializeDeliveries wrote ${materialized.length}');
+      await ledger.removeEntries(materialized);
+    }
+  }
+
+  /// Returns whether the item reached the inbox. A failed write leaves the
+  /// ledger entry in place so the next pass retries it.
+  Future<bool> _write(
+    ScheduledPlanNotification entry,
+    DateTime deliveredAt,
+  ) async {
+    try {
+      await inboxRepository.saveInboxItem(
+        NotificationInboxItem(
+          id: entry.id,
+          title: entry.title,
+          body: entry.body,
+          createdAt: deliveredAt,
+          data: <String, Object?>{'kind': entry.kind.name, ...entry.payload},
+          clientManaged: true,
+        ),
+      );
+      return true;
+    } catch (error) {
+      debugLog?.call('materializeDeliveries failed id=${entry.id}: $error');
+      return false;
+    }
+  }
+}

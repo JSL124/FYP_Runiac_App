@@ -1,16 +1,24 @@
 import '../../../plan/domain/models/beginner_adaptive_plan_snapshot.dart';
-import '../models/notification_inbox_item.dart';
 import '../models/plan_notification_schedule.dart';
 import '../repositories/notification_center_settings_repository.dart';
-import '../repositories/notification_inbox_repository.dart';
+import '../repositories/plan_notification_ledger.dart';
 import '../repositories/plan_notification_scheduler.dart';
 import 'generated_plan_notification_schedule_builder.dart';
 
+/// Schedules local plan notifications with the OS and records what was
+/// scheduled in the [PlanNotificationLedger].
+///
+/// This service deliberately never touches the notification inbox. It used to
+/// write every notification it scheduled, stamping `createdAt` with the future
+/// `scheduledAt`; because the policy only emits notifications that have not
+/// fired yet, that meant the inbox held nothing but unfired reminders and the
+/// unread badge could never be cleared. Inbox items are now written by
+/// [PlanNotificationDeliveryMaterializer] once a notification actually fires.
 class PlanNotificationSyncService {
   const PlanNotificationSyncService({
     required this.settingsRepository,
     required this.scheduler,
-    this.inboxRepository,
+    this.ledger,
     this.debugLog,
     this.scheduleBuilder = const GeneratedPlanNotificationScheduleBuilder(),
     this.maxScheduledNotifications = 48,
@@ -18,7 +26,7 @@ class PlanNotificationSyncService {
 
   final NotificationCenterSettingsRepository settingsRepository;
   final PlanNotificationScheduler scheduler;
-  final NotificationInboxRepository? inboxRepository;
+  final PlanNotificationLedger? ledger;
   final void Function(String message)? debugLog;
   final GeneratedPlanNotificationScheduleBuilder scheduleBuilder;
   final int maxScheduledNotifications;
@@ -32,6 +40,7 @@ class PlanNotificationSyncService {
     final settings = await settingsRepository.loadSettings();
     if (!settings.notificationsEnabled || snapshot == null) {
       await scheduler.cancelPlanNotifications();
+      await ledger?.clear();
       return;
     }
 
@@ -49,9 +58,10 @@ class PlanNotificationSyncService {
     );
     final nearestNotifications = _nearestNotifications(notifications);
     await scheduler.syncPlanNotifications(nearestNotifications);
-    for (final notification in nearestNotifications) {
-      await _saveInboxItem(notification);
-    }
+    debugLog?.call(
+      'ledger replaceScheduled count=${nearestNotifications.length}',
+    );
+    await ledger?.replaceScheduled(nearestNotifications, now: now);
   }
 
   Future<void> scheduleSmokeTestNotification({
@@ -86,7 +96,7 @@ class PlanNotificationSyncService {
     debugLog?.call(
       'scheduleSmokeTestNotification scheduled id=${notification.id}',
     );
-    await _saveInboxItem(notification);
+    await ledger?.addScheduled(notification);
   }
 
   List<ScheduledPlanNotification> _nearestNotifications(
@@ -101,30 +111,5 @@ class PlanNotificationSyncService {
     return sortedNotifications
         .take(maxScheduledNotifications)
         .toList(growable: false);
-  }
-
-  Future<void> _saveInboxItem(ScheduledPlanNotification notification) async {
-    final repository = inboxRepository;
-    if (repository == null) {
-      debugLog?.call(
-        'saveInboxItem skipped id=${notification.id}: no repository',
-      );
-      return;
-    }
-
-    debugLog?.call('saveInboxItem -> id=${notification.id}');
-    await repository.saveInboxItem(
-      NotificationInboxItem(
-        id: notification.id,
-        title: notification.title,
-        body: notification.body,
-        createdAt: notification.scheduledAt,
-        data: <String, Object?>{
-          'kind': notification.kind.name,
-          ...notification.payload,
-        },
-      ),
-    );
-    debugLog?.call('saveInboxItem <- id=${notification.id}');
   }
 }

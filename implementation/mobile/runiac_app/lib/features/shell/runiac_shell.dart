@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../core/theme/runiac_colors.dart';
@@ -22,8 +24,12 @@ import '../leaderboard/domain/repositories/leaderboard_repository.dart';
 import '../leaderboard/presentation/leaderboard_tab.dart';
 import '../notifications/data/method_channel_plan_notification_scheduler.dart';
 import '../notifications/data/shared_preferences_notification_center_settings_repository.dart';
+import '../notifications/data/shared_preferences_notification_inbox_cleanup_store.dart';
+import '../notifications/data/shared_preferences_plan_notification_ledger.dart';
 import '../notifications/domain/models/plan_notification_schedule.dart';
 import '../notifications/domain/repositories/notification_inbox_repository.dart';
+import '../notifications/domain/services/notification_inbox_legacy_cleanup.dart';
+import '../notifications/domain/services/plan_notification_delivery_materializer.dart';
 import '../notifications/domain/services/plan_notification_sync_service.dart';
 import '../plan/domain/models/adaptive_plan_estimate_read_model.dart';
 import '../plan/domain/plan_completion_seen_store.dart';
@@ -150,16 +156,45 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
   late Future<FeedAuthorProfileSnapshot> _feedAuthorProfileFuture;
   String? _feedAuthorProfileOwnerUid;
   FeedAuthorProfileSnapshot? _lastFeedAuthorProfile;
+  String? _notificationInboxMaintenanceOwnerUid;
+  var _notificationInboxMaintenanceInFlight = false;
+  late final MethodChannelPlanNotificationScheduler _planNotificationScheduler =
+      MethodChannelPlanNotificationScheduler();
+  late final SharedPreferencesPlanNotificationLedger _planNotificationLedger =
+      SharedPreferencesPlanNotificationLedger(
+        uidProvider: _notificationOwnerUid,
+      );
   late final PlanNotificationSyncService _planNotificationSyncService =
       PlanNotificationSyncService(
         settingsRepository:
             const SharedPreferencesNotificationCenterSettingsRepository(),
-        scheduler: const MethodChannelPlanNotificationScheduler(),
-        inboxRepository: widget.notificationInboxRepository,
+        scheduler: _planNotificationScheduler,
+        ledger: _planNotificationLedger,
         debugLog: _localNotificationDebugLogs
             ? _logLocalNotificationDebug
             : null,
       );
+  late final PlanNotificationDeliveryMaterializer
+  _planNotificationMaterializer = PlanNotificationDeliveryMaterializer(
+    ledger: _planNotificationLedger,
+    deliveryReader: _planNotificationScheduler,
+    inboxRepository: widget.notificationInboxRepository,
+    ownerUidProvider: _notificationOwnerUid,
+    debugLog: _localNotificationDebugLogs ? _logLocalNotificationDebug : null,
+  );
+  late final NotificationInboxLegacyCleanup _notificationInboxLegacyCleanup =
+      NotificationInboxLegacyCleanup(
+        inboxRepository: widget.notificationInboxRepository,
+        cleanupStore: SharedPreferencesNotificationInboxCleanupStore(
+          uidProvider: _notificationOwnerUid,
+        ),
+        ownerUidProvider: _notificationOwnerUid,
+        debugLog: _localNotificationDebugLogs
+            ? _logLocalNotificationDebug
+            : null,
+      );
+
+  String? _notificationOwnerUid() => widget.authRepository.currentUser?.uid;
 
   static void _logLocalNotificationDebug(String message) {
     debugPrint('[RuniacLocalNotifications][Dart] $message');
@@ -178,6 +213,57 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
     }
     _scheduleInitialRunOpenIntent();
     _scheduleLocalNotificationSmokeTestIfEnabled();
+    if (widget.enableLocalPlanNotifications) {
+      _planNotificationScheduler.onDelivered = _handlePlanNotificationDelivered;
+    }
+    _scheduleNotificationInboxMaintenance();
+  }
+
+  void _handlePlanNotificationDelivered() {
+    if (!mounted) {
+      return;
+    }
+    unawaited(_runNotificationInboxMaintenance());
+  }
+
+  /// Sweeps the legacy backlog once, then turns any fired-but-unrecorded plan
+  /// notification into an inbox item.
+  ///
+  /// Ordering matters: the sweep soft-deletes every client-written item, so a
+  /// notification materialized first would be wiped by it on the same launch.
+  void _scheduleNotificationInboxMaintenance() {
+    final ownerUid = _notificationOwnerUid();
+    if (ownerUid == null ||
+        ownerUid.isEmpty ||
+        ownerUid == _notificationInboxMaintenanceOwnerUid) {
+      return;
+    }
+    _notificationInboxMaintenanceOwnerUid = ownerUid;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      unawaited(_runNotificationInboxMaintenance(cleanFirst: true));
+    });
+  }
+
+  Future<void> _runNotificationInboxMaintenance({
+    bool cleanFirst = false,
+  }) async {
+    if (_notificationInboxMaintenanceInFlight) {
+      return;
+    }
+    _notificationInboxMaintenanceInFlight = true;
+    try {
+      if (cleanFirst) {
+        await _notificationInboxLegacyCleanup.runOnce();
+      }
+      await _planNotificationMaterializer.materializeDeliveries();
+    } catch (_) {
+      // Inbox maintenance must not block the primary app shell.
+    } finally {
+      _notificationInboxMaintenanceInFlight = false;
+    }
   }
 
   @override
@@ -288,6 +374,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _planNotificationScheduler.onDelivered = null;
     _currentDayController.removeListener(_handleCurrentDayChanged);
     if (_ownsCurrentDayController) {
       _currentDayController.dispose();
@@ -303,6 +390,8 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       _currentDayController.refresh();
       _openActiveRunFromSystemReturn();
+      // Anything that fired while the app was away is only discoverable now.
+      unawaited(_runNotificationInboxMaintenance());
     }
   }
 
@@ -473,6 +562,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
       userProgressStore: userProgressStore,
       force: false,
     );
+    _scheduleNotificationInboxMaintenance();
     final feedAuthorProfile =
         _lastFeedAuthorProfile ??
         FeedAuthorProfileSnapshot.fallback(

@@ -3,6 +3,7 @@ import 'package:runiac_app/features/notifications/domain/models/notification_cen
 import 'package:runiac_app/features/notifications/domain/models/plan_notification_schedule.dart';
 import 'package:runiac_app/features/notifications/domain/repositories/notification_center_settings_repository.dart';
 import 'package:runiac_app/features/notifications/domain/repositories/notification_inbox_repository.dart';
+import 'package:runiac_app/features/notifications/domain/repositories/plan_notification_ledger.dart';
 import 'package:runiac_app/features/notifications/domain/repositories/plan_notification_scheduler.dart';
 import 'package:runiac_app/features/notifications/domain/services/generated_plan_notification_schedule_builder.dart';
 import 'package:runiac_app/features/notifications/domain/services/plan_notification_sync_service.dart';
@@ -94,19 +95,22 @@ void main() {
     );
 
     test(
-      'saves generated local plan reminders to the notification inbox',
+      'records generated local plan reminders in the ledger, never the inbox',
       () async {
-        // Given: local plan notifications are enabled and an inbox repository is
-        // available for the signed-in runner.
+        // Given: local plan notifications are enabled for the signed-in runner.
+        // The inbox is a catch-up surface for notifications that already fired,
+        // so scheduling one must leave it untouched — writing at schedule time
+        // is what pinned the unread badge at 99+.
         final settingsRepository = InMemoryNotificationCenterSettingsRepository(
           initialSettings: NotificationCenterSettings.defaults,
         );
         final scheduler = _RecordingPlanNotificationScheduler();
         final inboxRepository = InMemoryNotificationInboxRepository();
+        final ledger = InMemoryPlanNotificationLedger();
         final service = PlanNotificationSyncService(
           settingsRepository: settingsRepository,
           scheduler: scheduler,
-          inboxRepository: inboxRepository,
+          ledger: ledger,
         );
 
         // When: the generated plan reminders are synced to the native scheduler.
@@ -118,19 +122,58 @@ void main() {
           now: DateTime(2026, 7, 8, 5),
         );
 
-        // Then: the same local reminders are available from the in-app inbox.
-        final inboxItems = await inboxRepository.listInboxItems();
-        expect(inboxItems.map((item) => item.id), [
-          for (final notification in scheduler.syncedNotifications.reversed)
-            notification.id,
-        ]);
+        // Then: every scheduled reminder is in the ledger, awaiting delivery.
+        final entries = await ledger.loadEntries();
         expect(
-          inboxItems.first.title,
-          scheduler.syncedNotifications.last.title,
+          entries.map((entry) => entry.id).toSet(),
+          scheduler.syncedNotifications
+              .map((notification) => notification.id)
+              .toSet(),
         );
-        expect(inboxItems.first.data, containsPair('kind', 'missedRunNudge'));
+        expect(entries, isNotEmpty);
+
+        // And: nothing reached the inbox, so the bell badge stays at zero.
+        expect(await inboxRepository.listInboxItems(), isEmpty);
       },
     );
+
+    test('clears the ledger when the runner turns notifications off', () async {
+      // Given: a ledger holding reminders from an earlier sync.
+      final settingsRepository = InMemoryNotificationCenterSettingsRepository(
+        initialSettings: NotificationCenterSettings.defaults.copyWith(
+          notificationsEnabled: false,
+        ),
+      );
+      final scheduler = _RecordingPlanNotificationScheduler();
+      final ledger = InMemoryPlanNotificationLedger(
+        entries: [
+          ScheduledPlanNotification(
+            id: 'stale',
+            kind: PlanNotificationKind.todaysPlanReminder,
+            scheduledAt: DateTime(2026, 7, 9),
+            title: 'Stale',
+            body: 'Stale',
+          ),
+        ],
+      );
+      final service = PlanNotificationSyncService(
+        settingsRepository: settingsRepository,
+        scheduler: scheduler,
+        ledger: ledger,
+      );
+
+      // When
+      await service.syncGeneratedPlan(
+        _snapshot(
+          startsOnDate: '2026-07-06',
+          workout: _workout(dayLabel: 'Wed', scheduleTimeLabel: '7:30 AM'),
+        ),
+        now: DateTime(2026, 7, 7, 9),
+      );
+
+      // Then: cancelled notifications cannot later be mistaken for deliveries.
+      expect(await ledger.loadEntries(), isEmpty);
+    });
 
     test('schedules a QA smoke notification after a short delay', () async {
       // Given
@@ -139,10 +182,11 @@ void main() {
       );
       final scheduler = _RecordingPlanNotificationScheduler();
       final inboxRepository = InMemoryNotificationInboxRepository();
+      final ledger = InMemoryPlanNotificationLedger();
       final service = PlanNotificationSyncService(
         settingsRepository: settingsRepository,
         scheduler: scheduler,
-        inboxRepository: inboxRepository,
+        ledger: ledger,
       );
 
       // When
@@ -161,10 +205,10 @@ void main() {
         'body': 'If you can see this, iOS local notifications are working.',
         'payload': {'kind': 'localNotificationSmokeTest'},
       });
-      final inboxItems = await inboxRepository.listInboxItems();
-      expect(inboxItems.single.id, 'local-notification-smoke-test');
-      expect(inboxItems.single.title, 'Runiac local notification test');
-      expect(inboxItems.single.createdAt, DateTime(2026, 7, 8, 12, 1));
+      final entries = await ledger.loadEntries();
+      expect(entries.single.id, 'local-notification-smoke-test');
+      expect(entries.single.scheduledAt, DateTime(2026, 7, 8, 12, 1));
+      expect(await inboxRepository.listInboxItems(), isEmpty);
     });
 
     test(

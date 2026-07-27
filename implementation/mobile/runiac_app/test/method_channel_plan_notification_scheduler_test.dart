@@ -30,7 +30,7 @@ void main() {
               calls.add(call);
               return null;
             });
-        const scheduler = MethodChannelPlanNotificationScheduler(
+        final scheduler = MethodChannelPlanNotificationScheduler(
           channel: channel,
         );
 
@@ -79,7 +79,7 @@ void main() {
               calls.add(call);
               return null;
             });
-        const scheduler = MethodChannelPlanNotificationScheduler(
+        final scheduler = MethodChannelPlanNotificationScheduler(
           channel: channel,
         );
 
@@ -101,7 +101,7 @@ void main() {
               calls.add(call);
               return null;
             });
-        const scheduler = MethodChannelPlanNotificationScheduler(
+        final scheduler = MethodChannelPlanNotificationScheduler(
           channel: channel,
         );
 
@@ -144,7 +144,7 @@ void main() {
             calls.add(call);
             return null;
           });
-      const scheduler = MethodChannelPlanNotificationScheduler(
+      final scheduler = MethodChannelPlanNotificationScheduler(
         channel: channel,
         debugLogs: true,
       );
@@ -177,7 +177,7 @@ void main() {
             callCount += 1;
             return null;
           });
-      const scheduler = MethodChannelPlanNotificationScheduler(
+      final scheduler = MethodChannelPlanNotificationScheduler(
         channel: channel,
       );
 
@@ -197,5 +197,70 @@ void main() {
       // Then
       expect(callCount, 0);
     });
+
+    test('reads platform delivery reports and drops malformed ones', () async {
+      // Given: the platform hands back what it recorded while the app was
+      // away, including a record it could not complete.
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            if (call.method != 'consumeDeliveredNotifications') {
+              return null;
+            }
+            return <Object?>[
+              <Object?, Object?>{
+                'id': 'plan-1-week-1-wed-easy-run-today',
+                'deliveredAtMillis': DateTime(
+                  2026,
+                  7,
+                  8,
+                  7,
+                  31,
+                ).millisecondsSinceEpoch,
+              },
+              <Object?, Object?>{'id': 'missing-timestamp'},
+              'not a map',
+            ];
+          });
+      final scheduler = MethodChannelPlanNotificationScheduler(
+        channel: channel,
+      );
+
+      // When
+      final deliveries = await scheduler.consumeDeliveredNotifications();
+
+      // Then
+      expect(deliveries, hasLength(1));
+      expect(deliveries.single.id, 'plan-1-week-1-wed-easy-run-today');
+      expect(deliveries.single.deliveredAt, DateTime(2026, 7, 8, 7, 31));
+    });
+
+    test(
+      'notifies the listener when the platform reports a delivery',
+      () async {
+        // Given: a notification presented while the app is running produces no
+        // resume event, so the badge would otherwise wait for the next launch.
+        var notified = 0;
+        final scheduler = MethodChannelPlanNotificationScheduler(
+          channel: channel,
+        );
+        scheduler.onDelivered = () => notified += 1;
+
+        // When: native invokes the callback on the same channel.
+        await TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .handlePlatformMessage(
+              channel.name,
+              channel.codec.encodeMethodCall(
+                const MethodCall('onPlanNotificationDelivered'),
+              ),
+              (_) {},
+            );
+
+        // Then
+        expect(notified, 1);
+
+        // And: clearing the listener detaches the handler.
+        scheduler.onDelivered = null;
+      },
+    );
   });
 }

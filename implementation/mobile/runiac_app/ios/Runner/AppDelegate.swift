@@ -45,6 +45,10 @@ import UserNotifications
     NSLog(
       "[RuniacLocalNotifications][iOS] willPresent id=\(notification.request.identifier)"
     )
+    RuniacPlanNotificationChannel.recordDelivery(
+      identifier: notification.request.identifier,
+      at: notification.date
+    )
     if #available(iOS 14.0, *) {
       completionHandler([.banner, .list, .sound, .badge])
     } else {
@@ -59,6 +63,10 @@ import UserNotifications
   ) {
     NSLog(
       "[RuniacLocalNotifications][iOS] didReceive id=\(response.notification.request.identifier)"
+    )
+    RuniacPlanNotificationChannel.recordDelivery(
+      identifier: response.notification.request.identifier,
+      at: response.notification.date
     )
     completionHandler()
   }

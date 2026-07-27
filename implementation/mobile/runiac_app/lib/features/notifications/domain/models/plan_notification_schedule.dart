@@ -49,6 +49,44 @@ class ScheduledPlanNotification {
       'payload': payload,
     };
   }
+
+  /// Serialization for the local ledger of notifications actually handed to the
+  /// OS. Shares the channel map's shape so both sides stay in step.
+  Map<String, Object?> toLedgerJson() => toChannelMap();
+
+  static ScheduledPlanNotification? fromLedgerJson(Object? json) {
+    if (json is! Map) {
+      return null;
+    }
+    final id = json['id'];
+    final title = json['title'];
+    final body = json['body'];
+    final scheduledAtMillis = json['scheduledAtMillis'];
+    if (id is! String || title is! String || body is! String) {
+      return null;
+    }
+    if (scheduledAtMillis is! int) {
+      return null;
+    }
+    final rawPayload = json['payload'];
+    return ScheduledPlanNotification(
+      id: id,
+      kind: PlanNotificationKind.values.firstWhere(
+        (candidate) => candidate.name == json['kind'],
+        orElse: () => PlanNotificationKind.planUpdate,
+      ),
+      scheduledAt: DateTime.fromMillisecondsSinceEpoch(scheduledAtMillis),
+      title: title,
+      body: body,
+      payload: rawPayload is Map
+          ? <String, String>{
+              for (final entry in rawPayload.entries)
+                if (entry.value is String)
+                  entry.key.toString(): entry.value as String,
+            }
+          : const <String, String>{},
+    );
+  }
 }
 
 class StreakRiskNotificationInput {

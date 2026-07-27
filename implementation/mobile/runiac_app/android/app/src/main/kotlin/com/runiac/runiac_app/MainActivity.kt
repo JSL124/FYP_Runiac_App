@@ -29,10 +29,11 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
-        MethodChannel(
+        val planNotificationChannel = MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
             PLAN_NOTIFICATIONS_CHANNEL,
-        ).setMethodCallHandler { call, result ->
+        )
+        planNotificationChannel.setMethodCallHandler { call, result ->
             when (call.method) {
                 PLAN_NOTIFICATIONS_REQUEST_PERMISSION_METHOD ->
                     requestPostNotificationsPermission(result)
@@ -48,7 +49,19 @@ class MainActivity : FlutterActivity() {
                     planNotificationScheduler.cancelPlanNotifications()
                     result.success(null)
                 }
+                CONSUME_DELIVERED_NOTIFICATIONS_METHOD ->
+                    result.success(
+                        planNotificationScheduler.consumeDeliveredNotifications(),
+                    )
                 else -> result.notImplemented()
+            }
+        }
+        planNotificationScheduler.deliveryListener = {
+            runOnUiThread {
+                planNotificationChannel.invokeMethod(
+                    PLAN_NOTIFICATION_DELIVERED_METHOD,
+                    null,
+                )
             }
         }
         MethodChannel(
@@ -231,6 +244,10 @@ class MainActivity : FlutterActivity() {
             "schedulePlanNotification"
         private const val CANCEL_PLAN_NOTIFICATIONS_METHOD =
             "cancelPlanNotifications"
+        private const val CONSUME_DELIVERED_NOTIFICATIONS_METHOD =
+            "consumeDeliveredNotifications"
+        private const val PLAN_NOTIFICATION_DELIVERED_METHOD =
+            "onPlanNotificationDelivered"
         private const val START_RUN_FOREGROUND_SERVICE_METHOD = "start"
         private const val UPDATE_RUN_NOTIFICATION_METHOD = "update"
         private const val STOP_RUN_FOREGROUND_SERVICE_METHOD = "stop"

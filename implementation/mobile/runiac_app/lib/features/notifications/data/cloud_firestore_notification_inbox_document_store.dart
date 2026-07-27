@@ -2,6 +2,34 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'firestore_notification_inbox_repository.dart';
 
+/// Builds the merge payload for a client-written inbox document.
+///
+/// `readAt` and `deletedAt` are omitted rather than cleared when null. An
+/// earlier version wrote `FieldValue.delete()` for them, which meant re-saving
+/// a document with a deterministic id — every local plan notification has one —
+/// silently un-read and un-deleted whatever the runner had already dismissed,
+/// so the unread badge could never be brought down. Omitting the keys lets the
+/// merge preserve them. `firestore.rules` validates both conditionally
+/// (`!('readAt' in request.resource.data) || ...`), so their absence is allowed.
+Map<String, Object?> notificationInboxDocumentPayload({
+  required String uid,
+  required NotificationInboxDocument item,
+  required DateTime updatedAt,
+}) {
+  return <String, Object?>{
+    'ownerUid': uid,
+    'clientManaged': true,
+    'title': item.title,
+    'body': item.body,
+    'createdAt': Timestamp.fromDate(item.createdAt.toUtc()),
+    if (item.readAt != null) 'readAt': Timestamp.fromDate(item.readAt!.toUtc()),
+    if (item.deletedAt != null)
+      'deletedAt': Timestamp.fromDate(item.deletedAt!.toUtc()),
+    'data': item.data,
+    'updatedAt': Timestamp.fromDate(updatedAt.toUtc()),
+  };
+}
+
 class CloudFirestoreNotificationInboxDocumentStore
     implements NotificationInboxDocumentStore {
   CloudFirestoreNotificationInboxDocumentStore({FirebaseFirestore? firestore})
@@ -37,21 +65,16 @@ class CloudFirestoreNotificationInboxDocumentStore
     required String uid,
     required NotificationInboxDocument item,
   }) {
-    return _items(uid).doc(item.id).set({
-      'ownerUid': uid,
-      'clientManaged': true,
-      'title': item.title,
-      'body': item.body,
-      'createdAt': Timestamp.fromDate(item.createdAt.toUtc()),
-      'readAt': item.readAt == null
-          ? FieldValue.delete()
-          : Timestamp.fromDate(item.readAt!.toUtc()),
-      'deletedAt': item.deletedAt == null
-          ? FieldValue.delete()
-          : Timestamp.fromDate(item.deletedAt!.toUtc()),
-      'data': item.data,
-      'updatedAt': Timestamp.fromDate(DateTime.now().toUtc()),
-    }, SetOptions(merge: true));
+    return _items(uid)
+        .doc(item.id)
+        .set(
+          notificationInboxDocumentPayload(
+            uid: uid,
+            item: item,
+            updatedAt: DateTime.now(),
+          ),
+          SetOptions(merge: true),
+        );
   }
 
   @override
@@ -97,6 +120,7 @@ class CloudFirestoreNotificationInboxDocumentStore
       readAt: _readTimestamp(data['readAt']),
       deletedAt: _readTimestamp(data['deletedAt']),
       data: _readMap(data['data']),
+      clientManaged: data['clientManaged'] == true,
     );
   }
 

@@ -715,7 +715,42 @@ is_feed_author_identity_profile_entry_path() {
   esac
 }
 
+is_notification_inbox_delivery_semantics_capsule_active() {
+  grep -Eq '^- Newly routed notification inbox delivery semantics on 2026-07-27 Asia/Singapore: `implementation/roadmap/capsules/notification-inbox-delivery-semantics\.md`' implementation/roadmap/CURRENT.md
+}
+
+# Client and native paths touched by the routed notification inbox delivery
+# capsule. It moves the local plan-notification inbox write from schedule time
+# to delivery time, so it spans the notifications feature, the plan-notification
+# method channel on both platforms, and the shell/bootstrap wiring. No Cloud
+# Functions, rules, or index path belongs to this capsule.
+is_notification_inbox_delivery_semantics_path() {
+  case "$1" in
+    implementation/roadmap/capsules/notification-inbox-delivery-semantics.md|\
+    implementation/mobile/runiac_app/lib/features/notifications/*|\
+    implementation/mobile/runiac_app/lib/features/shell/runiac_shell.dart|\
+    implementation/mobile/runiac_app/lib/core/firebase/runiac_firebase_bootstrap.dart|\
+    implementation/mobile/runiac_app/ios/Runner/AppDelegate.swift|\
+    implementation/mobile/runiac_app/ios/Runner/RuniacPlanNotificationChannel.swift|\
+    implementation/mobile/runiac_app/android/app/src/main/kotlin/com/runiac/runiac_app/MainActivity.kt|\
+    implementation/mobile/runiac_app/android/app/src/main/kotlin/com/runiac/runiac_app/RuniacPlanNotificationScheduler.kt|\
+    implementation/mobile/runiac_app/test/plan_notification_*|\
+    implementation/mobile/runiac_app/test/notification_inbox_*|\
+    implementation/mobile/runiac_app/test/home_notification_inbox_test.dart|\
+    implementation/mobile/runiac_app/test/method_channel_plan_notification_scheduler_test.dart)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_allowed_path() {
+  if is_notification_inbox_delivery_semantics_path "$1" && is_notification_inbox_delivery_semantics_capsule_active; then
+    return 0
+  fi
+
   if is_error_reporting_pipeline_path "$1" && is_error_reporting_pipeline_capsule_active; then
     return 0
   fi

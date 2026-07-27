@@ -14,6 +14,14 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 
 class RuniacPlanNotificationScheduler(private val context: Context) {
+    /**
+     * Invoked when a notification is presented while a Flutter engine happens
+     * to be attached, so the unread badge can update without waiting for the
+     * next resume. Null in the receiver's cold-start case, which is exactly
+     * why the delivery is persisted rather than only announced.
+     */
+    var deliveryListener: (() -> Unit)? = null
+
     fun syncPlanNotifications(arguments: Any?) {
         cancelPlanNotifications()
         val notifications = notificationsFromArguments(arguments)
@@ -91,6 +99,54 @@ class RuniacPlanNotificationScheduler(private val context: Context) {
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .build(),
         )
+        recordDelivery(id, System.currentTimeMillis())
+        deliveryListener?.invoke()
+    }
+
+    /**
+     * Persists the fact that a notification was actually presented.
+     *
+     * This is the only trustworthy delivery signal on Android: the alarm fires
+     * into [RuniacPlanNotificationReceiver], which can cold-start the process
+     * with no Flutter engine attached, so nothing can be handed to Dart at this
+     * moment. The record waits in SharedPreferences until Dart drains it
+     * through [consumeDeliveredNotifications].
+     */
+    private fun recordDelivery(id: String, deliveredAtMillis: Long) {
+        val existing = deliveryRecords()
+        val trimmed = (existing + "$id$DELIVERY_FIELD_SEPARATOR$deliveredAtMillis")
+            .takeLast(MAX_DELIVERY_RECORDS)
+        preferences().edit()
+            .putString(DELIVERED_EVENTS_KEY, trimmed.joinToString(DELIVERY_RECORD_SEPARATOR))
+            .apply()
+    }
+
+    /** Returns every recorded delivery and clears the store in one step. */
+    fun consumeDeliveredNotifications(): List<Map<String, Any>> {
+        val records = deliveryRecords()
+        if (records.isEmpty()) {
+            return emptyList()
+        }
+        preferences().edit().remove(DELIVERED_EVENTS_KEY).apply()
+        return records.mapNotNull { record ->
+            val separatorIndex = record.lastIndexOf(DELIVERY_FIELD_SEPARATOR)
+            if (separatorIndex <= 0) {
+                return@mapNotNull null
+            }
+            val id = record.substring(0, separatorIndex)
+            val deliveredAtMillis =
+                record.substring(separatorIndex + 1).toLongOrNull()
+                    ?: return@mapNotNull null
+            mapOf("id" to id, "deliveredAtMillis" to deliveredAtMillis)
+        }
+    }
+
+    private fun deliveryRecords(): List<String> {
+        val raw = preferences().getString(DELIVERED_EVENTS_KEY, null)
+        if (raw.isNullOrEmpty()) {
+            return emptyList()
+        }
+        return raw.split(DELIVERY_RECORD_SEPARATOR).filter { it.isNotEmpty() }
     }
 
     private fun openAppPendingIntent(): PendingIntent {
@@ -207,5 +263,9 @@ class RuniacPlanNotificationScheduler(private val context: Context) {
         private const val OPEN_APP_REQUEST_CODE = 51240
         private const val PREFERENCES_NAME = "runiac_plan_notifications"
         private const val SCHEDULED_IDS_KEY = "scheduled_ids"
+        private const val DELIVERED_EVENTS_KEY = "delivered_events"
+        private const val DELIVERY_RECORD_SEPARATOR = "\n"
+        private const val DELIVERY_FIELD_SEPARATOR = '\u0001'
+        private const val MAX_DELIVERY_RECORDS = 200
     }
 }

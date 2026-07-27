@@ -16,6 +16,7 @@ class NotificationInboxDocument {
     this.readAt,
     this.deletedAt,
     this.data = const <String, Object?>{},
+    this.clientManaged = false,
   });
 
   final String id;
@@ -25,6 +26,7 @@ class NotificationInboxDocument {
   final DateTime? readAt;
   final DateTime? deletedAt;
   final Map<String, Object?> data;
+  final bool clientManaged;
 
   NotificationInboxItem toReadModel() {
     return NotificationInboxItem(
@@ -35,6 +37,7 @@ class NotificationInboxDocument {
       readAt: readAt,
       deletedAt: deletedAt,
       data: data,
+      clientManaged: clientManaged,
     );
   }
 }
@@ -123,6 +126,7 @@ class FirestoreNotificationInboxRepository
         readAt: item.readAt,
         deletedAt: item.deletedAt,
         data: item.data,
+        clientManaged: true,
       ),
     );
   }
