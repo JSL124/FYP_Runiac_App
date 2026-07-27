@@ -282,6 +282,21 @@ void main() {
     expect(samY, lessThan(leftY));
   });
 
+  testWidgets(
+    "another participant's avatar links to their profile; the current "
+    'user is not tappable',
+    (tester) async {
+      final semantics = tester.ensureSemantics();
+      final repository = FakeChallengeRepository(activeOverride: _groupOwner);
+      await _pump(tester, repository);
+
+      expect(find.bySemanticsLabel('View Sam Runner profile'), findsOneWidget);
+      expect(find.bySemanticsLabel('View Runner Me profile'), findsNothing);
+
+      semantics.dispose();
+    },
+  );
+
   testWidgets('my block: personal minimum caption uses 0.1 km formatting', (
     tester,
   ) async {

@@ -4,6 +4,7 @@ import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { createRunnerPublicProfilePorts } from "../src/profile/publicProfile/callable.js";
 import { getRunnerPublicProfile } from "../src/profile/publicProfile/core.js";
+import { canonicalizeNickname, nicknameIndexKey } from "../src/friends/nickname.js";
 
 /**
  * Integration coverage for `getRunnerPublicProfile` against the Firestore
@@ -18,11 +19,27 @@ const viewer = "rpp-viewer";
 const runner = "rpp-runner";
 const blocker = "rpp-blocker";
 const suspended = "rpp-suspended";
-const seededUids = [viewer, runner, blocker, suspended] as const;
+// The uid-addressed form's fixture cast: a friend, a pending friend request,
+// a search-discoverable stranger, a challenge lobby co-member, and a plain
+// stranger with none of the above.
+const friendUid = "rpp-friend";
+const requestedUid = "rpp-requested";
+const discoverableUid = "rpp-discoverable";
+const comemberUid = "rpp-comember";
+const strangerUid = "rpp-stranger";
+const uidFormUids = [friendUid, requestedUid, discoverableUid, comemberUid, strangerUid] as const;
+const seededUids = [viewer, runner, blocker, suspended, ...uidFormUids] as const;
 const snapshotId = "monthly_jurong-east_tier_03_2026-07";
 const buildId = "build-2026-07-26T09";
 const entry = (rankLabel: string, build: string = buildId) => ({ snapshotId, rankLabel, buildId: build });
 const rankIds = ["rpp-rank-runner", "rpp-rank-blocker", "rpp-rank-suspended", "rpp-rank-viewer", "rpp-rank-duplicate"] as const;
+const challengeId = "rpp-challenge";
+// The discoverable stranger's nickname triple, computed the same way the
+// nickname claim pipeline computes it — never hand-written, so the fixture
+// can never drift from what `socialProfile()` actually recomputes.
+const discoverableNickname = "Sprinter_disco";
+const discoverableCanonical = canonicalizeNickname(discoverableNickname);
+const discoverableIndexKey = nicknameIndexKey(discoverableCanonical);
 
 if (getApps().length === 0) initializeApp();
 const db = getFirestore();
@@ -68,6 +85,29 @@ before(async () => {
   await db.doc("leaderboardUserRanks/rpp-rank-blocker").set({ ownerUid: blocker, snapshotId, buildId, rankLabel: "#4", periodKey: "2026-07", regionId: "jurong-east", divisionKey: "tier_03" });
   await db.doc("leaderboardUserRanks/rpp-rank-suspended").set({ ownerUid: suspended, snapshotId, buildId, rankLabel: "#5", periodKey: "2026-07", regionId: "jurong-east", divisionKey: "tier_03" });
   await db.doc("leaderboardUserRanks/rpp-rank-viewer").set({ ownerUid: viewer, snapshotId, buildId, rankLabel: "#6", periodKey: "2026-07", regionId: "jurong-east", divisionKey: "tier_03" });
+
+  // Fixtures for the uid-addressed request form: a friend, a pending friend
+  // request, a search-discoverable stranger, a challenge co-member, and a
+  // plain stranger with no edge, roster membership, or discovery flag.
+  await db.doc(`userProfiles/${friendUid}`).set({ displayName: "Friend Runner", avatarInitials: "FR", locationLabel: "Bedok, Singapore" });
+  await db.doc(`userProfiles/${requestedUid}`).set({ displayName: "Requested Runner", avatarInitials: "RQ", locationLabel: "Bedok, Singapore" });
+  await db.doc(`userProfiles/${discoverableUid}`).set({
+    displayName: "Discoverable Runner",
+    avatarInitials: "DI",
+    locationLabel: "Bedok, Singapore",
+    socialDiscoveryStatus: "active",
+    nickname: discoverableNickname,
+    nicknameCanonical: discoverableCanonical,
+    nicknameIndexKey: discoverableIndexKey,
+  });
+  await db.doc(`userProfiles/${comemberUid}`).set({ displayName: "Co-member Runner", avatarInitials: "CM", locationLabel: "Bedok, Singapore" });
+  await db.doc(`userProfiles/${strangerUid}`).set({ displayName: "Stranger Runner", avatarInitials: "ST", locationLabel: "Bedok, Singapore" });
+
+  await db.doc(`users/${viewer}/friends/${friendUid}`).set({ createdAt: new Date(0) });
+  await db.doc(`users/${viewer}/friendRequests/${requestedUid}`).set({ createdAt: new Date(0) });
+
+  await db.doc(`challengeSlots/${viewer}`).set({ challengeId });
+  await db.doc(`challengeInstances/${challengeId}`).set({ rosterUids: [viewer, comemberUid] });
 });
 
 after(async () => {
@@ -153,6 +193,63 @@ describe("Runner public profile emulator integration", () => {
   });
 });
 
+describe("Runner public profile emulator integration — uid-addressed form", () => {
+  it("resolves a uid the viewer is friends with", async () => {
+    const profile = await getRunnerPublicProfile({ auth: { uid: viewer }, data: { uid: friendUid } }, ports);
+
+    assert.equal(profile.displayName, "Friend Runner");
+  });
+
+  it("resolves a uid the viewer has a pending friend request with", async () => {
+    const profile = await getRunnerPublicProfile({ auth: { uid: viewer }, data: { uid: requestedUid } }, ports);
+
+    assert.equal(profile.displayName, "Requested Runner");
+  });
+
+  it("resolves a discoverable stranger, the search-result path", async () => {
+    const profile = await getRunnerPublicProfile({ auth: { uid: viewer }, data: { uid: discoverableUid } }, ports);
+
+    assert.equal(profile.displayName, discoverableNickname);
+  });
+
+  it("resolves a challenge lobby co-member", async () => {
+    const profile = await getRunnerPublicProfile({ auth: { uid: viewer }, data: { uid: comemberUid } }, ports);
+
+    assert.equal(profile.displayName, "Co-member Runner");
+  });
+
+  it("resolves the viewer's own uid", async () => {
+    const profile = await getRunnerPublicProfile({ auth: { uid: viewer }, data: { uid: viewer } }, ports);
+
+    assert.equal(profile.displayName, "Viewer");
+  });
+
+  it("rejects a plain stranger uid with no edge, roster membership, or discovery flag", async () => {
+    await assertRejects(() => getRunnerPublicProfile({ auth: { uid: viewer }, data: { uid: strangerUid } }, ports), "not-found");
+  });
+
+  it("rejects a discoverable profile whose nicknameIndexKey does not match its canonical nickname", async () => {
+    // Proves `socialProfile()` really recomputes and compares the index key
+    // in this path, rather than trusting `socialDiscoveryStatus` alone.
+    await db.doc(`userProfiles/${discoverableUid}`).update({ nicknameIndexKey: "n1_corrupted" });
+    try {
+      await assertRejects(() => getRunnerPublicProfile({ auth: { uid: viewer }, data: { uid: discoverableUid } }, ports), "not-found");
+    } finally {
+      await db.doc(`userProfiles/${discoverableUid}`).update({ nicknameIndexKey: discoverableIndexKey });
+    }
+  });
+
+  it("rejects a runner who blocked the viewer via uid with not-found, not permission-denied", async () => {
+    // The uid path unifies every denial into `not-found` — a block edge must
+    // not read as `permission-denied` here the way the leaderboard path does.
+    await assertRejects(() => getRunnerPublicProfile({ auth: { uid: viewer }, data: { uid: blocker } }, ports), "not-found");
+  });
+
+  it("rejects a suspended runner via uid with not-found", async () => {
+    await assertRejects(() => getRunnerPublicProfile({ auth: { uid: viewer }, data: { uid: suspended } }, ports), "not-found");
+  });
+});
+
 async function assertRejects(run: () => Promise<unknown>, code: string): Promise<void> {
   await assert.rejects(run, (error: unknown) => typeof error === "object" && error !== null && "code" in error && error["code"] === code);
 }
@@ -165,4 +262,10 @@ async function clearFixture(): Promise<void> {
     await Promise.all([...badges.docs, ...blocks.docs].map((document) => document.ref.delete()));
     await Promise.all([db.doc(`users/${uid}`).delete(), db.doc(`userProfiles/${uid}`).delete()]);
   }
+  await Promise.all([
+    db.doc(`users/${viewer}/friends/${friendUid}`).delete(),
+    db.doc(`users/${viewer}/friendRequests/${requestedUid}`).delete(),
+    db.doc(`challengeSlots/${viewer}`).delete(),
+    db.doc(`challengeInstances/${challengeId}`).delete(),
+  ]);
 }

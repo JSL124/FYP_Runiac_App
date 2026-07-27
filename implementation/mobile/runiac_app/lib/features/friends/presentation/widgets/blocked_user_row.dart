@@ -32,7 +32,10 @@ class BlockedUserRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
           child: Row(
             children: [
-              FriendRowBadge(user: user),
+              // A block denies visibility in both directions, so the
+              // backend would always answer "not available" for a profile
+              // lookup here — offering the tap would be dishonest UI.
+              FriendRowBadge(user: user, enableProfileLink: false),
               const SizedBox(width: 12),
               Expanded(child: FriendRowName(user: user)),
               const SizedBox(width: 8),

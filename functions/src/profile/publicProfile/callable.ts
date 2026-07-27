@@ -3,6 +3,8 @@ import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import { onCall } from "firebase-functions/v2/https";
 import { getRunnerPublicProfile as getRunnerPublicProfileCore, type RunnerPublicProfilePorts } from "./core.js";
 import { withCallableErrorReporting } from "../../errors/withErrorReporting.js";
+import { friendRef, requestRef } from "../../friends/friendsPaths.js";
+import { instanceRef, readRoster, slotRef } from "../../challenge/challengeLobbySupport.js";
 
 if (getApps().length === 0) initializeApp();
 
@@ -62,6 +64,20 @@ export function createRunnerPublicProfilePorts(firestore: Firestore): RunnerPubl
       if (snapshot.size !== 1) return undefined;
       const ownerUid = snapshot.docs[0]?.data()["ownerUid"];
       return typeof ownerUid === "string" && ownerUid.length > 0 ? ownerUid : undefined;
+    },
+    async readSocialEdge(callerUid, targetUid) {
+      const [friend, request] = await Promise.all([
+        friendRef(firestore, callerUid, targetUid).get(),
+        requestRef(firestore, callerUid, targetUid).get(),
+      ]);
+      return friend.exists || request.exists;
+    },
+    async isChallengeCoMember(callerUid, targetUid) {
+      const slotSnapshot = await slotRef(firestore, callerUid).get();
+      const challengeId = slotSnapshot.data()?.["challengeId"];
+      if (typeof challengeId !== "string" || challengeId.length === 0) return false;
+      const instanceSnapshot = await instanceRef(firestore, challengeId).get();
+      return readRoster(instanceSnapshot.data()).includes(targetUid);
     },
   };
 }

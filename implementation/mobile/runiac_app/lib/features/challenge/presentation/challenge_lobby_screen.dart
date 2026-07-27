@@ -6,6 +6,7 @@ import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_back_header.dart';
 import '../../../core/widgets/runiac_buttons.dart';
 import '../../../core/widgets/runiac_level_profile_badge.dart';
+import '../../profile/presentation/widgets/runner_profile_avatar_link.dart';
 import '../domain/challenge_copy.dart';
 import '../domain/challenge_countdown.dart';
 import '../domain/models/active_challenge.dart';
@@ -554,56 +555,68 @@ class _ChallengeLobbyScreenState extends State<ChallengeLobbyScreen> {
         : (row.isCurrentUser ? ChallengeCopy.youLabel : null);
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: ChallengeCard(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-        child: Row(
-          children: [
-            _rosterBadge(
-              initials: row.avatarInitialsSnapshot,
-              levelLabel: row.levelLabelSnapshot,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    row.displayNameSnapshot,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: RuniacColors.textPrimary,
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  if (subtitle != null) ...[
-                    const SizedBox(height: 2),
+      // `explicitChildNodes: true` keeps the avatar's nested
+      // `RunnerProfileAvatarLink` button semantics from merging upward into
+      // whatever ancestor node happens to be the nearest semantics boundary
+      // (this row has none of its own otherwise), which would otherwise fold
+      // its "View <name> profile" label into an unrelated combined node.
+      child: Semantics(
+        container: true,
+        explicitChildNodes: true,
+        child: ChallengeCard(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+          child: Row(
+            children: [
+              _rosterBadge(
+                initials: row.avatarInitialsSnapshot,
+                levelLabel: row.levelLabelSnapshot,
+                uid: row.uid,
+                displayName: row.displayNameSnapshot,
+                enabled: !row.isCurrentUser,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      subtitle,
+                      row.displayNameSnapshot,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        color: RuniacColors.textSecondary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
+                        color: RuniacColors.textPrimary,
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          color: RuniacColors.textSecondary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-            if (!isOwner) ...[
-              const SizedBox(width: 8),
-              row.hasLeft
-                  ? const ChallengeStatusChip(
-                      label: ChallengeCopy.leftTheChallenge,
-                      color: RuniacColors.textSecondary,
-                    )
-                  : const ChallengeStatusChip(
-                      label: ChallengeCopy.chipAccepted,
-                      color: RuniacColors.successGreen,
-                    ),
+              if (!isOwner) ...[
+                const SizedBox(width: 8),
+                row.hasLeft
+                    ? const ChallengeStatusChip(
+                        label: ChallengeCopy.leftTheChallenge,
+                        color: RuniacColors.textSecondary,
+                      )
+                    : const ChallengeStatusChip(
+                        label: ChallengeCopy.chipAccepted,
+                        color: RuniacColors.successGreen,
+                      ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -649,12 +662,31 @@ class _ChallengeLobbyScreenState extends State<ChallengeLobbyScreen> {
 /// backend-owned level snapshot read back verbatim; an empty label falls back
 /// to the display-only 'Lv.0' placeholder Friends uses. No trusted progress
 /// fraction travels with the roster, so the ring stays empty.
-Widget _rosterBadge({required String initials, String levelLabel = ''}) {
-  return ExcludeSemantics(
-    child: RuniacLevelProfileBadge.row(
-      initials: initials,
-      levelLabel: levelLabel.trim().isEmpty ? 'Lv.0' : levelLabel,
-      progressFraction: 0,
+///
+/// Wrapped in [RunnerProfileAvatarLink] so tapping another runner's badge
+/// opens their public profile. [uid]/[displayName] default to empty, which
+/// makes the link inert (`ExcludeSemantics`-only) — used by the
+/// pending-invitation tile, where the invited runner is anonymous by design.
+/// [enabled] additionally disables the link for the current user's own row.
+Widget _rosterBadge({
+  required String initials,
+  String levelLabel = '',
+  String uid = '',
+  String displayName = '',
+  bool enabled = true,
+}) {
+  return RunnerProfileAvatarLink(
+    uid: uid,
+    displayName: displayName,
+    avatarInitials: initials,
+    levelBadgeLabel: levelLabel,
+    enabled: enabled,
+    child: ExcludeSemantics(
+      child: RuniacLevelProfileBadge.row(
+        initials: initials,
+        levelLabel: levelLabel.trim().isEmpty ? 'Lv.0' : levelLabel,
+        progressFraction: 0,
+      ),
     ),
   );
 }

@@ -213,6 +213,28 @@ class RunnerAchievementProfileSnapshot {
     this.buildId = '',
   });
 
+  /// Seeds a profile opened by uid from a non-leaderboard surface (feed,
+  /// friends, challenges): every leaderboard-only field starts empty, so
+  /// `_query()` falls through to `RunnerPublicProfileQuery.runner(uid: ...)`
+  /// instead of the unresolvable leaderboard-entry form.
+  const RunnerAchievementProfileSnapshot.forRunner({
+    required this.uid,
+    required this.name,
+    this.initial = '',
+    this.levelBadgeLabel = '',
+    this.isCurrentUser = false,
+    this.privacyNote = 'Only public running achievements are shown.',
+  }) : regionRankLabel = '',
+       divisionLevelLabel = '',
+       totalDistanceLabel = '',
+       bestStreakLabel = '',
+       badges = const <RunnerAchievementBadgeSnapshot>[],
+       rankLabel = '',
+       regionLabel = '',
+       divisionLabel = '',
+       snapshotId = '',
+       buildId = '';
+
   final String name;
   final String initial;
   final String regionRankLabel;

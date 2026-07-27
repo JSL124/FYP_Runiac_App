@@ -131,6 +131,36 @@ void main() {
   );
 
   testWidgets(
+    "another runner's comment avatar exposes a profile-link semantics label",
+    (WidgetTester tester) async {
+      final semantics = tester.ensureSemantics();
+      final repository = _CommentsRepository.withComments(1, owned: false);
+      await pumpSheet(tester, repository);
+
+      // The comment row has no explicit-child-node semantics boundary, so
+      // the avatar's label merges into the row's combined label rather than
+      // standing alone; a substring match still proves the button exists.
+      expect(
+        find.bySemanticsLabel(RegExp('View Runner profile')),
+        findsOneWidget,
+      );
+      semantics.dispose();
+    },
+  );
+
+  testWidgets(
+    "the viewer's own comment avatar exposes no profile-link semantics",
+    (WidgetTester tester) async {
+      final semantics = tester.ensureSemantics();
+      final repository = _CommentsRepository.withComments(1, owned: true);
+      await pumpSheet(tester, repository);
+
+      expect(find.bySemanticsLabel(RegExp('View You profile')), findsNothing);
+      semantics.dispose();
+    },
+  );
+
+  testWidgets(
     'creates, edits, and confirms deletion for viewer-owned comments',
     (WidgetTester tester) async {
       final repository = _CommentsRepository.withComments(1, owned: true);
@@ -370,6 +400,11 @@ void main() {
 
     expect(find.byIcon(Icons.more_horiz), findsNothing);
     expect(find.text('Session comment'), findsOneWidget);
+    // The fallback source has no repository, so `ownsComment` is always false
+    // even though this session comment is the signed-in viewer's own. The
+    // profile link has to read the viewer id directly, or a runner ends up
+    // with a link to their own read-only profile.
+    expect(find.bySemanticsLabel(RegExp('View .* profile')), findsNothing);
   });
 
   testWidgets(

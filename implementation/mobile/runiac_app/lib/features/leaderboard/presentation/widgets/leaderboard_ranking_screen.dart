@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/runiac_colors.dart';
 import '../../../../core/widgets/runiac_back_header.dart';
 import '../../../../core/widgets/skeleton.dart';
-import '../../../profile/domain/repositories/runner_public_profile_repository.dart';
+import '../../../profile/presentation/runner_public_profile_scope.dart';
 import '../../domain/models/leaderboard_read_model.dart';
 import '../leaderboard_status_copy.dart';
 import '../models/leaderboard_display_models.dart';
@@ -16,17 +16,9 @@ import 'runner_achievement_profile_screen.dart';
 /// the backend-produced [LeaderboardDetailDisplaySnapshot]; nothing is
 /// computed on the client.
 class LeaderboardRankingScreen extends StatelessWidget {
-  const LeaderboardRankingScreen({
-    super.key,
-    required this.snapshot,
-    this.runnerPublicProfileRepository =
-        const UnavailableRunnerPublicProfileRepository(),
-  });
+  const LeaderboardRankingScreen({super.key, required this.snapshot});
 
   final LeaderboardDetailDisplaySnapshot snapshot;
-
-  /// Backend source for the public profile of a runner tapped in this list.
-  final RunnerPublicProfileRepository runnerPublicProfileRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -158,7 +150,7 @@ class LeaderboardRankingScreen extends StatelessWidget {
         builder: (routeContext) => RunnerAchievementProfileScreen(
           profile: profile,
           onBack: () => Navigator.of(routeContext).pop(),
-          publicProfileRepository: runnerPublicProfileRepository,
+          publicProfileRepository: RunnerPublicProfileScope.of(context),
         ),
       ),
     );

@@ -71,6 +71,43 @@ void main() {
   });
 
   testWidgets(
+    "Feed post avatar is tappable for another runner but not for the "
+    "viewer's own post",
+    (WidgetTester tester) async {
+      final semantics = tester.ensureSemantics();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CurrentSessionFeed(
+              repository: _TwoAuthorsFeedRepository(),
+              viewerContext: const FeedViewerContext(
+                currentUserId: 'viewer',
+                acceptedFriendUserIds: <String>{'other-runner'},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // The rows merge the avatar's Semantics into the post's shared
+      // container node (there is no explicit-child-node boundary between
+      // the avatar and the surrounding text), so the profile-link label is
+      // a substring of that node's combined label rather than an exact
+      // match.
+      expect(
+        find.bySemanticsLabel(RegExp('View Other Runner profile')),
+        findsOneWidget,
+      );
+      expect(
+        find.bySemanticsLabel(RegExp('View Viewer Runner profile')),
+        findsNothing,
+      );
+      semantics.dispose();
+    },
+  );
+
+  testWidgets(
     'Feed uses current profile snapshot when own post level snapshot is empty',
     (WidgetTester tester) async {
       final semantics = tester.ensureSemantics();
@@ -482,6 +519,58 @@ class _NonCommentableFeedRepository implements FeedRepository {
           routeThumbnail: FeedRouteThumbnailReadModel(
             thumbnailKey: 'quiet-preview',
             accessibilityLabel: 'Quiet route preview',
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TwoAuthorsFeedRepository implements FeedRepository {
+  @override
+  Future<FeedReadModel> loadFeed(FeedViewerContext viewerContext) async {
+    return FeedReadModel(
+      posts: const [
+        FeedPostReadModel(
+          postId: 'own-post',
+          authorUserId: 'viewer',
+          authorDisplayName: 'Viewer Runner',
+          authorAvatarInitials: 'VR',
+          authorLevelLabel: 'Level 3',
+          relativeTimeLabel: 'Now',
+          distanceLabel: '2.0 km',
+          paceLabel: '7:00 / km',
+          durationLabel: '14 min',
+          likeCount: 0,
+          commentCount: 0,
+          isLikedByViewer: false,
+          hasViewerCommented: false,
+          canComment: true,
+          showsOwnerMenu: true,
+          routeThumbnail: FeedRouteThumbnailReadModel(
+            thumbnailKey: 'own-preview',
+            accessibilityLabel: 'Own route preview',
+          ),
+        ),
+        FeedPostReadModel(
+          postId: 'other-post',
+          authorUserId: 'other-runner',
+          authorDisplayName: 'Other Runner',
+          authorAvatarInitials: 'OR',
+          authorLevelLabel: 'Level 5',
+          relativeTimeLabel: 'Now',
+          distanceLabel: '3.0 km',
+          paceLabel: '6:30 / km',
+          durationLabel: '18 min',
+          likeCount: 0,
+          commentCount: 0,
+          isLikedByViewer: false,
+          hasViewerCommented: false,
+          canComment: true,
+          showsOwnerMenu: false,
+          routeThumbnail: FeedRouteThumbnailReadModel(
+            thumbnailKey: 'other-preview',
+            accessibilityLabel: 'Other route preview',
           ),
         ),
       ],

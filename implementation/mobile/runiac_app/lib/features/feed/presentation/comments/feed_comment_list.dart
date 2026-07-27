@@ -71,6 +71,7 @@ extension _FeedCommentList on _FeedCommentSheetState {
                     comment: comment,
                     currentAuthorProfile: widget._source.currentAuthorProfile,
                     ownsComment: ownsComment,
+                    viewerUserId: widget._source.viewerUserId,
                     actionsEnabled: !_isOffline && !_isSubmitting,
                     onOwnerActions: () => _showOwnerActions(comment),
                   );
@@ -84,6 +85,7 @@ class _CommentRow extends StatelessWidget {
     required this.comment,
     required this.currentAuthorProfile,
     required this.ownsComment,
+    required this.viewerUserId,
     required this.actionsEnabled,
     required this.onOwnerActions,
     super.key,
@@ -92,6 +94,13 @@ class _CommentRow extends StatelessWidget {
   final FeedCommentReadModel comment;
   final FeedAuthorProfileSnapshot? currentAuthorProfile;
   final bool ownsComment;
+
+  /// Who is reading, when this build knows. The profile link is decided from
+  /// this rather than from [ownsComment], which also requires a repository and
+  /// is therefore always false on the fallback path — where a signed-in runner
+  /// still authors session comments under their real uid, and would otherwise
+  /// get a link to their own read-only profile.
+  final String? viewerUserId;
   final bool actionsEnabled;
   final VoidCallback onOwnerActions;
 
@@ -101,7 +110,13 @@ class _CommentRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ExcludeSemantics(
+        RunnerProfileAvatarLink(
+          uid: comment.authorUserId,
+          displayName: comment.authorDisplayName,
+          avatarInitials: authorProfile.avatarInitials,
+          levelBadgeLabel: authorProfile.compactLevelLabel,
+          enabled:
+              viewerUserId != null && comment.authorUserId != viewerUserId,
           child: RuniacLevelProfileBadge.row(
             key: ValueKey('feed-comment-author-profile-${comment.commentId}'),
             initials: authorProfile.avatarInitials,

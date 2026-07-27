@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_back_header.dart';
 import '../../../core/widgets/runiac_buttons.dart';
+import '../../profile/presentation/widgets/runner_profile_avatar_link.dart';
 import '../domain/challenge_copy.dart';
 import '../domain/challenge_countdown.dart';
 import '../domain/models/active_challenge.dart';
@@ -581,6 +582,15 @@ class _MinimumBar extends StatelessWidget {
   }
 }
 
+/// A single roster row on the Progress screen. The avatar links to the
+/// runner's public profile — except the current user's own row, which is
+/// never tappable.
+///
+/// Limitation: the backend's co-member gate for opening a profile reads
+/// `challengeSlots/{caller}`, which only holds the caller's ACTIVE challenge.
+/// So opening a participant from a settled (no-longer-active) challenge falls
+/// through to the discoverability branch (public/friends visibility) rather
+/// than the co-member allowance, or is denied entirely if neither applies.
 class _ParticipantTile extends StatelessWidget {
   const _ParticipantTile({required this.row, this.muted = false});
 
@@ -597,50 +607,66 @@ class _ParticipantTile extends StatelessWidget {
       opacity: muted ? 0.6 : 1,
       child: Padding(
         padding: const EdgeInsets.only(bottom: 10),
-        child: ChallengeCard(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-          child: Row(
-            children: [
-              ChallengeInitialsAvatar(
-                initials: row.avatarInitialsSnapshot,
-                highlighted: row.isCurrentUser && !muted,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: nameColor,
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w800,
+        // `explicitChildNodes: true` keeps the avatar's nested
+        // `RunnerProfileAvatarLink` button semantics from merging upward into
+        // whatever ancestor node happens to be the nearest semantics
+        // boundary (this row has none of its own otherwise), which would
+        // otherwise fold its "View <name> profile" label into an unrelated
+        // combined node.
+        child: Semantics(
+          container: true,
+          explicitChildNodes: true,
+          child: ChallengeCard(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+            child: Row(
+              children: [
+                RunnerProfileAvatarLink(
+                  uid: row.uid,
+                  displayName: row.displayNameSnapshot,
+                  avatarInitials: row.avatarInitialsSnapshot,
+                  enabled: !row.isCurrentUser,
+                  child: ChallengeInitialsAvatar(
+                    initials: row.avatarInitialsSnapshot,
+                    highlighted: row.isCurrentUser && !muted,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: nameColor,
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ),
-                    ),
-                    if (isOwner) ...[
-                      const SizedBox(width: 8),
-                      const ChallengeStatusChip(
-                        label: 'Owner',
-                        color: RuniacColors.primaryBlue,
-                      ),
+                      if (isOwner) ...[
+                        const SizedBox(width: 8),
+                        const ChallengeStatusChip(
+                          label: 'Owner',
+                          color: RuniacColors.primaryBlue,
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                ChallengeDistanceFormat.kilometresLabel(row.creditedMeters),
-                style: TextStyle(
-                  color: nameColor,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w900,
+                const SizedBox(width: 8),
+                Text(
+                  ChallengeDistanceFormat.kilometresLabel(row.creditedMeters),
+                  style: TextStyle(
+                    color: nameColor,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
