@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
 import '../../paywall/presentation/premium_gate.dart';
-import '../../profile/domain/repositories/runner_public_profile_repository.dart';
+import '../../profile/presentation/runner_public_profile_scope.dart';
 import '../data/static_leaderboard_repository.dart';
 import '../domain/models/leaderboard_league_catalog.dart';
 import '../domain/models/leaderboard_read_model.dart';
@@ -26,15 +26,10 @@ class LeaderboardTab extends StatefulWidget {
     super.key,
     this.repository = const StaticLeaderboardRepository(),
     this.clock = _systemClock,
-    this.runnerPublicProfileRepository =
-        const UnavailableRunnerPublicProfileRepository(),
   });
 
   final LeaderboardRepository repository;
   final DateTime Function() clock;
-
-  /// Backend source for the public profile of a runner tapped in any rank row.
-  final RunnerPublicProfileRepository runnerPublicProfileRepository;
 
   @override
   State<LeaderboardTab> createState() => _LeaderboardTabState();
@@ -228,10 +223,7 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
     }
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => LeaderboardRankingScreen(
-          snapshot: snapshot,
-          runnerPublicProfileRepository: widget.runnerPublicProfileRepository,
-        ),
+        builder: (_) => LeaderboardRankingScreen(snapshot: snapshot),
       ),
     );
   }
@@ -314,7 +306,7 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
       return RunnerAchievementProfileScreen(
         profile: selectedProfile,
         onBack: _closeRunnerProfile,
-        publicProfileRepository: widget.runnerPublicProfileRepository,
+        publicProfileRepository: RunnerPublicProfileScope.of(context),
       );
     }
     final snapshot = _selectedRegion;

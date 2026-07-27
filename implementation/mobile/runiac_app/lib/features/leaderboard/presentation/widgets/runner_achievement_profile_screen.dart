@@ -63,6 +63,7 @@ class _RunnerAchievementProfileScreenState
     if (oldWidget.profile.snapshotId != widget.profile.snapshotId ||
         oldWidget.profile.rankLabel != widget.profile.rankLabel ||
         oldWidget.profile.buildId != widget.profile.buildId ||
+        oldWidget.profile.uid != widget.profile.uid ||
         oldWidget.publicProfileRepository != widget.publicProfileRepository) {
       _loadPublicProfile();
     }
@@ -72,13 +73,17 @@ class _RunnerAchievementProfileScreenState
   /// backend snapshot carries no uid, so the server resolves the owner and
   /// keeps it. The build id pins the lookup to the board that was on screen,
   /// so a row rendered before a refresh resolves to nobody rather than to
-  /// whoever inherited its rank.
+  /// whoever inherited its rank. Every other surface already holds the
+  /// runner's uid, so it addresses the profile directly instead.
   RunnerPublicProfileQuery _query() {
-    return RunnerPublicProfileQuery.leaderboardEntry(
-      snapshotId: widget.profile.snapshotId,
-      rankLabel: widget.profile.rankLabel,
-      buildId: widget.profile.buildId,
-    );
+    if (widget.profile.snapshotId.isNotEmpty) {
+      return RunnerPublicProfileQuery.leaderboardEntry(
+        snapshotId: widget.profile.snapshotId,
+        rankLabel: widget.profile.rankLabel,
+        buildId: widget.profile.buildId,
+      );
+    }
+    return RunnerPublicProfileQuery.runner(uid: widget.profile.uid);
   }
 
   Future<void> _loadPublicProfile() async {

@@ -1,3 +1,7 @@
+// ignore_for_file: depend_on_referenced_packages
+import 'package:firebase_auth_platform_interface/firebase_auth_platform_interface.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_core_platform_interface/test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -90,7 +94,101 @@ Widget _screen(
   );
 }
 
+// The report affordance's `!isCurrentUser && uid.isNotEmpty` gate is also
+// guarded by a live `FirebaseAuth.instance.currentUser` read (see
+// `_currentReporterUid` in runner_achievement_profile_screen.dart), which
+// throws in a plain widget test with no Firebase app registered. This fakes
+// just enough of the auth platform interface for that read to resolve to a
+// signed-in reporter, so the "offered" half of the gate is reachable here.
+class _EmptyFirebaseCoreHostApi implements TestFirebaseCoreHostApi {
+  @override
+  Future<CoreInitializeResponse> initializeApp(
+    String appName,
+    CoreFirebaseOptions initializeAppRequest,
+  ) async {
+    return CoreInitializeResponse(
+      name: appName,
+      options: initializeAppRequest,
+      pluginConstants: const {},
+    );
+  }
+
+  @override
+  Future<List<CoreInitializeResponse>> initializeCore() async {
+    return const <CoreInitializeResponse>[];
+  }
+
+  @override
+  Future<CoreFirebaseOptions> optionsFromResource() {
+    throw UnimplementedError();
+  }
+}
+
+class _FakeMultiFactor extends MultiFactorPlatform {
+  _FakeMultiFactor(super.auth);
+}
+
+class _FakeUser extends UserPlatform {
+  _FakeUser(FirebaseAuthPlatform auth, String uid)
+    : super(
+        auth,
+        _FakeMultiFactor(auth),
+        InternalUserDetails(
+          userInfo: InternalUserInfo(
+            uid: uid,
+            isAnonymous: false,
+            isEmailVerified: true,
+          ),
+          providerData: const [],
+        ),
+      );
+}
+
+class _FakeFirebaseAuthPlatform extends FirebaseAuthPlatform {
+  _FakeFirebaseAuthPlatform(this._reporterUid) : super();
+
+  final String _reporterUid;
+  UserPlatform? _currentUser;
+
+  @override
+  UserPlatform? get currentUser => _currentUser;
+
+  @override
+  set currentUser(UserPlatform? userPlatform) => _currentUser = userPlatform;
+
+  @override
+  FirebaseAuthPlatform delegateFor({required FirebaseApp app}) => this;
+
+  @override
+  FirebaseAuthPlatform setInitialValues({
+    InternalUserDetails? currentUser,
+    String? languageCode,
+  }) {
+    // Ignore the (empty, in this fake) method-channel plugin constants and
+    // seed a fixed signed-in reporter instead.
+    _currentUser ??= _FakeUser(this, _reporterUid);
+    return this;
+  }
+}
+
+const _fakeReporterUid = 'reporter-uid-1';
+
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  TestFirebaseCoreHostApi.setUp(_EmptyFirebaseCoreHostApi());
+  FirebaseAuthPlatform.instance = _FakeFirebaseAuthPlatform(_fakeReporterUid);
+
+  setUpAll(() async {
+    await Firebase.initializeApp(
+      options: const FirebaseOptions(
+        apiKey: 'test-api-key',
+        appId: '1:000000000000:ios:test',
+        messagingSenderId: '000000000000',
+        projectId: 'runiac-test',
+      ),
+    );
+  });
+
   testWidgets('shows the runner backend-owned public profile values', (
     WidgetTester tester,
   ) async {
@@ -236,6 +334,80 @@ void main() {
 
     expect(find.text('This runner profile is not available.'), findsOneWidget);
   });
+
+  testWidgets('a forRunner seed sends the uid payload and offers reporting', (
+    WidgetTester tester,
+  ) async {
+    final repository = _FakeRunnerPublicProfileRepository(
+      profile: _publicProfile,
+    );
+
+    await tester.pumpWidget(
+      _screen(
+        repository,
+        row: const RunnerAchievementProfileSnapshot.forRunner(
+          uid: 'runner-42',
+          name: 'Jinseo_main',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // The uid form addresses the runner directly; no leaderboard entry keys.
+    expect(repository.requestedPayloads, <Map<String, Object?>>[
+      <String, Object?>{'uid': 'runner-42'},
+    ]);
+    // A uid-seeded profile has a real backing runner (and this harness's
+    // fake FirebaseAuth resolves a signed-in reporter), so reporting is
+    // offered.
+    expect(
+      find.byKey(const Key('runner_profile_report_action')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a seed with neither uid nor snapshot never calls the backend', (
+    WidgetTester tester,
+  ) async {
+    final repository = _FakeRunnerPublicProfileRepository(
+      profile: _publicProfile,
+    );
+
+    await tester.pumpWidget(
+      _screen(
+        repository,
+        row: const RunnerAchievementProfileSnapshot.forRunner(
+          uid: '',
+          name: 'Jinseo_main',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(repository.requestedPayloads, isEmpty);
+    // No backing runner to report either.
+    expect(find.byKey(const Key('runner_profile_report_action')), findsNothing);
+  });
+
+  testWidgets(
+    'the report action is absent for a leaderboard seed with no uid',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(
+        _screen(
+          _FakeRunnerPublicProfileRepository(profile: _publicProfile),
+          row: _rankRow,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // _rankRow is a leaderboard-entry seed: the public snapshot never
+      // carries a uid, so the report affordance stays hidden.
+      expect(
+        find.byKey(const Key('runner_profile_report_action')),
+        findsNothing,
+      );
+    },
+  );
 
   group('Cloud Functions runner public profile repository', () {
     test('maps the callable payload into the read model', () async {
