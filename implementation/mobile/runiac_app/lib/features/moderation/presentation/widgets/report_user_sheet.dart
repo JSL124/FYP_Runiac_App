@@ -4,6 +4,7 @@ import 'package:lottie/lottie.dart';
 import '../../../../core/assets/runiac_assets.dart';
 import '../../../../core/theme/runiac_colors.dart';
 import '../../../../core/widgets/runiac_buttons.dart';
+import '../../../../core/widgets/runiac_sheet_primitives.dart';
 import '../../../../core/widgets/runiac_sheet_scaffold.dart';
 import '../../../you/presentation/widgets/you_surface_primitives.dart';
 import '../../domain/models/report_user_reason.dart';
@@ -144,7 +145,7 @@ class _ReportUserSheetState extends State<ReportUserSheet> {
           ),
           if (_error != null) ...[
             const SizedBox(height: 8),
-            _ErrorBanner(message: _error!),
+            RuniacSheetErrorBanner(message: _error!),
           ],
           const SizedBox(height: 12),
           SizedBox(
@@ -231,44 +232,6 @@ class _ReasonRow extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-/// Red-tinted banner used to surface a genuine submission failure.
-class _ErrorBanner extends StatelessWidget {
-  const _ErrorBanner({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-      decoration: BoxDecoration(
-        color: RuniacColors.errorRed.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(youInnerRadius),
-      ),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.error_outline_rounded,
-            color: RuniacColors.errorRed,
-            size: 20,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              message,
-              style: const TextStyle(
-                color: RuniacColors.errorRed,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

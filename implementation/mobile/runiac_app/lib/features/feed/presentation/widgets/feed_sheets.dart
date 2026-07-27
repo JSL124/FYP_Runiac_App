@@ -1,15 +1,30 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/runiac_colors.dart';
+import '../../../../core/widgets/runiac_sheet_primitives.dart';
+import '../../../../core/widgets/runiac_sheet_scaffold.dart';
 import '../../../you/presentation/widgets/you_surface_primitives.dart';
 
 export '../comments/feed_comment_sheet.dart';
 export '../comments/feed_comment_sheet_launcher.dart';
 
+/// Presented the same way as the Friends "..." sheet — transparent barrier
+/// surface and scroll-controlled — so [RuniacSheetScaffold] owns the rounded
+/// card, the drag handle, and the home-indicator inset.
 Future<void> showCurrentSessionFeedPostOptions(
   BuildContext context,
   FeedPostOptionsSheet sheet,
-) => showModalBottomSheet<void>(context: context, builder: (_) => sheet);
+) => showModalBottomSheet<void>(
+  context: context,
+  isScrollControlled: true,
+  backgroundColor: Colors.transparent,
+  elevation: 0,
+  builder: (_) => sheet,
+);
 
+/// The Feed post "..." action sheet. Owners get Delete, everyone else gets
+/// Report; both run through the same submit / submitting / terminal-state
+/// idiom the sheet always had — this is presentation only.
 class FeedPostOptionsSheet extends StatefulWidget {
   const FeedPostOptionsSheet._(this.showsOwnerMenu, this._action);
   factory FeedPostOptionsSheet.owner(Future<bool> Function() onDelete) =>
@@ -51,37 +66,103 @@ class _FeedPostOptionsSheetState extends State<FeedPostOptionsSheet> {
   }
 
   @override
-  Widget build(BuildContext context) => SafeArea(
-    top: false,
-    child: Padding(
-      padding: const EdgeInsets.all(20),
-      child: _reportSubmitted
-          ? const Text('Report submitted', style: YouTextStyles.bodyStrong)
-          : Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text('Post options', style: YouTextStyles.bodyStrong),
-                const SizedBox(height: 8),
-                if (widget.showsOwnerMenu)
-                  TextButton.icon(
-                    onPressed: _isSubmitting
-                        ? null
-                        : () => _submit(widget._action),
-                    icon: const Icon(Icons.delete_outline),
-                    label: Text(_isSubmitting ? 'Deleting…' : 'Delete'),
-                  )
-                else
-                  TextButton.icon(
-                    onPressed: _isSubmitting
-                        ? null
-                        : () => _submit(widget._action),
-                    icon: const Icon(Icons.flag_outlined),
-                    label: Text(_isSubmitting ? 'Reporting…' : 'Report'),
-                  ),
-                if (_error != null) Text(_error!),
-              ],
+  Widget build(BuildContext context) {
+    if (_reportSubmitted) {
+      // The terminal copy lives on the scaffold title, so it appears exactly
+      // once in the tree.
+      return const RuniacSheetScaffold(
+        title: 'Report submitted',
+        child: _ReportSubmittedPanel(),
+      );
+    }
+    return RuniacSheetScaffold(
+      title: 'Post options',
+      subtitle: 'Choose an action',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (widget.showsOwnerMenu)
+            RuniacSheetActionTile(
+              key: const ValueKey('feed-post-delete-action'),
+              icon: Icons.delete_outline_rounded,
+              tint: RuniacColors.errorRed,
+              titleColor: RuniacColors.errorRed,
+              title: _isSubmitting ? 'Deleting…' : 'Delete',
+              caption: 'Remove this post from the Feed',
+              onTap: _isSubmitting ? null : () => _submit(widget._action),
+              trailing: _isSubmitting
+                  ? const RuniacSheetTileSpinner(color: RuniacColors.errorRed)
+                  : null,
+            )
+          else
+            RuniacSheetActionTile(
+              key: const ValueKey('feed-post-report-action'),
+              icon: Icons.flag_rounded,
+              title: _isSubmitting ? 'Reporting…' : 'Report',
+              caption: 'Tell us what went wrong',
+              onTap: _isSubmitting ? null : () => _submit(widget._action),
+              trailing: _isSubmitting ? const RuniacSheetTileSpinner() : null,
             ),
-    ),
-  );
+          if (_error != null) ...[
+            const SizedBox(height: 10),
+            RuniacSheetErrorBanner(message: _error!),
+          ],
+          const SizedBox(height: 4),
+          RuniacSheetCancelButton(enabled: !_isSubmitting),
+        ],
+      ),
+    );
+  }
+}
+
+/// Terminal panel shown once a report has been handed off, matching the
+/// moderation report sheet's "Report received" state.
+class _ReportSubmittedPanel extends StatelessWidget {
+  const _ReportSubmittedPanel();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 72,
+          height: 72,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: RuniacColors.successGreen.withValues(alpha: 0.10),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.check_circle_rounded,
+            size: 40,
+            color: RuniacColors.successGreen,
+          ),
+        ),
+        const SizedBox(height: 16),
+        const Text(
+          "Thanks — we've received your report. Our team will review it "
+          'shortly.',
+          textAlign: TextAlign.center,
+          style: YouTextStyles.body,
+        ),
+        const SizedBox(height: 20),
+        SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: FilledButton(
+            onPressed: () => Navigator.of(context).pop(),
+            style: FilledButton.styleFrom(
+              backgroundColor: RuniacColors.primaryBlue,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            child: const Text('Done'),
+          ),
+        ),
+      ],
+    );
+  }
 }
