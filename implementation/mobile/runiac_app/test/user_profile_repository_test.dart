@@ -114,6 +114,84 @@ void main() {
       expect(draft.planStyle.value, 'performance');
     });
 
+    test('turns saved answer codes into a readable training profile', () async {
+      final authRepository = FakeRuniacAuthRepository()..emitSignedIn();
+      final repository = FirestoreUserProfileRepository(
+        authRepository: authRepository,
+        reader: _FakeUserProfileDocumentReader(
+          documents: const <String, UserProfileDocumentReadResult>{
+            'test-auth-user-1': UserProfileDocumentReadResult.exists(
+              <String, Object?>{
+                'displayName': 'Maya',
+                'avatarInitials': 'M',
+                'locationLabel': 'Queenstown, Singapore',
+                'fitnessLevel': 'run30',
+                'goals': <String>['stamina'],
+                'availability': <String, Object?>{
+                  'weeklySessions': '4',
+                  'preferredDays': <String>['Mon', 'Tue', 'Wed', 'Thu'],
+                  'preferredTime': 'morning',
+                  'sessionLengthMinutes': '30',
+                },
+                'planCautiousness': 'balanced',
+                'healthSafetyReadiness': <String, Object?>{
+                  'comfort': 'ready',
+                  'activitySymptoms': <String>['none'],
+                  'recentRunningConsistency': '3-6m',
+                  'currentWeeklyRunFrequency': '4',
+                  'continuousRunCapacity': '45plus',
+                  'runningPlace': 'park',
+                  'motivationStyle': 'reminders',
+                },
+              },
+            ),
+          },
+        ),
+      );
+
+      final profile = await repository.loadUserProfile();
+      final values = profile.setupItems.map((item) => item.value).toList();
+
+      // The card used to echo the stored codes verbatim.
+      expect(values, isNot(contains('stamina')));
+      expect(values, isNot(contains('run30')));
+      expect(values, contains('Improve my stamina'));
+      expect(values, contains('4 sessions / week · Mon · Tue · Wed · Thu'));
+      expect(values, contains('30 min'));
+      expect(values, contains('Cleared to start'));
+      expect(profile.setupNote, isNotEmpty);
+    });
+
+    test('never renders an unsure availability as a session count', () async {
+      final authRepository = FakeRuniacAuthRepository()..emitSignedIn();
+      final repository = FirestoreUserProfileRepository(
+        authRepository: authRepository,
+        reader: _FakeUserProfileDocumentReader(
+          documents: const <String, UserProfileDocumentReadResult>{
+            'test-auth-user-1': UserProfileDocumentReadResult.exists(
+              <String, Object?>{
+                'displayName': 'Maya',
+                'avatarInitials': 'M',
+                'locationLabel': 'Queenstown, Singapore',
+                'fitnessLevel': 'Returning runner',
+                'goals': <String>['Stay consistent'],
+                'availability': <String, Object?>{'weeklySessions': 'unsure'},
+              },
+            ),
+          },
+        ),
+      );
+
+      final profile = await repository.loadUserProfile();
+      final values = profile.setupItems.map((item) => item.value);
+
+      // This legacy document cannot resolve into a draft, so the fallback rows
+      // still have to avoid 'unsure sessions / week'.
+      expect(profile.onboardingDraft, isNull);
+      expect(values, isNot(contains('unsure sessions / week')));
+      expect(values, contains('2 sessions / week (suggested)'));
+    });
+
     test('falls back to the demo profile when signed out', () async {
       final reader = _FakeUserProfileDocumentReader();
       final repository = FirestoreUserProfileRepository(

@@ -24,6 +24,7 @@ class StaticUserProfileRepository implements UserProfileRepository {
       setupSectionLabel: snapshot.setupSectionLabel,
       manageSectionLabel: snapshot.manageSectionLabel,
       footerCaption: snapshot.footerCaption,
+      setupNote: snapshot.setupNote,
       setupItems: snapshot.setupItems
           .map(
             (item) => UserProfileInfoItemReadModel(

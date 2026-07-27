@@ -407,13 +407,15 @@ class _AccountEditProfileScreenState extends State<AccountEditProfileScreen> {
                       ),
                       const SizedBox(height: 18),
                       _Section(
-                        title: 'Onboarding result',
+                        title: 'Your training profile',
                         children: [
                           for (final item in widget.profile.setupItems)
                             _ReadOnlyValue(
                               label: item.title,
                               value: item.value,
                             ),
+                          if (widget.profile.setupNote.isNotEmpty)
+                            _SetupNote(note: widget.profile.setupNote),
                           SizedBox(
                             height: 50,
                             child: OutlinedButton(
@@ -674,6 +676,50 @@ class _ReadOnlyValue extends StatelessWidget {
     return InputDecorator(
       decoration: InputDecoration(labelText: label),
       child: Text(value.isEmpty ? 'Not set' : value),
+    );
+  }
+}
+
+/// Inset variant of the profile card's setup note. The profile screen renders
+/// its own footer-shaped version, so only the wording is shared.
+class _SetupNote extends StatelessWidget {
+  const _SetupNote({required this.note});
+
+  final String note;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: RuniacColors.innerTileSurface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: RuniacColors.border),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.auto_awesome_outlined,
+            color: RuniacColors.primaryBlue,
+            size: 17,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              note,
+              softWrap: true,
+              style: const TextStyle(
+                color: RuniacColors.textSecondary,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

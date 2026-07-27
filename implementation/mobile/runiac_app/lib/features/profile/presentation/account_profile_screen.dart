@@ -328,7 +328,10 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
             const SizedBox(height: 22),
             AccountSectionLabel(snapshot.setupSectionLabel),
             const SizedBox(height: 8),
-            AccountSetupSection(items: snapshot.setupItems),
+            AccountSetupSection(
+              items: snapshot.setupItems,
+              note: snapshot.setupNote,
+            ),
             const SizedBox(height: 22),
             AccountSectionLabel(snapshot.manageSectionLabel),
             const SizedBox(height: 8),
@@ -475,6 +478,11 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
       footerCaption: profile.footerCaption.isEmpty
           ? fallback.footerCaption
           : profile.footerCaption,
+      // The note explains the runner's own setup rows, so it must not survive
+      // when those rows fall back to the demo snapshot.
+      setupNote: profile.setupItems.isEmpty
+          ? fallback.setupNote
+          : profile.setupNote,
       setupItems: profile.setupItems.isEmpty
           ? fallback.setupItems
           : profile.setupItems
@@ -514,6 +522,7 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
       setupSectionLabel: fallback.setupSectionLabel,
       manageSectionLabel: fallback.manageSectionLabel,
       footerCaption: fallback.footerCaption,
+      setupNote: fallback.setupNote,
       setupItems: fallback.setupItems,
       manageRows: fallback.manageRows,
     );

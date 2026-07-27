@@ -20,6 +20,7 @@ class UserProfileReadModel {
     this.setupSectionLabel = '',
     this.manageSectionLabel = '',
     this.footerCaption = '',
+    this.setupNote = '',
     this.onboardingDraft,
     List<UserProfileInfoItemReadModel> setupItems =
         const <UserProfileInfoItemReadModel>[],
@@ -42,6 +43,10 @@ class UserProfileReadModel {
   final String setupSectionLabel;
   final String manageSectionLabel;
   final String footerCaption;
+
+  /// Plain-language reason for the training setup shown in [setupItems];
+  /// empty when the stored answers could not be resolved into a draft.
+  final String setupNote;
   final LocalOnboardingDraft? onboardingDraft;
   final List<UserProfileInfoItemReadModel> setupItems;
   final List<UserProfileManageRowReadModel> manageRows;

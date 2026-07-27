@@ -37,9 +37,12 @@ class AccountSectionLabel extends StatelessWidget {
 }
 
 class AccountSetupSection extends StatelessWidget {
-  const AccountSetupSection({required this.items, super.key});
+  const AccountSetupSection({required this.items, this.note = '', super.key});
 
   final List<AccountProfileInfoItem> items;
+
+  /// Plain-language reason for the values above; empty hides the footer.
+  final String note;
 
   @override
   Widget build(BuildContext context) {
@@ -61,6 +64,51 @@ class AccountSetupSection extends StatelessWidget {
                 indent: 58,
               ),
           ],
+          if (note.isNotEmpty) AccountSetupNote(note: note),
+        ],
+      ),
+    );
+  }
+}
+
+/// Explains why the training setup above looks the way it does. Kept as a
+/// separate widget so the profile and the edit screen read identically.
+class AccountSetupNote extends StatelessWidget {
+  const AccountSetupNote({required this.note, super.key});
+
+  final String note;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        color: RuniacColors.innerTileSurface,
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(19)),
+        border: Border(top: BorderSide(color: RuniacColors.border)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.auto_awesome_outlined,
+            color: RuniacColors.primaryBlue,
+            size: 17,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              note,
+              softWrap: true,
+              style: const TextStyle(
+                color: RuniacColors.textSecondary,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                height: 1.35,
+              ),
+            ),
+          ),
         ],
       ),
     );

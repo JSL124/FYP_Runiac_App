@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../auth/domain/runiac_auth_service.dart';
 import '../../onboarding/domain/models/local_onboarding_draft.dart';
+import '../../onboarding/domain/services/training_profile_summary_builder.dart';
 import '../domain/models/user_profile_read_model.dart';
 import '../domain/repositories/user_profile_repository.dart';
 import 'static_user_profile_repository.dart';
@@ -110,6 +111,11 @@ class FirestoreUserProfileRepository implements UserProfileRepository {
       return null;
     }
 
+    final onboardingDraft = _onboardingDraftFromDocument(document);
+    final trainingProfile = onboardingDraft == null
+        ? null
+        : const TrainingProfileSummaryBuilder().build(onboardingDraft);
+
     return UserProfileReadModel(
       userId: uid,
       displayName: displayName,
@@ -122,11 +128,21 @@ class FirestoreUserProfileRepository implements UserProfileRepository {
       locationLabel: locationLabel,
       previewLevelBadge: '',
       previewNote: '',
-      setupSectionLabel: 'RUNNING SETUP',
+      setupSectionLabel: 'YOUR TRAINING PROFILE',
       manageSectionLabel: 'MANAGE',
       footerCaption: 'Runiac · Preview build · Built for new runners',
-      onboardingDraft: _onboardingDraftFromDocument(document),
-      setupItems: _setupItemsFromDocument(document),
+      setupNote: trainingProfile?.note ?? '',
+      onboardingDraft: onboardingDraft,
+      setupItems: trainingProfile == null
+          ? _legacySetupItemsFromDocument(document)
+          : trainingProfile.rows
+                .map(
+                  (row) => UserProfileInfoItemReadModel(
+                    title: row.label,
+                    value: row.value,
+                  ),
+                )
+                .toList(growable: false),
       manageRows: const <UserProfileManageRowReadModel>[
         UserProfileManageRowReadModel(
           title: 'Edit profile',
@@ -215,7 +231,11 @@ class FirestoreUserProfileRepository implements UserProfileRepository {
     return LocalOnboardingDraft.fromAnswers(answers);
   }
 
-  List<UserProfileInfoItemReadModel> _setupItemsFromDocument(
+  /// Older documents predate the enum-backed onboarding answers and store
+  /// display strings that no resolver can interpret. They still get readable
+  /// rows: known answer codes are mapped to their onboarding wording and
+  /// anything else is relayed as stored.
+  List<UserProfileInfoItemReadModel> _legacySetupItemsFromDocument(
     Map<String, Object?> document,
   ) {
     final items = <UserProfileInfoItemReadModel>[];
@@ -224,7 +244,7 @@ class FirestoreUserProfileRepository implements UserProfileRepository {
       items.add(
         UserProfileInfoItemReadModel(
           title: 'Current goal',
-          value: goals.join(', '),
+          value: goals.map(_goalLabel).join(', '),
         ),
       );
     }
@@ -232,20 +252,32 @@ class FirestoreUserProfileRepository implements UserProfileRepository {
     final weeklySessions = _weeklySessionsLabel(document['availability']);
     if (weeklySessions != null) {
       items.add(
-        UserProfileInfoItemReadModel(
-          title: 'Weekly rhythm',
-          value: weeklySessions,
-        ),
+        UserProfileInfoItemReadModel(title: 'Schedule', value: weeklySessions),
       );
     }
 
     final fitnessLevel = _requiredTrimmedString(document['fitnessLevel']);
     if (fitnessLevel != null) {
       items.add(
-        UserProfileInfoItemReadModel(title: 'Experience', value: fitnessLevel),
+        UserProfileInfoItemReadModel(
+          title: 'Starting point',
+          value: _experienceLabel(fitnessLevel),
+        ),
       );
     }
     return items;
+  }
+
+  String _goalLabel(String storedGoal) {
+    final goal = OnboardingGoal.fromValue(storedGoal);
+    return goal == null ? storedGoal : onboardingGoalLabel(goal);
+  }
+
+  String _experienceLabel(String storedExperience) {
+    final experience = OnboardingExperience.fromValue(storedExperience);
+    return experience == null
+        ? storedExperience
+        : onboardingExperienceLabel(experience);
   }
 
   String? _weeklySessionsLabel(Object? availability) {
@@ -255,6 +287,15 @@ class FirestoreUserProfileRepository implements UserProfileRepository {
     final sessions = _requiredTrimmedString(availability['weeklySessions']);
     if (sessions == null) {
       return null;
+    }
+    // 'unsure' is a stored answer code, not a session count, so relaying it
+    // verbatim would render "unsure sessions / week".
+    if (OnboardingAvailability.fromValue(sessions) ==
+        OnboardingAvailability.unsure) {
+      final suggested = requiredPreferredDayCountForAvailability(
+        OnboardingAvailability.unsure,
+      );
+      return '$suggested sessions / week (suggested)';
     }
     return '$sessions sessions / week';
   }

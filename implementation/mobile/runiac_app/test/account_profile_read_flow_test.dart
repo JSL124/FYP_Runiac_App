@@ -511,7 +511,7 @@ void main() {
       expect(find.text('Edit profile'), findsOneWidget);
       expect(find.text('runner@runiac.app'), findsOneWidget);
       expect(find.text('Personal details'), findsOneWidget);
-      expect(find.text('Onboarding result'), findsOneWidget);
+      expect(find.text('Your training profile'), findsOneWidget);
       expect(find.text('Retake onboarding'), findsOneWidget);
 
       await tester.enterText(find.bySemanticsLabel('Nickname'), 'May');
@@ -977,7 +977,7 @@ void main() {
     expect(find.text('#18'), findsOneWidget);
     // Shown once on the profile badge and once on the level-up gauge.
     expect(find.text('Lv.0'), findsNWidgets(2));
-    expect(find.text('Build a consistent 10K habit'), findsOneWidget);
+    expect(find.text('Work toward a 10K'), findsOneWidget);
     // The no-Firebase static preview keeps its demo lifetime stats.
     expect(find.text('12 days'), findsOneWidget);
     expect(find.text('148.6 km'), findsOneWidget);
@@ -1015,9 +1015,7 @@ void main() {
 
       expect(
         tester
-            .widget<Text>(
-              find.byKey(const ValueKey('account-stat-max-streak')),
-            )
+            .widget<Text>(find.byKey(const ValueKey('account-stat-max-streak')))
             .data,
         '—',
       );

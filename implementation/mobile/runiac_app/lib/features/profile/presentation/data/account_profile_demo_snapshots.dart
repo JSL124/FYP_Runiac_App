@@ -21,29 +21,40 @@ const accountProfileDemoSnapshot = AccountProfileDemoSnapshot(
   // backend-owned user progress read path.
   previewLevelBadge: 'Lv.0',
   previewNote: 'Account changes are not saved in this prototype.',
-  setupSectionLabel: 'RUNNING SETUP',
+  setupSectionLabel: 'YOUR TRAINING PROFILE',
   manageSectionLabel: 'MANAGE',
   footerCaption: 'Runiac · Preview build · Built for new runners',
+  setupNote: 'Based on how often you run now and the days you can commit to.',
   setupItems: [
     AccountProfileInfoItem(
       icon: Icons.flag_outlined,
       title: 'Current goal',
-      value: 'Build a consistent 10K habit',
-    ),
-    AccountProfileInfoItem(
-      icon: Icons.straighten,
-      title: 'Preferred unit',
-      value: 'Kilometers',
-    ),
-    AccountProfileInfoItem(
-      icon: Icons.calendar_today_outlined,
-      title: 'Weekly rhythm',
-      value: '3 gentle sessions / week',
+      value: 'Work toward a 10K',
     ),
     AccountProfileInfoItem(
       icon: Icons.directions_walk,
-      title: 'Experience',
-      value: 'Beginner runner',
+      title: 'Starting point',
+      value: 'Getting started',
+    ),
+    AccountProfileInfoItem(
+      icon: Icons.tune,
+      title: 'Plan style',
+      value: 'Balanced progression',
+    ),
+    AccountProfileInfoItem(
+      icon: Icons.calendar_today_outlined,
+      title: 'Schedule',
+      value: '3 sessions / week · Mon · Wed · Sat',
+    ),
+    AccountProfileInfoItem(
+      icon: Icons.timer_outlined,
+      title: 'Session length',
+      value: '30 min',
+    ),
+    AccountProfileInfoItem(
+      icon: Icons.health_and_safety_outlined,
+      title: 'Safety',
+      value: 'Cleared to start',
     ),
   ],
   manageRows: [
@@ -112,6 +123,7 @@ class AccountProfileDemoSnapshot {
     required this.footerCaption,
     required this.setupItems,
     required this.manageRows,
+    this.setupNote = '',
     this.regionalRankLabel = '',
     this.maxStreakLabel = '',
     this.totalDistanceLabel = '',
@@ -163,6 +175,9 @@ class AccountProfileDemoSnapshot {
   final String setupSectionLabel;
   final String manageSectionLabel;
   final String footerCaption;
+
+  /// Plain-language reason for the training setup; empty hides the note.
+  final String setupNote;
   final List<AccountProfileInfoItem> setupItems;
   final List<AccountProfileManageRow> manageRows;
 }
