@@ -57,7 +57,40 @@ A backfill was considered and rejected: the rename transaction already reserves 
 
 ## Validation Evidence
 
-Recorded after the rebase onto `origin/main` in the follow-up commit on this branch.
+Re-run on 2026-07-27 after the rebase onto `origin/main` (`8b5c097d`), against the reduced scope:
+
+- `functions`: `npm run build` clean, `npx tsc --noEmit -p tsconfig.json` clean. `node --test lib/test/feedAuthorLevels.test.js lib/test/runnerPublicProfile.test.js` — 36/36 pass.
+- Flutter: `flutter analyze --no-pub` clean ("No issues found!"). `flutter test --no-pub` — 2223/2223 pass.
+- `./tools/governance-ci/run-all-checks.sh` — 11/11 PASS with this capsule routed. `git diff --check` clean.
+
+The emulator integration run is **not** repeated here. `runnerPublicProfileEmulatorIntegration.test.ts` is `origin/main`'s file, unmodified by this capsule, and the authorization paths it exercises are unchanged; the only backend behaviour this capsule still alters is the shape of `getFeedAuthorLevels`' result, which its unit suite covers. ADR-002 emulator-first therefore applies to `getFeedAuthorLevels` only, and its existing suite passed.
+
+The pre-rebase evidence this document originally carried (36/36 unit, 16/16 emulator, 2212/2212 Flutter, 11/11 governance) is superseded: it was measured against the two-defect implementation that no longer exists, including emulator cases for the `{runnerUid}` form that was dropped.
+
+## Production Deploy Record
+
+Supersedes the "NOT deployed" status this document carried when it was first written: the user explicitly authorized a scoped production deploy on 2026-07-27 Asia/Singapore, immediately after authorizing the commit, limited to `functions:getFeedAuthorLevels` and `functions:getRunnerPublicProfile`, and it was executed against `runiac-fypp`.
+
+Both were **updates**, not creates — each function already existed in production, and this capsule adds no new export. No other function was deployed, and no rules, index, or storage rule was released.
+
+| Function | Result |
+| --- | --- |
+| `getFeedAuthorLevels` | `ACTIVE`, v2 callable, `asia-southeast1`, `nodejs22`, `updateTime 2026-07-27T11:39:40Z` |
+| `getRunnerPublicProfile` | `ACTIVE`, v2 callable, `asia-southeast1`, `nodejs22`, `updateTime 2026-07-27T11:39:38Z` |
+
+Post-deploy behavioural verification against production was **not** performed: it needs a signed-in real account and a real device/simulator, and the account uses Google SSO. Real-screen acceptance stays user-owned and is not claimed by this record.
+
+### Production drift introduced by that deploy — REDEPLOY REQUIRED
+
+That deploy was executed from this branch **before** it was rebased onto `origin/main`, so what is live in `runiac-fypp` right now is the **pre-rebase** source, which no branch in this repository still contains:
+
+- Live `getRunnerPublicProfile` is this capsule's dropped design: its one-key target form is `{ runnerUid }`, gated on an accepted mutual friendship. It **rejects `{ uid }` with `invalid-argument`**, because `parseTarget` matches the single-key form on that exact key.
+- `origin/main` (PR #39) is the design that was kept, and its client sends `{ uid }`. **Every uid-addressed profile entry point on `main` therefore fails against production as deployed.**
+- No user is affected yet only because the mobile release carrying PR #39's client has not shipped. The leaderboard-entry form (`snapshotId` + `rankLabel` + `buildId`) is unaffected in both designs and still works.
+
+`getFeedAuthorLevels` has no such conflict — PR #39 did not touch it, and the deployed version is the one this capsule still ships.
+
+**Required remediation, not authorized by this record:** redeploy `functions:getRunnerPublicProfile` from `main` after this branch merges, before any mobile release ships. Until that redeploy lands, production and `main` disagree about the callable's request contract.
 
 ## Allowed Scope
 
@@ -82,7 +115,7 @@ Recorded after the rebase onto `origin/main` in the follow-up commit on this bra
 
 ## Forbidden Scope
 
-- Any production `runiac-fypp` deploy without separate authorization.
+- Any production `runiac-fypp` deploy beyond the two callables authorized and recorded above. The `getRunnerPublicProfile` redeploy the drift section calls for needs its own authorization.
 - Any change to `getRunnerPublicProfile`'s authorization, target forms, or denial codes. That surface belongs to PR #39 and is out of scope here.
 - Any `firestore.rules`, Firestore index, or `storage.rules` change. The defect needs none.
 - Any backfill or mutation of existing `feedPosts` documents or their comments.
@@ -125,12 +158,14 @@ cd implementation/mobile/runiac_app && flutter test --no-pub
 
 - [x] Defect 1 implemented as recorded above.
 - [x] Defect 2 resolved by PR #39 instead; this capsule's competing implementation dropped on rebase.
-- [ ] Required tests passing after the rebase onto `origin/main` — recorded in the follow-up commit.
+- [x] Required tests re-run after the rebase onto `origin/main` — recorded in the follow-up commit.
 - [x] `implementation/roadmap/CURRENT.md` updated (append-only) with this capsule's routing bullet and its scope correction.
 - [x] Governance allowlist entries added to `tools/governance-ci/check-diff-hygiene.sh` and `tools/governance-ci/check-pre-scaffold-scope.sh`.
-- [ ] Production deploy — not authorized by this record.
+- [x] Production deploy of the two callables — user-authorized on 2026-07-27, recorded above.
+- [ ] Redeploy of `getRunnerPublicProfile` from `main` — required to clear the drift recorded above, not authorized here.
+- [ ] Mobile app release — required before the identity fix is visible on a device, and must not ship before that redeploy.
 - [ ] Real-screen QA of the renamed-nickname Feed — user-owned, not claimed here.
 
 ## Stop State
 
-Stop at `Ready for commit`.
+Rebased onto `origin/main` on 2026-07-27 with the profile-entry half dropped per the Scope Correction above. Stop at `Ready for commit`. No push, PR, redeploy, or mobile release is authorized by this task.
