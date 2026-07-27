@@ -515,15 +515,25 @@ void main() {
         find.text('Account changes are not saved in this prototype.'),
         findsOneWidget,
       );
-      expect(find.text('RUNNING SETUP'), findsOneWidget);
+      expect(find.text('YOUR TRAINING PROFILE'), findsOneWidget);
       expect(find.text('Current goal'), findsOneWidget);
-      expect(find.text('Build a consistent 10K habit'), findsOneWidget);
-      expect(find.text('Preferred unit'), findsOneWidget);
-      expect(find.text('Kilometers'), findsOneWidget);
-      expect(find.text('Weekly rhythm'), findsOneWidget);
-      expect(find.text('3 gentle sessions / week'), findsOneWidget);
-      expect(find.text('Experience'), findsOneWidget);
-      expect(find.text('Beginner runner'), findsOneWidget);
+      expect(find.text('Work toward a 10K'), findsOneWidget);
+      expect(find.text('Starting point'), findsOneWidget);
+      expect(find.text('Getting started'), findsOneWidget);
+      expect(find.text('Plan style'), findsOneWidget);
+      expect(find.text('Balanced progression'), findsOneWidget);
+      expect(find.text('Schedule'), findsOneWidget);
+      expect(find.text('3 sessions / week · Mon · Wed · Sat'), findsOneWidget);
+      expect(find.text('Session length'), findsOneWidget);
+      expect(find.text('30 min'), findsOneWidget);
+      expect(find.text('Safety'), findsOneWidget);
+      expect(find.text('Cleared to start'), findsOneWidget);
+      expect(
+        find.text(
+          'Based on how often you run now and the days you can commit to.',
+        ),
+        findsOneWidget,
+      );
       expect(find.text('Settings'), findsOneWidget);
       expect(find.text('Privacy & Safety'), findsOneWidget);
       expect(find.text('Notifications'), findsOneWidget);

@@ -4,6 +4,7 @@ import '../../../../core/theme/runiac_colors.dart';
 import '../../domain/services/onboarding_plan_style_resolver.dart';
 import '../../domain/services/runner_level_resolver.dart';
 import '../../domain/services/safety_gate_resolver.dart';
+import '../../domain/services/training_profile_summary_builder.dart';
 import '../../../plan/domain/models/beginner_adaptive_plan_snapshot.dart';
 import '../../../plan/domain/services/beginner_adaptive_plan_generator.dart';
 import '../../domain/models/local_onboarding_draft.dart';
@@ -49,7 +50,7 @@ class OnboardingPreviewBody extends StatelessWidget {
         : draft.preferredDays.map((day) => day.value).join(' · ');
     final summary = [
       ('Plan length', '${plan.durationWeeks} weeks'),
-      ('Starting point', _runnerLevelLabel(runnerLevel)),
+      ('Starting point', runnerLevelLabel(runnerLevel)),
       ('Schedule', weekly),
       ('Session length', length),
     ];
@@ -82,7 +83,10 @@ class OnboardingPreviewBody extends StatelessWidget {
         const SizedBox(height: 10),
         _SummaryTile(label: 'Preferred days', value: preferredDays),
         const SizedBox(height: 10),
-        _SummaryTile(label: 'Plan style', value: _styleLabel(resolvedStyle)),
+        _SummaryTile(
+          label: 'Plan style',
+          value: resolvedPlanStyleLabel(resolvedStyle),
+        ),
         const SizedBox(height: 16),
         _SuggestedPlanCard(title: plan.title, subtitle: plan.subtitle),
         const SizedBox(height: 10),
@@ -101,24 +105,6 @@ class OnboardingPreviewBody extends StatelessWidget {
       ],
     );
   }
-}
-
-String _runnerLevelLabel(RunnerLevel level) {
-  return switch (level) {
-    RunnerLevel.starter => 'Getting started',
-    RunnerLevel.developing => 'Building consistency',
-    RunnerLevel.performance => 'Training for performance',
-    RunnerLevel.advanced => 'Advanced structured training',
-  };
-}
-
-String _styleLabel(ResolvedPlanStyle style) {
-  return switch (style) {
-    ResolvedPlanStyle.conservativeBase => 'Keep it gentle',
-    ResolvedPlanStyle.balanced => 'Balanced progression',
-    ResolvedPlanStyle.performanceFocused => 'Build steadily',
-    ResolvedPlanStyle.blocked => 'Paused for safety',
-  };
 }
 
 final _previewFallbackDraft = LocalOnboardingDraft(
