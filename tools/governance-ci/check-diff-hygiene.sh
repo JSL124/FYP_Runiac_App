@@ -705,6 +705,7 @@ is_feed_author_identity_profile_entry_path() {
     functions/src/profile/profileIdentityDisplay.ts|\
     functions/src/profile/publicProfile/core.ts|\
     functions/src/feed/authorLevels/core.ts|\
+    functions/src/feed/authorLevels/callable.ts|\
     functions/test/feedAuthorLevels.test.ts)
       return 0
       ;;

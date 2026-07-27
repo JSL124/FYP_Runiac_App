@@ -46,12 +46,15 @@ A backfill was considered and rejected: the rename transaction already reserves 
 ### Backend
 
 - `functions/src/profile/profileIdentityDisplay.ts` (new): the single reader for backend-owned identity display fields on `userProfiles/{uid}` — nickname wins over `displayName`, both trimmed — mirroring how `functions/src/progression/profileLevelDisplay.ts` already centralizes the level rules.
-- `functions/src/feed/authorLevels/core.ts`: `FeedAuthorLevel` widens from `ProfileLevelDisplay` to `ProfileLevelDisplay & ProfileIdentityDisplay`, so each permitted uid now returns `displayName` and `avatarInitials` alongside its level. The callable id stays `getFeedAuthorLevels` because it is already deployed and older app builds still call it; only the result grew. Authorization, the 50-uid cap, the dedup, and the silent omission of unauthorized uids are all unchanged.
+- `functions/src/feed/authorLevels/core.ts`: `FeedAuthorLevel` widens from `ProfileLevelDisplay` to `ProfileLevelDisplay & ProfileIdentityDisplay`, so each permitted uid now returns `displayName` and `avatarInitials` alongside its level. The callable id stays `getFeedAuthorLevels` because it is already deployed and older app builds still call it; only the result grew. The 50-uid cap, the dedup, and the silent omission of unauthorized uids are unchanged.
+- `functions/src/feed/authorLevels/core.ts`, **post-scoped grant** (added 2026-07-27 in response to a Codex review finding on PR #40): the request gains an optional second form, `{ postId, uids }`. `firestore.rules` authorizes a Feed comment through its POST — `canReadFeedPost` checks the post author, not the commenter — so two runners who share a friend but are not friends with each other still read each other's comments on that friend's post. The reciprocal-friendship-only check omitted exactly those commenters, so the overlay resolved nothing for them and **the rename defect survived on every comment by a non-friend**. The post-scoped form closes it, deliberately narrowly: the viewer must pass the same post-author check `canReadFeedPost` applies against a post that exists and is `published`; the uid must be proven server-side to have actually commented on that post; and a directional block still denies, which is *stricter* than the rules (they check blocks against the post author only). The grant returns the same three display fields the viewer can already read, frozen, on the comment document — current instead of stale — and never returns a uid the caller did not supply. The uid-only form is untouched, so older clients and the timeline path behave exactly as before.
+- `functions/src/feed/authorLevels/callable.ts`: implements the two new optional ports — `readPost` over `feedPosts/{postId}`, and `commentAuthorsAmong` as at most two `where('authorUid','in', …)` equality queries (Firestore caps `in` at 30, the callable caps the request at 50) against the automatically indexed `authorUid` field. No composite index is added.
 - `functions/src/profile/publicProfile/core.ts`: the projection's `displayName` / `avatarInitials` now resolve through `resolveProfileIdentityDisplay` instead of a private local copy of the same nickname-wins rule. Behaviour is identical; the duplicate helper is deleted. **No authorization change** — the target forms, the gate, the denial codes, and the constant-cost read ordering PR #39 established are all untouched.
 
 ### Client (display-only)
 
 - `FeedAuthorLevel` (`feed_data_port.dart`) carries `displayName` / `avatarInitials`, defaulting to empty. `firebase_feed_data_port.dart` parses them defensively, so a backend deployment that predates this change simply omits them.
+- `fetchAuthorLevels` / `FeedAuthorLevelResolver.ensureResolved` take an optional `postId`. `feed_comment_page_loader.dart` passes the post it is loading comments for; the timeline path passes nothing and its payload stays byte-identical, so a backend that predates the post-scoped form keeps answering it.
 - `feed_timeline_page_loader.dart` and `feed_comment_page_loader.dart` overlay name, initials, and level **independently**: each field is replaced only when the backend resolved a non-empty value, and an empty resolved value never erases what the post or comment already stores. Combined with the resolver swallowing its own failures, the Feed still paints when the overlay resolves nothing at all.
 - Rename propagation on the renamer's own device: `HomeTab.onAccountProfileChanged` fires when the Account screen closes, the shell re-reads the feed-author profile, and `CurrentSessionFeed` re-reads the timeline only when the viewer's name or initials actually changed (a level change alone is already applied in place and must not pay for a reload). Without this the fix would only be visible after a manual pull-to-refresh.
 
@@ -59,8 +62,8 @@ A backfill was considered and rejected: the rename transaction already reserves 
 
 Re-run on 2026-07-27 after the rebase onto `origin/main` (`8b5c097d`), against the reduced scope:
 
-- `functions`: `npm run build` clean, `npx tsc --noEmit -p tsconfig.json` clean. `node --test lib/test/feedAuthorLevels.test.js lib/test/runnerPublicProfile.test.js` — 36/36 pass.
-- Flutter: `flutter analyze --no-pub` clean ("No issues found!"). `flutter test --no-pub` — 2223/2223 pass.
+- `functions`: `npm run build` clean, `npx tsc --noEmit -p tsconfig.json` clean. `node --test lib/test/feedAuthorLevels.test.js lib/test/runnerPublicProfile.test.js` — 43/43 pass, including the seven post-scoped grant cases (non-friend commenter resolved, non-commenter omitted, block never relaxed in either direction, unreadable post omitted, draft and missing post omitted, no post read when every uid is already a friend, malformed `postId` rejected).
+- Flutter: `flutter analyze --no-pub` clean ("No issues found!"). `flutter test --no-pub` — 2224/2224 pass.
 - `./tools/governance-ci/run-all-checks.sh` — 11/11 PASS with this capsule routed. `git diff --check` clean.
 
 The emulator integration run is **not** repeated here. `runnerPublicProfileEmulatorIntegration.test.ts` is `origin/main`'s file, unmodified by this capsule, and the authorization paths it exercises are unchanged; the only backend behaviour this capsule still alters is the shape of `getFeedAuthorLevels`' result, which its unit suite covers. ADR-002 emulator-first therefore applies to `getFeedAuthorLevels` only, and its existing suite passed.
@@ -88,16 +91,19 @@ That deploy was executed from this branch **before** it was rebased onto `origin
 - `origin/main` (PR #39) is the design that was kept, and its client sends `{ uid }`. **Every uid-addressed profile entry point on `main` therefore fails against production as deployed.**
 - No user is affected yet only because the mobile release carrying PR #39's client has not shipped. The leaderboard-entry form (`snapshotId` + `rankLabel` + `buildId`) is unaffected in both designs and still works.
 
-`getFeedAuthorLevels` has no such conflict — PR #39 did not touch it, and the deployed version is the one this capsule still ships.
+`getFeedAuthorLevels` now also diverges, for a different reason: the post-scoped grant added after the Codex review is **not deployed**. Production accepts only the one-key `{ uids }` payload, so a comment page sending `{ postId, uids }` is answered `invalid-argument`. This degrades safely — `FeedAuthorLevelResolver` swallows every failure and the comment falls back to its stored name — but it means the comment half of the rename fix does nothing until the redeploy. The timeline half still works, because that path deliberately keeps sending the uid-only payload.
 
-**Required remediation, not authorized by this record:** redeploy `functions:getRunnerPublicProfile` from `main` after this branch merges, before any mobile release ships. Until that redeploy lands, production and `main` disagree about the callable's request contract.
+**Required remediation, not authorized by this record:** after this branch merges, redeploy **both** `functions:getRunnerPublicProfile` and `functions:getFeedAuthorLevels` from `main`, before any mobile release ships. Until then production and `main` disagree about both callables' request contracts.
 
 ## Allowed Scope
 
 - `functions/src/profile/profileIdentityDisplay.ts` (new)
 - `functions/src/profile/publicProfile/core.ts` (identity-reader refactor only)
 - `functions/src/feed/authorLevels/core.ts`
+- `functions/src/feed/authorLevels/callable.ts`
 - `functions/test/feedAuthorLevels.test.ts`
+- `implementation/mobile/runiac_app/lib/features/feed/data/firebase_feed_repository/feed_author_level_resolver.dart`
+- `implementation/mobile/runiac_app/lib/features/feed/data/firebase_feed_repository/feed_test_data_port.dart`
 - `implementation/mobile/runiac_app/lib/features/feed/data/firebase_feed_repository/feed_data_port.dart`
 - `implementation/mobile/runiac_app/lib/features/feed/data/firebase_feed_repository/firebase_feed_data_port.dart`
 - `implementation/mobile/runiac_app/lib/features/feed/data/firebase_feed_repository/feed_timeline_page_loader.dart`
@@ -149,7 +155,8 @@ cd implementation/mobile/runiac_app && flutter test --no-pub
 ## Rollback Conditions
 
 - Any evidence that an empty resolved identity blanks out a post's or comment's stored author name.
-- Any evidence that `getFeedAuthorLevels` returns an identity for a uid the caller is not permitted to see.
+- Any evidence that `getFeedAuthorLevels` returns an identity for a uid the caller is not permitted to see — in particular, any post-scoped grant that resolves a uid which did not comment on the named post, on a post the caller may not read, or across a block in either direction.
+- Any evidence that the post-scoped form widens the uid-only form's reach, or that it returns a field the caller could not already read on the comment document.
 - Any behavioural change to `getRunnerPublicProfile` relative to `origin/main`.
 - Any `firestore.rules` or index change introduced under this capsule's name.
 - Any modification to an unrelated capsule's files, or any reordering of an existing `CURRENT.md` routing bullet.

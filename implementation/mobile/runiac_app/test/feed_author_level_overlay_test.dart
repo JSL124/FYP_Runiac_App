@@ -180,6 +180,26 @@ void main() {
     },
   );
 
+  // firestore.rules authorizes a comment through its POST, not its commenter,
+  // so a viewer reads comments from runners they are not friends with. The
+  // backend can only resolve those authors if the client says which post made
+  // them readable; the timeline has no such need and must keep sending the
+  // uid-only payload so an older backend still answers it.
+  test(
+    'a comment page resolves scoped to its post, the timeline unscoped',
+    () async {
+      final port = FeedTestDataPort.withSingleFriend('friend-14')
+        ..addTiedComments(2);
+      final repository = FirebaseFeedRepository(port: port);
+
+      await repository.loadInitial(viewer);
+      expect(port.authorLevelPostIds, <String?>[null]);
+
+      await repository.loadComments(postId: 'post-1');
+      expect(port.authorLevelPostIds.last, 'post-1');
+    },
+  );
+
   test('pull-to-refresh invalidates the cache and re-resolves', () async {
     final port = FeedTestDataPort.withSingleFriend('friend-04');
     port.authorLevels['friend-04'] = const FeedAuthorLevel(

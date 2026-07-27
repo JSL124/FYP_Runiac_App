@@ -238,14 +238,22 @@ class FirebaseFeedDataPort implements FeedDataPort {
 
   @override
   Future<Map<String, FeedAuthorLevel>> fetchAuthorLevels(
-    List<String> uids,
-  ) async {
+    List<String> uids, {
+    String? postId,
+  }) async {
     final distinct = uids.toSet().toList(growable: false);
     if (distinct.isEmpty) return const <String, FeedAuthorLevel>{};
     final callable = _functions.httpsCallable('getFeedAuthorLevels');
     final levels = <String, FeedAuthorLevel>{};
+    final scopedPostId = postId?.trim() ?? '';
     for (final chunk in chunkFeedAuthorUids(distinct)) {
-      final result = await callable.call(<String, Object>{'uids': chunk});
+      // The uid-only payload stays byte-identical when no post is in scope,
+      // so a backend that predates the post-scoped form keeps answering it.
+      final result = await callable.call(
+        scopedPostId.isEmpty
+            ? <String, Object>{'uids': chunk}
+            : <String, Object>{'uids': chunk, 'postId': scopedPostId},
+      );
       levels.addAll(parseFeedAuthorLevelsResponse(result.data));
     }
     return levels;

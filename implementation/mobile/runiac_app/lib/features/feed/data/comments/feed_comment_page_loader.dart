@@ -19,7 +19,9 @@ class FeedCommentPageLoader {
     final authorUids = {
       for (final comment in page.comments) comment.authorUid,
     };
-    await levelResolver.ensureResolved(authorUids);
+    // Scoped to this post: a commenter the viewer is not friends with is only
+    // resolvable through the post that made their comment readable.
+    await levelResolver.ensureResolved(authorUids, postId: postId);
     return FeedCommentPage(
       comments: page.comments
           .map((comment) {

@@ -187,5 +187,18 @@ abstract interface class FeedDataPort {
   /// Resolves live author levels for [uids]. A uid the viewer may not see,
   /// or that the backend has no snapshot for, is simply absent from the
   /// result — callers must fall back to their own stored label.
-  Future<Map<String, FeedAuthorLevel>> fetchAuthorLevels(List<String> uids);
+  /// Live identity and level for [uids].
+  ///
+  /// [postId] names the post whose comments these uids authored, when the
+  /// caller is resolving a comment page. It exists because `firestore.rules`
+  /// authorizes a comment through its POST, not its commenter: two runners
+  /// who share a friend but not each other still read each other's comments
+  /// on that friend's post, and without the post as context the backend has
+  /// no permitted way to resolve the other commenter. The server proves the
+  /// post is readable and that each uid really commented on it; a wrong or
+  /// invented [postId] resolves nothing.
+  Future<Map<String, FeedAuthorLevel>> fetchAuthorLevels(
+    List<String> uids, {
+    String? postId,
+  });
 }

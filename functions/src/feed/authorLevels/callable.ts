@@ -30,5 +30,35 @@ export function createAuthorLevelsPorts(firestore: Firestore): FeedAuthorLevelsP
       const snaps = await firestore.getAll(...uids.map((uid) => firestore.doc(`userProfiles/${uid}`)));
       return snaps.map((snap) => snap.data());
     },
+    async readPost(postId) {
+      const snapshot = await firestore.doc(`feedPosts/${postId}`).get();
+      const data = snapshot.data();
+      if (data === undefined) return undefined;
+      const status = data["status"];
+      const authorUid = data["authorUid"];
+      if (typeof status !== "string" || typeof authorUid !== "string" || authorUid.length === 0) return undefined;
+      return { status, authorUid };
+    },
+    async commentAuthorsAmong(postId, uids) {
+      if (uids.length === 0) return [];
+      // Firestore caps an `in` filter at 30 values and the callable caps the
+      // request at 50 uids, so this is at most two equality queries against
+      // the automatically indexed `authorUid` field — no composite index.
+      const chunks: string[][] = [];
+      for (let index = 0; index < uids.length; index += IN_FILTER_LIMIT) chunks.push(uids.slice(index, index + IN_FILTER_LIMIT));
+      const results = await Promise.all(
+        chunks.map((chunk) => firestore.collection(`feedPosts/${postId}/comments`).where("authorUid", "in", chunk).select("authorUid").get()),
+      );
+      const found = new Set<string>();
+      for (const result of results) {
+        for (const doc of result.docs) {
+          const authorUid = doc.get("authorUid");
+          if (typeof authorUid === "string" && authorUid.length > 0) found.add(authorUid);
+        }
+      }
+      return [...found];
+    },
   };
 }
+
+const IN_FILTER_LIMIT = 30;
