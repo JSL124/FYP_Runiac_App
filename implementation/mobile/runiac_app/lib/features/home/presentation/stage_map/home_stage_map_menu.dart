@@ -219,6 +219,7 @@ class _HomeMenuPanel extends StatelessWidget {
                           onTap: onNotifications,
                         ),
                       ),
+                      const _HomeMenuDivider(indent: 44),
                       row(
                         2,
                         _HomeMenuItem(
@@ -227,6 +228,7 @@ class _HomeMenuPanel extends StatelessWidget {
                           onTap: onFriends,
                         ),
                       ),
+                      const _HomeMenuDivider(indent: 44),
                       row(
                         3,
                         _HomeMenuItem(
@@ -248,15 +250,20 @@ class _HomeMenuPanel extends StatelessWidget {
 }
 
 class _HomeMenuDivider extends StatelessWidget {
-  const _HomeMenuDivider();
+  const _HomeMenuDivider({this.indent = 14});
+
+  /// Full-width (14) separates the status readout from the destinations;
+  /// text-aligned (44) separates one destination from the next, so the row
+  /// boundaries stay legible at rest without competing with that split.
+  final double indent;
 
   @override
   Widget build(BuildContext context) {
-    return const Divider(
+    return Divider(
       height: 1,
       thickness: 1,
       color: RuniacColors.border,
-      indent: 14,
+      indent: indent,
       endIndent: 14,
     );
   }
@@ -315,7 +322,7 @@ class _HomeMenuStreakRow extends StatelessWidget {
   }
 }
 
-class _HomeMenuItem extends StatelessWidget {
+class _HomeMenuItem extends StatefulWidget {
   const _HomeMenuItem({
     required this.icon,
     required this.label,
@@ -329,16 +336,60 @@ class _HomeMenuItem extends StatelessWidget {
   final int badgeCount;
 
   @override
+  State<_HomeMenuItem> createState() => _HomeMenuItemState();
+}
+
+class _HomeMenuItemState extends State<_HomeMenuItem> {
+  bool _pressed = false;
+
+  /// Latched by the tap and never cleared. The menu closes immediately after,
+  /// so keeping the row lit through the 120ms exit is what tells the runner
+  /// which row actually fired — without it the panel just disappears and the
+  /// tap goes unacknowledged.
+  bool _confirmed = false;
+
+  void _setPressed(bool pressed) {
+    if (_pressed == pressed || _confirmed) {
+      return;
+    }
+    setState(() {
+      _pressed = pressed;
+    });
+  }
+
+  void _handleTap() {
+    setState(() {
+      _confirmed = true;
+    });
+    RuniacHapticsScope.maybeOf(context)?.impactLight();
+    widget.onTap();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final highlighted = _pressed || _confirmed;
     return Semantics(
       container: true,
-      label: badgeCount > 0 ? '$label, $badgeCount unread' : label,
+      label: widget.badgeCount > 0
+          ? '${widget.label}, ${widget.badgeCount} unread'
+          : widget.label,
       button: true,
       child: ExcludeSemantics(
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: onTap,
-          child: Padding(
+          onTapDown: (_) => _setPressed(true),
+          onTapUp: (_) => _setPressed(false),
+          onTapCancel: () => _setPressed(false),
+          onTap: _handleTap,
+          child: AnimatedContainer(
+            duration: Duration(milliseconds: highlighted ? 90 : 140),
+            curve: Curves.easeOut,
+            // 0.20 lands on ~#D5DCF4: unmistakably darker than both the white
+            // resting row and the streak row's #F4F7FF status tint, while
+            // leaving the near-black label at full contrast.
+            color: highlighted
+                ? RuniacColors.primaryBlue.withValues(alpha: 0.20)
+                : RuniacColors.white,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             child: Row(
               children: [
@@ -348,12 +399,16 @@ class _HomeMenuItem extends StatelessWidget {
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [
-                      Icon(icon, color: RuniacColors.primaryBlue, size: 20),
-                      if (badgeCount > 0)
+                      Icon(
+                        widget.icon,
+                        color: RuniacColors.primaryBlue,
+                        size: 20,
+                      ),
+                      if (widget.badgeCount > 0)
                         Positioned(
                           right: -8,
                           top: -8,
-                          child: _UnreadBadge(count: badgeCount),
+                          child: _UnreadBadge(count: widget.badgeCount),
                         ),
                     ],
                   ),
@@ -361,7 +416,7 @@ class _HomeMenuItem extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    label,
+                    widget.label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
