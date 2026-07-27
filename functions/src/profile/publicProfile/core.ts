@@ -117,32 +117,56 @@ export async function getRunnerPublicProfile(
   // no new information.
   const denyCode = target.kind === "runner" ? "not-found" : "permission-denied";
 
+  const gated = target.kind === "runner" && targetUid !== callerUid;
+
+  let blocked = false;
   if (targetUid !== callerUid) {
     const edges = await ports.readBlockEdges(callerUid, targetUid);
-    if (edges.callerBlockedTarget || edges.targetBlockedCaller) throw new HttpsError(denyCode, UNAVAILABLE_MESSAGE);
+    blocked = edges.callerBlockedTarget || edges.targetBlockedCaller;
+    // On the gated path a block is settled below, with the same reads every
+    // other denial performs; the leaderboard path can bail out immediately
+    // because its entry already proved the runner exists.
+    if (blocked && !gated) throw new HttpsError(denyCode, UNAVAILABLE_MESSAGE);
   }
 
   const [profile, account] = await Promise.all([ports.readProfile(targetUid), ports.readAccount(targetUid)]);
-  if (profile === undefined) throw new HttpsError("not-found", UNAVAILABLE_MESSAGE);
   // A suspended or banned runner's profile stops being viewable at all, so a
   // moderation action removes them from every viewer's reach, not just from
   // the leaderboard.
-  if (isSuspendedAccount(account)) throw new HttpsError(denyCode, UNAVAILABLE_MESSAGE);
+  const settledAgainst = blocked || profile === undefined || isSuspendedAccount(account);
+  if (settledAgainst && !gated) {
+    throw new HttpsError(profile === undefined ? "not-found" : denyCode, UNAVAILABLE_MESSAGE);
+  }
 
   // The uid-addressed form is the one a viewer can point at any uid they
   // hold, so it alone needs an authorization gate: a leaderboard entry only
   // ever resolves to a runner who is already showing on a public board.
-  // Checks run cheapest-first so a stranger's request pays for only as much
-  // as it takes to deny it: self needs no read at all, the profile is
-  // already in hand, and the two remaining checks are one document read
-  // each, tried only if everything before them came back false.
-  if (target.kind === "runner" && targetUid !== callerUid) {
-    const allowed =
-      socialProfile(targetUid, profile) !== undefined ||
-      (await ports.readSocialEdge(callerUid, targetUid)) ||
-      (await ports.isChallengeCoMember(callerUid, targetUid));
+  //
+  // Every denial here costs the same four reads in the same order — block
+  // edges, profile and account, social edge, challenge roster. Returning the
+  // identical `not-found` body is not enough on its own: an early bail-out
+  // would still let a caller time the call and tell "no such runner" from
+  // "not allowed to see this runner", which is the existence oracle the
+  // single error code exists to close. Only the ALLOW path short-circuits,
+  // so a runner opening a friend's profile still pays for as little as it
+  // takes to say yes.
+  if (gated) {
+    if (settledAgainst) {
+      // Both reads run unconditionally — not short-circuited on the first
+      // true — because an already-settled denial must cost exactly what a
+      // gate denial costs. Letting a blocked runner who happens to be a
+      // friend skip the second read would reopen the timing gap by one read.
+      await ports.readSocialEdge(callerUid, targetUid);
+      await ports.isChallengeCoMember(callerUid, targetUid);
+      throw new HttpsError("not-found", UNAVAILABLE_MESSAGE);
+    }
+    let allowed = profile !== undefined && socialProfile(targetUid, profile) !== undefined;
+    if (!allowed) allowed = await ports.readSocialEdge(callerUid, targetUid);
+    if (!allowed) allowed = await ports.isChallengeCoMember(callerUid, targetUid);
     if (!allowed) throw new HttpsError("not-found", UNAVAILABLE_MESSAGE);
   }
+
+  if (profile === undefined) throw new HttpsError("not-found", UNAVAILABLE_MESSAGE);
 
   const ownedBadgeTierIds = await ports.readOwnedBadgeTierIds(targetUid);
   // The resolved uid stays here. Echoing it back would let any signed-in

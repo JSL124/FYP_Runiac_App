@@ -350,7 +350,31 @@ describe("Runner public profile core", () => {
       for (const ports of [strangerPorts, callerBlockedPorts, targetBlockedPorts, suspendedPorts, missingProfilePorts]) {
         // A denial must never pay for the badge read.
         assert.equal(ports.badgeReadCalls.length, 0);
+        // ...and it must pay for exactly the same gate reads as every other
+        // denial. An identical error body is not enough on its own: a caller
+        // who can time the call would otherwise still tell "no such runner"
+        // from "not allowed to see this runner" by how much work it did.
+        assert.equal(ports.socialEdgeCalls.length, 1);
+        assert.equal(ports.coMemberCalls.length, 1);
       }
+    });
+
+    it("keeps a denial's cost fixed even when the runner is a blocked friend", async () => {
+      const blockedFriend = "blocked-friend";
+      const ports = fakePorts();
+      ports.profiles.set(blockedFriend, { displayName: "Blocked", avatarInitials: "BL", locationLabel: "Bedok" });
+      ports.socialEdges.add(blockedFriend);
+      ports.blockedCaller.add(blockedFriend);
+
+      const error = await captureHttpsError(() => getRunnerPublicProfile({ auth: { uid: viewer }, data: { uid: blockedFriend } }, ports));
+
+      assert.equal(error.code, "not-found");
+      // The social edge answers true here, so a short-circuiting gate would
+      // have skipped the roster read and made this denial one read cheaper
+      // than a stranger's.
+      assert.equal(ports.socialEdgeCalls.length, 1);
+      assert.equal(ports.coMemberCalls.length, 1);
+      assert.equal(ports.badgeReadCalls.length, 0);
     });
   });
 });
