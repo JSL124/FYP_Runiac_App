@@ -284,11 +284,18 @@ class FirebaseFeedDataPort implements FeedDataPort {
       if (uid is! String || value is! Map<Object?, Object?>) continue;
       final label = value['levelLabel'];
       final percent = value['levelProgressPercent'];
+      // displayName/avatarInitials arrived with a later backend revision, so
+      // an older deployment simply omits them and every caller keeps the
+      // identity stored on the post or comment.
+      final displayName = value['displayName'];
+      final avatarInitials = value['avatarInitials'];
       result[uid] = FeedAuthorLevel(
         levelLabel: label is String ? label : '',
         levelProgressFraction: percent is num
             ? (percent / 100).clamp(0.0, 1.0).toDouble()
             : 0.0,
+        displayName: displayName is String ? displayName : '',
+        avatarInitials: avatarInitials is String ? avatarInitials : '',
       );
     }
     return result;

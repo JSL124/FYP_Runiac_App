@@ -138,6 +138,37 @@ void main() {
       expect(result['uid-under']?.levelProgressFraction, 0.0);
     });
 
+    test('parses the author identity and defaults it to empty when absent', () {
+      final result = FirebaseFeedDataPort.parseFeedAuthorLevelsResponse(
+        <String, Object?>{
+          'levels': <String, Object?>{
+            'uid-named': <String, Object?>{
+              'levelLabel': 'Level 7',
+              'levelProgressPercent': 42,
+              'displayName': 'Renamed Runner',
+              'avatarInitials': 'RR',
+            },
+            // What an older backend deployment returns.
+            'uid-level-only': <String, Object?>{
+              'levelLabel': 'Level 7',
+              'levelProgressPercent': 42,
+            },
+            'uid-malformed-name': <String, Object?>{
+              'levelLabel': 'Level 7',
+              'levelProgressPercent': 42,
+              'displayName': 7,
+            },
+          },
+        },
+      );
+
+      expect(result['uid-named']?.displayName, 'Renamed Runner');
+      expect(result['uid-named']?.avatarInitials, 'RR');
+      expect(result['uid-level-only']?.displayName, '');
+      expect(result['uid-level-only']?.avatarInitials, '');
+      expect(result['uid-malformed-name']?.displayName, '');
+    });
+
     test('defaults a missing or malformed field defensively', () {
       final result = FirebaseFeedDataPort.parseFeedAuthorLevelsResponse(
         <String, Object?>{

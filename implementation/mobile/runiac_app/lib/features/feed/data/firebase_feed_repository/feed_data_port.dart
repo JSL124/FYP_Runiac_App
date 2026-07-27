@@ -101,23 +101,38 @@ class FeedCommentDocumentPage {
   final FeedCommentCursor? nextCursor;
 }
 
-/// A live, backend-owned author level snapshot resolved at display time.
+/// A live, backend-owned author snapshot resolved at display time.
 ///
-/// A post or comment's stored `authorLevelLabel` is frozen at publish time
-/// and can go stale, or be entirely absent on older content. This type
-/// carries the author's CURRENT level as returned by the backend so the
-/// client can overlay it. The client only transports and renders these
+/// A post or comment stores `authorDisplayName`, `authorAvatarInitials`, and
+/// `authorLevelLabel` frozen at write time. All three go stale — a runner who
+/// renames themselves would otherwise keep appearing under their old name on
+/// every post they already published, and `feedPosts` is closed to client
+/// writes so nothing can rewrite the stored copy. This type carries the
+/// author's CURRENT identity and level as returned by the backend so the
+/// client can overlay them. The client only transports and renders these
 /// values; it never computes them.
+///
+/// An empty [displayName], [avatarInitials], or [levelLabel] means the backend
+/// resolved nothing for that field, and the caller must keep its stored value
+/// rather than blanking the author out.
 class FeedAuthorLevel {
   const FeedAuthorLevel({
     required this.levelLabel,
     required this.levelProgressFraction,
+    this.displayName = '',
+    this.avatarInitials = '',
   });
 
   final String levelLabel;
 
   /// 0.0..1.0, already converted from the backend's 0..100 percent.
   final double levelProgressFraction;
+
+  /// The author's current name, nickname-first, as the backend resolved it.
+  final String displayName;
+
+  /// The author's current avatar initials.
+  final String avatarInitials;
 }
 
 /// Typed Firestore/Functions boundary. Tests replace it without Firebase.

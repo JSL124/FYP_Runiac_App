@@ -2,9 +2,24 @@ import { HttpsError } from "firebase-functions/v2/https";
 import type { FeedRelationshipCheckInput } from "../relationship.js";
 import { evaluateFeedRelationship } from "../relationship.js";
 import { resolveProfileLevelDisplay, type ProfileLevelDisplay } from "../../progression/profileLevelDisplay.js";
+import { resolveProfileIdentityDisplay, type ProfileIdentityDisplay } from "../../profile/profileIdentityDisplay.js";
 
 export type FeedAuthorLevelsRequest = { readonly auth?: { readonly uid: string }; readonly data: unknown };
-export type FeedAuthorLevel = ProfileLevelDisplay;
+
+/**
+ * One author's CURRENT display identity and level, as the viewer's Feed should
+ * render them right now.
+ *
+ * A Feed post and a Feed comment both freeze `authorDisplayName`,
+ * `authorAvatarInitials`, and `authorLevelLabel` at write time, and
+ * `feedPosts` is closed to every client write, so a renamed runner would keep
+ * appearing under their old name on every earlier post. This is what the
+ * client overlays on top of those stored values.
+ *
+ * The callable id stays `getFeedAuthorLevels` because it is already deployed
+ * and older app builds still call it; only its result grew.
+ */
+export type FeedAuthorLevel = ProfileLevelDisplay & ProfileIdentityDisplay;
 export type FeedAuthorLevelsResult = { readonly levels: Readonly<Record<string, FeedAuthorLevel>> };
 export interface FeedAuthorLevelsPorts {
   relationshipFor(viewerUid: string, authorUid: string): Promise<FeedRelationshipCheckInput>;
@@ -31,7 +46,9 @@ export async function getFeedAuthorLevels(request: FeedAuthorLevelsRequest, port
   if (permitted.length === 0) return { levels: {} };
   const profiles = await ports.readProfiles(permitted);
   const levels: Record<string, FeedAuthorLevel> = {};
-  permitted.forEach((authorUid, index) => { levels[authorUid] = resolveProfileLevelDisplay(profiles[index]); });
+  permitted.forEach((authorUid, index) => {
+    levels[authorUid] = { ...resolveProfileLevelDisplay(profiles[index]), ...resolveProfileIdentityDisplay(profiles[index]) };
+  });
   return { levels };
 }
 

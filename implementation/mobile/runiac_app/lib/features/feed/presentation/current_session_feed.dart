@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
@@ -48,6 +50,17 @@ class _CurrentSessionFeedState extends State<CurrentSessionFeed> {
     } else if (oldWidget.currentAuthorProfile != widget.currentAuthorProfile) {
       _controller.updateCurrentAuthorProfile(widget.currentAuthorProfile);
       _syncAuthorProfile();
+      // A renamed viewer needs the whole timeline re-read, not just their own
+      // header: every post stores the author's name frozen at publish time, so
+      // the current name only arrives with a fresh load and its author
+      // overlay. A level change alone is already handled in place and must not
+      // pay for a reload.
+      if (_identityChanged(
+        oldWidget.currentAuthorProfile,
+        widget.currentAuthorProfile,
+      )) {
+        unawaited(_controller.refresh());
+      }
     }
   }
 
@@ -96,6 +109,16 @@ class _CurrentSessionFeedState extends State<CurrentSessionFeed> {
       }
       store.updateAuthorProfile(profile);
     });
+  }
+
+  static bool _identityChanged(
+    FeedAuthorProfileSnapshot? previous,
+    FeedAuthorProfileSnapshot? next,
+  ) {
+    if (previous == null || next == null) return false;
+    return previous.userId == next.userId &&
+        (previous.displayName != next.displayName ||
+            previous.avatarInitials != next.avatarInitials);
   }
 
   void _rebuild() {

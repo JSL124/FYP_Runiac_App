@@ -16,8 +16,8 @@ describe("Feed author levels core", () => {
     ports.relationships.set(stranger, { viewerHasAuthorFriend: false, authorHasViewerFriend: false, viewerBlockedAuthor: false, authorBlockedViewer: false });
     ports.relationships.set(blocked, { viewerHasAuthorFriend: true, authorHasViewerFriend: true, viewerBlockedAuthor: true, authorBlockedViewer: false });
     const result = await getFeedAuthorLevels({ auth: { uid: viewer }, data: { uids: [viewer, friend, stranger, blocked] } }, ports);
-    assert.deepEqual(result.levels[viewer], { levelLabel: "Champion", levelProgressPercent: 42 });
-    assert.deepEqual(result.levels[friend], { levelLabel: "Rookie", levelProgressPercent: 10 });
+    assert.deepEqual(result.levels[viewer], { levelLabel: "Champion", levelProgressPercent: 42, displayName: "", avatarInitials: "" });
+    assert.deepEqual(result.levels[friend], { levelLabel: "Rookie", levelProgressPercent: 10, displayName: "", avatarInitials: "" });
     assert.equal(stranger in result.levels, false);
     assert.equal(blocked in result.levels, false);
   });
@@ -27,7 +27,7 @@ describe("Feed author levels core", () => {
     ports.profiles.set(friend, { levelLabel: "Rookie", levelProgressPercent: 10 });
     const result = await getFeedAuthorLevels({ auth: { uid: viewer }, data: { uids: [friend, friend, friend] } }, ports);
     assert.equal(Object.keys(result.levels).length, 1);
-    assert.deepEqual(result.levels[friend], { levelLabel: "Rookie", levelProgressPercent: 10 });
+    assert.deepEqual(result.levels[friend], { levelLabel: "Rookie", levelProgressPercent: 10, displayName: "", avatarInitials: "" });
     assert.equal(ports.readProfilesCalls.length, 1);
     assert.equal(ports.readProfilesCalls[0]?.length, 1);
   });
@@ -48,14 +48,35 @@ describe("Feed author levels core", () => {
   it("resolves a missing profile document to an empty label and zero percent", async () => {
     const ports = fakePorts();
     const result = await getFeedAuthorLevels({ auth: { uid: viewer }, data: { uids: [viewer] } }, ports);
-    assert.deepEqual(result.levels[viewer], { levelLabel: "", levelProgressPercent: 0 });
+    assert.deepEqual(result.levels[viewer], { levelLabel: "", levelProgressPercent: 0, displayName: "", avatarInitials: "" });
   });
 
   it("falls back to Lv.{level} when levelLabel is absent", async () => {
     const ports = fakePorts();
     ports.profiles.set(viewer, { level: 7 });
     const result = await getFeedAuthorLevels({ auth: { uid: viewer }, data: { uids: [viewer] } }, ports);
-    assert.deepEqual(result.levels[viewer], { levelLabel: "Lv.7", levelProgressPercent: 0 });
+    assert.deepEqual(result.levels[viewer], { levelLabel: "Lv.7", levelProgressPercent: 0, displayName: "", avatarInitials: "" });
+  });
+
+  // A Feed post freezes the author's name at publish time, so the overlay this
+  // result feeds is the only thing that can show a renamed runner's current
+  // name on the posts they already published.
+  it("resolves the author's current nickname over their displayName", async () => {
+    const ports = fakePorts();
+    ports.profiles.set(friend, { levelLabel: "Rookie", levelProgressPercent: 10, displayName: "Old Name", nickname: "New Name", avatarInitials: "NN" });
+    const result = await getFeedAuthorLevels({ auth: { uid: viewer }, data: { uids: [friend] } }, ports);
+    assert.deepEqual(result.levels[friend], { levelLabel: "Rookie", levelProgressPercent: 10, displayName: "New Name", avatarInitials: "NN" });
+  });
+
+  it("trims a stored identity and leaves a missing one empty so the client keeps its stored value", async () => {
+    const ports = fakePorts();
+    ports.profiles.set(friend, { displayName: "  Spaced Runner  ", avatarInitials: " SR " });
+    const result = await getFeedAuthorLevels({ auth: { uid: viewer }, data: { uids: [friend] } }, ports);
+    assert.equal(result.levels[friend]?.displayName, "Spaced Runner");
+    assert.equal(result.levels[friend]?.avatarInitials, "SR");
+    ports.profiles.set(blocked, {});
+    const missing = await getFeedAuthorLevels({ auth: { uid: viewer }, data: { uids: [blocked] } }, ports);
+    assert.equal(missing.levels[blocked]?.displayName, "");
   });
 
   it("clamps an out-of-range levelProgressPercent into 0..100", async () => {
@@ -90,7 +111,7 @@ describe("Feed author levels core", () => {
   });
 });
 
-type Profile = { readonly levelLabel?: string; readonly level?: number; readonly levelProgressPercent?: number };
+type Profile = { readonly levelLabel?: string; readonly level?: number; readonly levelProgressPercent?: number; readonly displayName?: string; readonly nickname?: string; readonly avatarInitials?: string };
 class FakePorts implements FeedAuthorLevelsPorts {
   profiles = new Map<string, Profile>();
   relationships = new Map<string, Partial<FeedRelationshipCheckInput>>();

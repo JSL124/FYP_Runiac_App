@@ -86,6 +86,100 @@ void main() {
     },
   );
 
+  // A post freezes authorDisplayName at publish time and feedPosts is closed
+  // to client writes, so without this overlay a runner who renames themselves
+  // keeps appearing under the old name on every run they already shared.
+  test(
+    'a renamed author\'s current name and initials replace the stored ones',
+    () async {
+      final port = FeedTestDataPort.withSingleFriend('friend-10');
+      port.authorLevels['friend-10'] = const FeedAuthorLevel(
+        levelLabel: 'Level 12',
+        levelProgressFraction: 0.75,
+        displayName: 'Renamed Runner',
+        avatarInitials: 'RR',
+      );
+      final repository = FirebaseFeedRepository(port: port);
+
+      final state = await repository.loadInitial(viewer);
+
+      final post = state.posts.single;
+      expect(post.authorDisplayName, 'Renamed Runner');
+      expect(post.authorAvatarInitials, 'RR');
+    },
+  );
+
+  test(
+    'an author resolved with no identity keeps the name stored on the post',
+    () async {
+      // What an older backend deployment returns: a level, no identity.
+      final port = FeedTestDataPort.withSingleFriend('friend-11');
+      port.authorLevels['friend-11'] = const FeedAuthorLevel(
+        levelLabel: 'Level 12',
+        levelProgressFraction: 0.75,
+      );
+      final repository = FirebaseFeedRepository(port: port);
+
+      final state = await repository.loadInitial(viewer);
+
+      final post = state.posts.single;
+      expect(post.authorDisplayName, 'friend-11');
+      expect(post.authorAvatarInitials, 'FR');
+      expect(post.authorLevelLabel, 'Level 12');
+    },
+  );
+
+  test(
+    'a resolved identity is applied even when the level label resolves empty',
+    () async {
+      final port = FeedTestDataPort.withSingleFriend('friend-12');
+      port.authorLevels['friend-12'] = const FeedAuthorLevel(
+        levelLabel: '',
+        levelProgressFraction: 0.5,
+        displayName: 'Renamed Runner',
+        avatarInitials: 'RR',
+      );
+      final repository = FirebaseFeedRepository(port: port);
+
+      final state = await repository.loadInitial(viewer);
+
+      final post = state.posts.single;
+      expect(post.authorDisplayName, 'Renamed Runner');
+      expect(post.authorLevelLabel, 'Level 3');
+      expect(post.authorLevelProgressFraction, isNull);
+    },
+  );
+
+  test(
+    'the same identity overlay applies to a comment\'s stored author name',
+    () async {
+      final port = FeedTestDataPort.withSingleFriend('friend-13')
+        ..addTiedComments(2);
+      port.authorLevels['friend'] = const FeedAuthorLevel(
+        levelLabel: 'Level 20',
+        levelProgressFraction: 0.9,
+        displayName: 'Renamed Runner',
+        avatarInitials: 'RR',
+      );
+      final repository = FirebaseFeedRepository(port: port);
+      await repository.loadInitial(viewer);
+
+      final page = await repository.loadComments(postId: 'post-1');
+
+      final resolved = page.comments.firstWhere(
+        (comment) => comment.authorUserId == 'friend',
+      );
+      expect(resolved.authorDisplayName, 'Renamed Runner');
+      expect(resolved.authorAvatarInitials, 'RR');
+
+      final unresolved = page.comments.firstWhere(
+        (comment) => comment.authorUserId == 'viewer',
+      );
+      expect(unresolved.authorDisplayName, 'Runner');
+      expect(unresolved.authorAvatarInitials, 'RU');
+    },
+  );
+
   test('pull-to-refresh invalidates the cache and re-resolves', () async {
     final port = FeedTestDataPort.withSingleFriend('friend-04');
     port.authorLevels['friend-04'] = const FeedAuthorLevel(

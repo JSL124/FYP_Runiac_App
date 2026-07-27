@@ -1,6 +1,7 @@
 import { HttpsError } from "firebase-functions/v2/https";
 import { isSuspendedAccount } from "../../security/accountStatus.js";
 import { socialProfile } from "../../friends/friendsProfiles.js";
+import { resolveProfileIdentityDisplay } from "../profileIdentityDisplay.js";
 
 /**
  * The public running-achievement projection of one runner, as shown on the
@@ -169,12 +170,15 @@ export async function getRunnerPublicProfile(
   if (profile === undefined) throw new HttpsError("not-found", UNAVAILABLE_MESSAGE);
 
   const ownedBadgeTierIds = await ports.readOwnedBadgeTierIds(targetUid);
+  // Resolved through the shared reader so this projection and the Feed author
+  // overlay apply the identical nickname-wins rule to the same stored fields.
+  const identity = resolveProfileIdentityDisplay(profile);
   // The resolved uid stays here. Echoing it back would let any signed-in
   // caller walk every rank of every public snapshot and rebuild the uid
   // directory this whole design exists to avoid.
   return {
-    displayName: profileDisplayName(profile),
-    avatarInitials: trimmedString(profile["avatarInitials"]),
+    displayName: identity.displayName,
+    avatarInitials: identity.avatarInitials,
     regionLabel: trimmedString(profile["locationLabel"]),
     levelLabel: trimmedString(profile["levelLabel"]),
     level: nonNegativeInteger(profile["level"]),
@@ -193,15 +197,6 @@ export async function getRunnerPublicProfile(
     subscriptionStatusLabel: subscriptionStatusLabel(account),
     ownedBadgeTierIds,
   };
-}
-
-/**
- * The nickname wins when the runner set one, matching how they see their own
- * account screen and how the leaderboard labels their row.
- */
-function profileDisplayName(profile: Readonly<Record<string, unknown>>): string {
-  const nickname = trimmedString(profile["nickname"]);
-  return nickname.length > 0 ? nickname : trimmedString(profile["displayName"]);
 }
 
 /**

@@ -504,6 +504,11 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
           homeGuideConsentRepository: widget.homeGuideConsentRepository,
           enableForegroundGps: widget.enableForegroundGps,
           activeRunSessionCoordinator: _activeRunSessionCoordinator,
+          onAccountProfileChanged: () {
+            if (mounted) {
+              setState(_setFeedAuthorProfileFuture);
+            }
+          },
           onNotificationSettingsChanged: () {
             _syncGeneratedPlanNotifications(
               activeGeneratedPlan,

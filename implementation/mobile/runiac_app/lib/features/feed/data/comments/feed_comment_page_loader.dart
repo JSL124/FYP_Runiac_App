@@ -26,11 +26,20 @@ class FeedCommentPageLoader {
             final resolved = levelResolver[comment.authorUid];
             final hasResolvedLabel =
                 resolved != null && resolved.levelLabel.trim().isNotEmpty;
+            // A comment freezes its author's name the same way a post does, so
+            // the live identity wins whenever the backend resolved one; an
+            // empty value keeps the stored copy rather than blanking the row.
+            final resolvedName = resolved?.displayName.trim() ?? '';
+            final resolvedInitials = resolved?.avatarInitials.trim() ?? '';
             return FeedCommentReadModel(
               commentId: comment.commentId,
               authorUserId: comment.authorUid,
-              authorDisplayName: comment.authorDisplayName,
-              authorAvatarInitials: comment.authorAvatarInitials,
+              authorDisplayName: resolvedName.isEmpty
+                  ? comment.authorDisplayName
+                  : resolvedName,
+              authorAvatarInitials: resolvedInitials.isEmpty
+                  ? comment.authorAvatarInitials
+                  : resolvedInitials,
               authorLevelLabel: hasResolvedLabel
                   ? resolved.levelLabel
                   : comment.authorLevelLabel,
