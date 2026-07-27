@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { getRunnerPublicProfile, type BlockEdges, type RunnerPublicProfilePorts } from "../src/profile/publicProfile/core.js";
+import { canonicalizeNickname, nicknameIndexKey } from "../src/friends/nickname.js";
 
 const viewer = "viewer-a";
 const runner = "runner-a";
@@ -13,6 +14,16 @@ function rankKey(snapshot: string, rankLabel: string, build: string): string {
 
 function entry(rankLabel = "#3", build = buildId): Record<string, string> {
   return { snapshotId, rankLabel, buildId: build };
+}
+
+/**
+ * The exact `socialProfile()`-passing shape: nickname, its canonical form,
+ * and the canonical's index key all agreeing, plus an active discovery
+ * status. Anything less and `socialProfile()` returns `undefined`.
+ */
+function discoverableProfileFields(nickname: string): Record<string, string> {
+  const canonical = canonicalizeNickname(nickname);
+  return { nickname, nicknameCanonical: canonical, nicknameIndexKey: nicknameIndexKey(canonical), socialDiscoveryStatus: "active" };
 }
 
 describe("Runner public profile core", () => {
@@ -185,15 +196,21 @@ describe("Runner public profile core", () => {
     for (const data of [
       undefined,
       {},
-      // No uid-addressed form exists: a caller must not be able to probe a uid
-      // they obtained elsewhere.
-      { uid: runner },
       { snapshotId, rankLabel: "#3" },
       { snapshotId, rankLabel: "#3", buildId: "", },
       { snapshotId, rankLabel: "#3", buildId, extra: 1 },
       { snapshotId: "leaderboardUserRanks/x", rankLabel: "#3", buildId },
       { snapshotId: "../other", rankLabel: "#3", buildId },
       { snapshotId, rankLabel: 7, buildId },
+      // The uid-addressed form is validated too: empty, path-shaped,
+      // traversal-shaped, non-string, over-length, and mixed with the
+      // leaderboard-entry keys must all fail closed.
+      { uid: "" },
+      { uid: "a/b" },
+      { uid: "../x" },
+      { uid: 7 },
+      { uid: "a".repeat(129) },
+      { uid: runner, snapshotId, rankLabel: "#3", buildId },
     ]) {
       await assertHttpsError(() => getRunnerPublicProfile({ auth: { uid: viewer }, data }, ports), "invalid-argument");
     }
@@ -229,10 +246,130 @@ describe("Runner public profile core", () => {
     await assertHttpsError(() => getRunnerPublicProfile({ auth: { uid: viewer }, data: entry("#9") }, ports), "not-found");
   });
 
+  describe("uid-addressed runner target", () => {
+    it("allows the caller to address their own uid, reading no gate ports at all", async () => {
+      const ports = fakePorts();
+      ports.profiles.set(viewer, { displayName: "Jinseo", avatarInitials: "JI", locationLabel: "Jurong East" });
+
+      const profile = await getRunnerPublicProfile({ auth: { uid: viewer }, data: { uid: viewer } }, ports);
+
+      assert.equal(profile.displayName, "Jinseo");
+      assert.equal(ports.blockEdgeCalls.length, 0);
+      assert.equal(ports.socialEdgeCalls.length, 0);
+      assert.equal(ports.coMemberCalls.length, 0);
+    });
+
+    it("allows a discoverable target without reading the social-edge or co-member ports", async () => {
+      const ports = fakePorts();
+      ports.profiles.set(runner, {
+        displayName: "Jinseo",
+        avatarInitials: "JI",
+        locationLabel: "Jurong East",
+        ...discoverableProfileFields("Jinseo_main"),
+      });
+
+      const profile = await getRunnerPublicProfile({ auth: { uid: viewer }, data: { uid: runner } }, ports);
+
+      assert.equal(profile.displayName, "Jinseo_main");
+      // `socialProfile()` already answered the gate from the profile document
+      // already in hand, so the two remaining, extra-read checks must never fire.
+      assert.equal(ports.socialEdgeCalls.length, 0);
+      assert.equal(ports.coMemberCalls.length, 0);
+    });
+
+    it("allows a target the caller already has an accepted friend edge with", async () => {
+      const friendUid = "friend-runner";
+      const ports = fakePorts();
+      ports.profiles.set(friendUid, { displayName: "Friend", avatarInitials: "FR", locationLabel: "Jurong East" });
+      ports.socialEdges.add(friendUid);
+
+      const profile = await getRunnerPublicProfile({ auth: { uid: viewer }, data: { uid: friendUid } }, ports);
+
+      assert.equal(profile.displayName, "Friend");
+      // The friend edge already answered the gate, so co-membership is never checked.
+      assert.equal(ports.coMemberCalls.length, 0);
+    });
+
+    it("allows a target the caller has only a pending friend request with", async () => {
+      const requestedUid = "requested-runner";
+      const ports = fakePorts();
+      ports.profiles.set(requestedUid, { displayName: "Requested", avatarInitials: "RQ", locationLabel: "Jurong East" });
+      // `readSocialEdge` is true for a friend doc OR a friendRequest doc; the
+      // fake collapses both into one set because the gate only cares about
+      // the boolean, exactly like the real port does.
+      ports.socialEdges.add(requestedUid);
+
+      const profile = await getRunnerPublicProfile({ auth: { uid: viewer }, data: { uid: requestedUid } }, ports);
+
+      assert.equal(profile.displayName, "Requested");
+      assert.equal(ports.coMemberCalls.length, 0);
+    });
+
+    it("allows a target the caller shares a challenge roster with", async () => {
+      const ports = fakePorts();
+      ports.profiles.set(runner, { displayName: "Jinseo", avatarInitials: "JI", locationLabel: "Jurong East" });
+      ports.coMembers.add(runner);
+
+      const profile = await getRunnerPublicProfile({ auth: { uid: viewer }, data: { uid: runner } }, ports);
+
+      assert.equal(profile.displayName, "Jinseo");
+      // Co-membership is the last and most expensive check, so it is only
+      // reached once the cheaper self/discoverable/social-edge checks failed.
+      assert.equal(ports.socialEdgeCalls.length, 1);
+    });
+
+    it("denies a stranger, a block either way, a suspended account, and a missing profile with the identical not-found error", async () => {
+      const stranger = "stranger-runner";
+
+      const strangerPorts = fakePorts();
+      strangerPorts.profiles.set(stranger, { displayName: "Stranger", avatarInitials: "ST", locationLabel: "Bedok" });
+      const strangerError = await captureHttpsError(() => getRunnerPublicProfile({ auth: { uid: viewer }, data: { uid: stranger } }, strangerPorts));
+
+      const callerBlockedPorts = fakePorts();
+      callerBlockedPorts.profiles.set(stranger, { displayName: "Stranger", avatarInitials: "ST", locationLabel: "Bedok" });
+      callerBlockedPorts.blockedByCaller.add(stranger);
+      const callerBlockedError = await captureHttpsError(() => getRunnerPublicProfile({ auth: { uid: viewer }, data: { uid: stranger } }, callerBlockedPorts));
+
+      const targetBlockedPorts = fakePorts();
+      targetBlockedPorts.profiles.set(stranger, { displayName: "Stranger", avatarInitials: "ST", locationLabel: "Bedok" });
+      targetBlockedPorts.blockedCaller.add(stranger);
+      const targetBlockedError = await captureHttpsError(() => getRunnerPublicProfile({ auth: { uid: viewer }, data: { uid: stranger } }, targetBlockedPorts));
+
+      const suspendedPorts = fakePorts();
+      suspendedPorts.profiles.set(stranger, { displayName: "Stranger", avatarInitials: "ST", locationLabel: "Bedok" });
+      suspendedPorts.accounts.set(stranger, { accountStatus: "suspended" });
+      const suspendedError = await captureHttpsError(() => getRunnerPublicProfile({ auth: { uid: viewer }, data: { uid: stranger } }, suspendedPorts));
+
+      const missingProfilePorts = fakePorts();
+      const missingProfileError = await captureHttpsError(() => getRunnerPublicProfile({ auth: { uid: viewer }, data: { uid: stranger } }, missingProfilePorts));
+
+      for (const error of [strangerError, callerBlockedError, targetBlockedError, suspendedError, missingProfileError]) {
+        assert.equal(error.code, "not-found");
+        assert.equal(error.message, strangerError.message);
+      }
+      for (const ports of [strangerPorts, callerBlockedPorts, targetBlockedPorts, suspendedPorts, missingProfilePorts]) {
+        // A denial must never pay for the badge read.
+        assert.equal(ports.badgeReadCalls.length, 0);
+      }
+    });
+  });
 });
 
 async function assertHttpsError(run: () => Promise<unknown>, code: string): Promise<void> {
   await assert.rejects(run, (error: unknown) => typeof error === "object" && error !== null && "code" in error && error["code"] === code);
+}
+
+/** Captures an expected `HttpsError`'s code and message so callers can compare them across scenarios. */
+async function captureHttpsError(run: () => Promise<unknown>): Promise<{ readonly code: unknown; readonly message: unknown }> {
+  try {
+    await run();
+  } catch (error: unknown) {
+    if (typeof error === "object" && error !== null && "code" in error && "message" in error) {
+      return { code: (error as Readonly<Record<string, unknown>>)["code"], message: (error as Readonly<Record<string, unknown>>)["message"] };
+    }
+    throw error;
+  }
+  throw new Error("expected the callable to reject");
 }
 
 type FakePorts = RunnerPublicProfilePorts & {
@@ -244,6 +381,13 @@ type FakePorts = RunnerPublicProfilePorts & {
   readonly blockedByCaller: Set<string>;
   readonly blockedCaller: Set<string>;
   readonly blockEdgeCalls: string[];
+  /** targetUids for which a friend or friendRequest edge exists from the caller. */
+  readonly socialEdges: Set<string>;
+  /** targetUids the caller shares a challenge roster with. */
+  readonly coMembers: Set<string>;
+  readonly socialEdgeCalls: string[];
+  readonly coMemberCalls: string[];
+  readonly badgeReadCalls: string[];
 };
 
 function fakePorts(): FakePorts {
@@ -254,6 +398,11 @@ function fakePorts(): FakePorts {
   const blockedByCaller = new Set<string>();
   const blockedCaller = new Set<string>();
   const blockEdgeCalls: string[] = [];
+  const socialEdges = new Set<string>();
+  const coMembers = new Set<string>();
+  const socialEdgeCalls: string[] = [];
+  const coMemberCalls: string[] = [];
+  const badgeReadCalls: string[] = [];
   return {
     rankOwners,
     profiles,
@@ -262,6 +411,11 @@ function fakePorts(): FakePorts {
     blockedByCaller,
     blockedCaller,
     blockEdgeCalls,
+    socialEdges,
+    coMembers,
+    socialEdgeCalls,
+    coMemberCalls,
+    badgeReadCalls,
     async readBlockEdges(_callerUid: string, targetUid: string): Promise<BlockEdges> {
       blockEdgeCalls.push(targetUid);
       return { callerBlockedTarget: blockedByCaller.has(targetUid), targetBlockedCaller: blockedCaller.has(targetUid) };
@@ -273,10 +427,19 @@ function fakePorts(): FakePorts {
       return accounts.get(uid);
     },
     async readOwnedBadgeTierIds(uid: string) {
+      badgeReadCalls.push(uid);
       return badges.get(uid) ?? [];
     },
     async resolveLeaderboardEntryOwner(snapshot: string, rankLabel: string, build: string) {
       return rankOwners.get(rankKey(snapshot, rankLabel, build));
+    },
+    async readSocialEdge(_callerUid: string, targetUid: string) {
+      socialEdgeCalls.push(targetUid);
+      return socialEdges.has(targetUid);
+    },
+    async isChallengeCoMember(_callerUid: string, targetUid: string) {
+      coMemberCalls.push(targetUid);
+      return coMembers.has(targetUid);
     },
   };
 }

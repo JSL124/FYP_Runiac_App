@@ -1,5 +1,6 @@
 import { HttpsError } from "firebase-functions/v2/https";
 import { isSuspendedAccount } from "../../security/accountStatus.js";
+import { socialProfile } from "../../friends/friendsProfiles.js";
 
 /**
  * The public running-achievement projection of one runner, as shown on the
@@ -69,6 +70,22 @@ export interface RunnerPublicProfilePorts {
    * requiring them to agree pins the lookup to the board that was on screen.
    */
   resolveLeaderboardEntryOwner(snapshotId: string, rankLabel: string, buildId: string): Promise<string | undefined>;
+  /**
+   * True when caller and target already have a social edge, in either
+   * direction: an accepted friendship (`users/{caller}/friends/{target}`) or
+   * a friend request the caller sent (`users/{caller}/friendRequests/{target}`).
+   * Deliberately narrower than `friendLevels`' `hasSocialEdge`, which also ORs
+   * in `blockedUsers` — folding that in here would let "I blocked them" grant
+   * a view instead of denying one.
+   */
+  readSocialEdge(callerUid: string, targetUid: string): Promise<boolean>;
+  /**
+   * True when caller and target are both on the roster of the challenge the
+   * caller currently holds a lobby slot in. Reads the caller's
+   * `challengeSlots` document for the `challengeId` it points at, then checks
+   * `rosterUids` on that `challengeInstances` document.
+   */
+  isChallengeCoMember(callerUid: string, targetUid: string): Promise<boolean>;
 }
 
 const UNAVAILABLE_MESSAGE = "This runner profile is not available.";
@@ -81,15 +98,28 @@ export async function getRunnerPublicProfile(
   if (callerUid === undefined || callerUid.length === 0) throw new HttpsError("unauthenticated", "Authentication is required.");
   const target = parseTarget(request.data);
   if (target === undefined) throw new HttpsError("invalid-argument", "Invalid runner profile request.");
-  const targetUid = await ports.resolveLeaderboardEntryOwner(target.snapshotId, target.rankLabel, target.buildId);
+
+  const targetUid =
+    target.kind === "leaderboardEntry"
+      ? await ports.resolveLeaderboardEntryOwner(target.snapshotId, target.rankLabel, target.buildId)
+      : target.uid;
   // An entry that resolves to no owner, to more than one, or to a rank the
   // board has since reassigned is treated exactly like a runner who does not
   // exist: the viewer learns nothing either way, and never a wrong runner.
   if (targetUid === undefined || targetUid.length === 0) throw new HttpsError("not-found", UNAVAILABLE_MESSAGE);
 
+  // The uid-addressed form has no board to fall back on if the caller
+  // shouldn't see this runner, so every denial on this path — a block edge,
+  // a suspension, or the visibility gate below — must read identically to
+  // "this runner does not exist". The leaderboard path keeps its existing
+  // `permission-denied` for a block/suspension: the entry itself already
+  // proved the runner exists (it is on a public board), so that code carries
+  // no new information.
+  const denyCode = target.kind === "runner" ? "not-found" : "permission-denied";
+
   if (targetUid !== callerUid) {
     const edges = await ports.readBlockEdges(callerUid, targetUid);
-    if (edges.callerBlockedTarget || edges.targetBlockedCaller) throw new HttpsError("permission-denied", UNAVAILABLE_MESSAGE);
+    if (edges.callerBlockedTarget || edges.targetBlockedCaller) throw new HttpsError(denyCode, UNAVAILABLE_MESSAGE);
   }
 
   const [profile, account] = await Promise.all([ports.readProfile(targetUid), ports.readAccount(targetUid)]);
@@ -97,7 +127,22 @@ export async function getRunnerPublicProfile(
   // A suspended or banned runner's profile stops being viewable at all, so a
   // moderation action removes them from every viewer's reach, not just from
   // the leaderboard.
-  if (isSuspendedAccount(account)) throw new HttpsError("permission-denied", UNAVAILABLE_MESSAGE);
+  if (isSuspendedAccount(account)) throw new HttpsError(denyCode, UNAVAILABLE_MESSAGE);
+
+  // The uid-addressed form is the one a viewer can point at any uid they
+  // hold, so it alone needs an authorization gate: a leaderboard entry only
+  // ever resolves to a runner who is already showing on a public board.
+  // Checks run cheapest-first so a stranger's request pays for only as much
+  // as it takes to deny it: self needs no read at all, the profile is
+  // already in hand, and the two remaining checks are one document read
+  // each, tried only if everything before them came back false.
+  if (target.kind === "runner" && targetUid !== callerUid) {
+    const allowed =
+      socialProfile(targetUid, profile) !== undefined ||
+      (await ports.readSocialEdge(callerUid, targetUid)) ||
+      (await ports.isChallengeCoMember(callerUid, targetUid));
+    if (!allowed) throw new HttpsError("not-found", UNAVAILABLE_MESSAGE);
+  }
 
   const ownedBadgeTierIds = await ports.readOwnedBadgeTierIds(targetUid);
   // The resolved uid stays here. Echoing it back would let any signed-in
@@ -145,26 +190,36 @@ function subscriptionStatusLabel(account: Readonly<Record<string, unknown>> | un
 }
 
 /**
- * The one way a viewer may address a runner: the leaderboard entry they
- * tapped, pinned to the aggregation build that produced it. There is no
- * uid-addressed form — a viewer never holds another runner's uid, and
- * accepting one would let a caller probe any uid they obtained elsewhere.
+ * The two ways a viewer may address a runner.
+ *
+ * `leaderboardEntry` is the original form: the leaderboard entry the viewer
+ * tapped, pinned to the aggregation build that produced it. It needs no
+ * authorization gate beyond the block/suspension checks — resolving it at
+ * all already proves the runner is showing on a board every signed-in user
+ * can read.
+ *
+ * `runner` is a direct uid, for the screens outside the leaderboard (feed,
+ * friends, challenge) that hold only a uid and never a board entry. Because
+ * a caller could hold any uid obtained elsewhere, this form is gated by the
+ * visibility check in `getRunnerPublicProfile` before anything is returned.
  */
-type RunnerTarget = {
-  readonly snapshotId: string;
-  readonly rankLabel: string;
-  readonly buildId: string;
-};
+type RunnerTarget =
+  | { readonly kind: "leaderboardEntry"; readonly snapshotId: string; readonly rankLabel: string; readonly buildId: string }
+  | { readonly kind: "runner"; readonly uid: string };
 
 function parseTarget(raw: unknown): RunnerTarget | undefined {
   if (!isRecord(raw)) return undefined;
   const keys = Object.keys(raw).sort();
+  if (keys.length === 1 && keys[0] === "uid") {
+    const uid = safeIdentifier(raw["uid"], 128);
+    return uid === undefined ? undefined : { kind: "runner", uid };
+  }
   if (keys.length !== 3 || keys[0] !== "buildId" || keys[1] !== "rankLabel" || keys[2] !== "snapshotId") return undefined;
   const snapshotId = safeIdentifier(raw["snapshotId"], 256);
   const rankLabel = safeIdentifier(raw["rankLabel"], 16);
   const buildId = safeIdentifier(raw["buildId"], 128);
   if (snapshotId === undefined || rankLabel === undefined || buildId === undefined) return undefined;
-  return { snapshotId, rankLabel, buildId };
+  return { kind: "leaderboardEntry", snapshotId, rankLabel, buildId };
 }
 
 function safeIdentifier(value: unknown, maxLength: number): string | undefined {
