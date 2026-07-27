@@ -51,5 +51,13 @@ service firebase.storage {
         request.resource.contentType == 'image/png';
       allow read, delete: if isOwner(uid);
     }
+
+    // Project-document PDFs (see website/src/lib/firebase/storage.ts) are
+    // written and read exclusively by the website's Firebase Admin SDK,
+    // which bypasses Storage security rules entirely. No client should ever
+    // touch this prefix directly, so deny every client request outright.
+    match /project-documents/{docId}/{fileName} {
+      allow read, write: if false;
+    }
   }
 }
