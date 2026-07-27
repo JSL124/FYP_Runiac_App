@@ -135,7 +135,6 @@ void main() {
       profileRepository.completePending(_profile);
       await tester.pumpAndSettle();
 
-      expect(find.text('7'), findsOneWidget);
       expect(find.text('Lv.6'), findsOneWidget);
       expect(find.text('ZX'), findsOneWidget);
       final initialProgressLoads = progressRepository.loadCalls;
@@ -148,11 +147,19 @@ void main() {
 
       expect(progressRepository.loadCalls, initialProgressLoads);
       expect(profileRepository.loadCalls, initialProfileLoads);
-      expect(find.text('7'), findsOneWidget);
       expect(find.text('Lv.6'), findsOneWidget);
       expect(find.text('ZX'), findsOneWidget);
       expect(find.text('Lv.0'), findsNothing);
       expect(find.text('R'), findsNothing);
+
+      // The streak now lives in the Menu panel; opening it must still show the
+      // carried-over value without triggering a refetch.
+      await tester.tap(find.byKey(const ValueKey('homeMenuTrigger')));
+      await tester.pumpAndSettle();
+      expect(find.text('7 day streak'), findsOneWidget);
+      expect(progressRepository.loadCalls, initialProgressLoads);
+      await tester.tap(find.byKey(const ValueKey('homeMenuBarrier')));
+      await tester.pumpAndSettle();
 
       await tester.pumpWidget(const SizedBox.shrink());
     },

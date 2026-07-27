@@ -110,7 +110,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.bySemanticsLabel('Social menu'));
+      await tester.tap(find.bySemanticsLabel('Menu'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Challenge'));
       await tester.pumpAndSettle();
@@ -155,7 +155,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.bySemanticsLabel('Social menu'));
+      await tester.tap(find.bySemanticsLabel('Menu'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Challenge'));
       await tester.pumpAndSettle();

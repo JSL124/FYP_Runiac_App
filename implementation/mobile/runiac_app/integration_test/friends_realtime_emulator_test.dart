@@ -86,13 +86,13 @@ void main() {
         showOnboarding: false,
       );
 
-      // Home -> Social menu -> Friends -> Requests tab.
-      // (lib/features/home/presentation/stage_map/home_stage_map_social.dart
-      // `_SocialMenuTrigger` renders the plain Text 'Social'; the opened
-      // `_HomeSocialMenuPanel` renders a `_SocialMenuItem` with label
-      // 'Friends'; `FriendsScreen`'s `YouSegmentedControl` tab renders the
-      // plain Text 'Requests' for tab index 2.)
-      await tapVisibleText(tester, 'Social');
+      // Home -> Menu -> Friends -> Requests tab.
+      // (lib/features/home/presentation/stage_map/home_stage_map_menu.dart
+      // `_HomeMenuTrigger` renders the plain Text 'Menu'; the opened
+      // `_HomeMenuPanel` renders a `_HomeMenuItem` with label 'Friends';
+      // `FriendsScreen`'s `YouSegmentedControl` tab renders the plain Text
+      // 'Requests' for tab index 2.)
+      await tapVisibleText(tester, 'Menu');
       await tapVisibleText(tester, 'Friends');
       await tapVisibleText(tester, 'Requests');
 

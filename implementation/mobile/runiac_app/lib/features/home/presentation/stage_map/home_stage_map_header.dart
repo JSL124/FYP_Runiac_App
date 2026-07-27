@@ -2,34 +2,30 @@ part of 'home_stage_map.dart';
 
 class _HomeStageHeader extends StatelessWidget {
   const _HomeStageHeader({
-    required this.streakCount,
-    required this.unreadNotificationCount,
     required this.levelBadgeLabel,
     required this.levelProgressFraction,
     required this.progressLoading,
     required this.profileLoading,
     required this.profileInitials,
-    required this.onNotifications,
     required this.onProfile,
-    required this.socialMenuOpen,
-    required this.onToggleSocialMenu,
+    required this.menuOpen,
+    required this.menuAnimation,
+    required this.onToggleMenu,
     required this.activeChallenge,
     required this.onOpenChallengeProgress,
     required this.challengeClock,
     required this.challengeTicker,
   });
 
-  final int streakCount;
-  final int unreadNotificationCount;
   final String levelBadgeLabel;
   final double levelProgressFraction;
   final bool progressLoading;
   final bool profileLoading;
   final String profileInitials;
-  final VoidCallback onNotifications;
   final VoidCallback onProfile;
-  final bool socialMenuOpen;
-  final VoidCallback onToggleSocialMenu;
+  final bool menuOpen;
+  final Animation<double> menuAnimation;
+  final VoidCallback onToggleMenu;
   final HomeActiveChallengeDisplay? activeChallenge;
   final VoidCallback? onOpenChallengeProgress;
   final DateTime Function()? challengeClock;
@@ -53,31 +49,19 @@ class _HomeStageHeader extends StatelessWidget {
             ],
           ),
         ),
+        // Top-aligned so the active-challenge badge and the profile disc — both
+        // 62px tall — share a y-baseline across the header.
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _StreakPill(streakCount: streakCount, loading: progressLoading),
-                if (activeChallenge != null) ...[
-                  const SizedBox(height: 8),
-                  _HomeActiveChallengeControl(
-                    display: activeChallenge!,
-                    onOpen: onOpenChallengeProgress,
-                    clock: challengeClock,
-                    ticker: challengeTicker,
-                  ),
-                ],
-              ],
-            ),
+            if (activeChallenge != null)
+              _HomeActiveChallengeControl(
+                display: activeChallenge!,
+                onOpen: onOpenChallengeProgress,
+                clock: challengeClock,
+                ticker: challengeTicker,
+              ),
             const Spacer(),
-            _NotificationButton(
-              unreadNotificationCount: unreadNotificationCount,
-              onNotifications: onNotifications,
-            ),
-            const SizedBox(width: 6),
             Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -127,9 +111,10 @@ class _HomeStageHeader extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 6),
-                _SocialMenuTrigger(
-                  open: socialMenuOpen,
-                  onTap: onToggleSocialMenu,
+                _HomeMenuTrigger(
+                  open: menuOpen,
+                  animation: menuAnimation,
+                  onTap: onToggleMenu,
                 ),
               ],
             ),

@@ -478,15 +478,23 @@ void main() {
       expect(find.byType(TodayPlanCard), findsNothing);
       expect(find.byType(HomeProgressInsightSection), findsNothing);
 
-      // The header streak shows only the backend-owned number (0 with no
-      // progress) and never a fabricated "days" label.
-      expect(find.byIcon(Icons.local_fire_department), findsOneWidget);
-      expect(find.text('0'), findsOneWidget);
-      expect(find.textContaining('days'), findsNothing);
-      expect(find.bySemanticsLabel('Notifications'), findsOneWidget);
+      // Streak and notifications moved into the Menu panel, so the header
+      // itself carries only the profile and the Menu trigger.
+      expect(find.byIcon(Icons.local_fire_department), findsNothing);
+      expect(find.bySemanticsLabel('Notifications'), findsNothing);
+      expect(find.bySemanticsLabel('Menu'), findsOneWidget);
       expect(find.bySemanticsLabel('Profile'), findsOneWidget);
 
-      await tester.tap(find.bySemanticsLabel('Notifications'));
+      await tester.tap(find.bySemanticsLabel('Menu'));
+      await tester.pumpAndSettle();
+
+      // The streak readout stays the backend-owned number (0 with no
+      // progress) and never a fabricated "days" label.
+      expect(find.byIcon(Icons.local_fire_department), findsOneWidget);
+      expect(find.text('0 day streak'), findsOneWidget);
+      expect(find.textContaining('days'), findsNothing);
+
+      await tester.tap(find.text('Notifications'));
       await tester.pumpAndSettle();
 
       expect(find.text('Notifications'), findsOneWidget);
@@ -1259,7 +1267,7 @@ void main() {
   });
 
   testWidgets(
-    'Home stage map fits a narrow surface and shows the streak number',
+    'Home stage map fits a narrow surface and shows the streak in the Menu',
     (WidgetTester tester) async {
       tester.view.physicalSize = const Size(360, 760);
       tester.view.devicePixelRatio = 1;
@@ -1291,13 +1299,17 @@ void main() {
 
       // The empty-state map lays out on a narrow device without overflowing.
       expect(find.text('Your journey map is waiting'), findsOneWidget);
-      // The header shows only the backend-owned streak number, never a label.
-      expect(find.text('5'), findsOneWidget);
-      expect(find.text('5 days'), findsNothing);
-      expect(find.textContaining('days'), findsNothing);
       expect(find.text('Lv.4'), findsOneWidget);
       expect(find.text('Streak'), findsNothing);
       expect(find.text('Advanced Insight'), findsNothing);
+
+      // The Menu panel fits the narrow surface and shows the backend-owned
+      // streak count, never the raw "5 days" label.
+      await tester.tap(find.bySemanticsLabel('Menu'));
+      await tester.pumpAndSettle();
+      expect(find.text('5 day streak'), findsOneWidget);
+      expect(find.text('5 days'), findsNothing);
+      expect(find.textContaining('days'), findsNothing);
       expect(tester.takeException(), isNull);
     },
   );

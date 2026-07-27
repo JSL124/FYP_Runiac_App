@@ -172,7 +172,7 @@ void main() {
     },
   );
 
-  testWidgets('empty state keeps a working header with the streak number', (
+  testWidgets('empty state keeps a working header and Menu panel', (
     WidgetTester tester,
   ) async {
     var notifications = 0;
@@ -196,15 +196,22 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Your journey map is waiting'), findsOneWidget);
-    expect(find.text('4'), findsOneWidget); // streak number only, no "days"
-    expect(find.textContaining('days'), findsNothing);
-    expect(find.bySemanticsLabel('Notifications'), findsOneWidget);
+    // Streak and notifications now live inside the Menu panel, not the header.
+    expect(find.text('4'), findsNothing);
+    expect(find.bySemanticsLabel('Notifications'), findsNothing);
     expect(find.bySemanticsLabel('Profile'), findsOneWidget);
 
-    await tester.tap(find.bySemanticsLabel('Notifications'));
     await tester.tap(find.bySemanticsLabel('Profile'));
-    expect(notifications, 1);
     expect(profile, 1);
+
+    await tester.tap(find.byKey(const ValueKey('homeMenuTrigger')));
+    await tester.pumpAndSettle();
+    expect(find.text('4 day streak'), findsOneWidget);
+    expect(find.text('2'), findsOneWidget); // unread badge over the bell icon
+
+    await tester.tap(find.bySemanticsLabel('Notifications, 2 unread'));
+    await tester.pumpAndSettle();
+    expect(notifications, 1);
   });
 
   testWidgets('active plan renders stage stones and a tappable today stage', (

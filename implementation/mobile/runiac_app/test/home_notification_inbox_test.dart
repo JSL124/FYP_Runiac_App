@@ -71,7 +71,10 @@ void main() {
 
       expect(find.text('Notification Center'), findsNothing);
 
-      await tester.tap(find.bySemanticsLabel('Notifications'));
+      // The bell now lives inside the Home Menu panel.
+      await tester.tap(find.bySemanticsLabel('Menu'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Notifications'));
       await tester.pumpAndSettle();
 
       expect(find.byType(NotificationInboxPage), findsOneWidget);

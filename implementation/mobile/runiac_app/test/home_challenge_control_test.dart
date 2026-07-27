@@ -88,8 +88,10 @@ void main() {
     expect(find.byType(ChallengeBadgeImage), findsNothing);
     expect(find.text('Calculating…'), findsNothing);
     expect(find.textContaining(':'), findsNothing);
-    // Streak header is unchanged and still present.
-    expect(find.text('4'), findsOneWidget);
+    // The streak moved into the Menu panel, so the header carries no streak
+    // number of its own.
+    expect(find.text('4'), findsNothing);
+    expect(find.text('Menu'), findsOneWidget);
   });
 
   testWidgets('ACTIVE shows badge + exact DD:HH:MM:SS fixed format', (
@@ -103,6 +105,21 @@ void main() {
     expect(find.byKey(_controlKey), findsOneWidget);
     expect(find.byType(ChallengeBadgeImage), findsOneWidget);
     expect(find.text('12:03:18:42'), findsOneWidget);
+  });
+
+  testWidgets('the challenge badge shares the profile badge y-baseline', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _harness(active: _display(), ticker: _ControllableTicker()),
+    );
+    await tester.pumpAndSettle();
+
+    final badge = tester.getRect(find.byType(ChallengeBadgeImage));
+    final profile = tester.getRect(find.bySemanticsLabel('Profile'));
+
+    expect(badge.top, profile.top);
+    expect(badge.height, profile.height);
   });
 
   testWidgets('SETTLING shows the short Calculating copy, not a countdown', (
@@ -196,7 +213,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    const label = 'Active 100K challenge, 12 days 3 hours left. '
+    const label =
+        'Active 100K challenge, 12 days 3 hours left. '
         'Opens challenge progress.';
     expect(find.bySemanticsLabel(label), findsOneWidget);
     handle.dispose();
@@ -213,7 +231,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    const label = 'Active 100K challenge, 12 days 3 hours left. '
+    const label =
+        'Active 100K challenge, 12 days 3 hours left. '
         'Opens challenge progress.';
     expect(find.text('12:03:18:42'), findsOneWidget);
     expect(find.bySemanticsLabel(label), findsOneWidget);
@@ -263,9 +282,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('forbidden content is absent inside the control', (
-    tester,
-  ) async {
+  testWidgets('forbidden content is absent inside the control', (tester) async {
     await tester.pumpWidget(
       _harness(active: _display(), ticker: _ControllableTicker()),
     );

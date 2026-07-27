@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../../../core/characters/runner_character.dart';
+import '../../../../core/haptics/runiac_haptics_scope.dart';
 import '../../../../core/theme/runiac_colors.dart';
 import '../../../../core/widgets/runiac_level_profile_badge.dart';
 import '../../../challenge/domain/challenge_copy.dart';
@@ -19,7 +20,7 @@ part 'home_stage_map_backdrop.dart';
 part 'home_stage_map_stones.dart';
 part 'home_stage_map_header.dart';
 part 'home_stage_map_challenge.dart';
-part 'home_stage_map_social.dart';
+part 'home_stage_map_menu.dart';
 part 'home_stage_map_status_controls.dart';
 part 'home_stage_map_empty_state.dart';
 part 'home_stage_map_guide.dart';
@@ -137,13 +138,13 @@ class HomeStageMap extends StatefulWidget {
   final HomeGuideRequest? guideRequest;
   final HomeGuideConsentStatus guideConsentStatus;
 
-  /// Opens the Friends screen when the Social menu's Friends item is tapped.
+  /// Opens the Friends screen when the Menu's Friends item is tapped.
   /// Optional so existing call sites and tests compile unchanged; when null
   /// the Friends item simply closes the menu. Navigation trigger only — the
   /// stage map reads or writes no social data.
   final VoidCallback? onOpenFriends;
 
-  /// Opens the Challenge hub when the Social menu's Challenge item is tapped.
+  /// Opens the Challenge hub when the Menu's Challenge item is tapped.
   /// Optional so existing call sites and tests compile unchanged; when null the
   /// Challenge item simply closes the menu. Navigation trigger only — the stage
   /// map internals read or write no Challenge/Firebase data.
@@ -184,12 +185,21 @@ class _HomeStageMapState extends State<HomeStageMap>
     duration: const Duration(milliseconds: 2000),
   );
 
+  /// Drives the header menu: the trigger's caret rotation, the panel's
+  /// grow-from-caret entrance, and the staggered row reveal all read this one
+  /// controller so they can never disagree about state.
+  late final AnimationController _menuController = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 240),
+    reverseDuration: const Duration(milliseconds: 120),
+  );
+
   double _sectionWidth = 0;
   double _sectionHeight = 0;
   double _overlap = 0;
   double _viewportHeight = 0;
   bool _initialScrollDone = false;
-  bool _socialMenuOpen = false;
+  bool _menuOpen = false;
 
   String? _shownStageId;
   bool _walking = false;
@@ -209,6 +219,7 @@ class _HomeStageMapState extends State<HomeStageMap>
     _shownStageId = widget.model?.currentStageId;
     _walkController.addListener(_onWalkTick);
     _walkController.addStatusListener(_onWalkStatus);
+    _menuController.addStatusListener(_onMenuStatus);
   }
 
   @override
@@ -292,28 +303,62 @@ class _HomeStageMapState extends State<HomeStageMap>
     _guideCycle?.hide();
   }
 
-  void _toggleSocialMenu() {
-    setState(() {
-      _socialMenuOpen = !_socialMenuOpen;
-    });
+  void _toggleMenu() {
+    _setMenuOpen(!_menuOpen);
   }
 
-  void _closeSocialMenu() {
-    if (!_socialMenuOpen) {
+  void _closeMenu() {
+    _setMenuOpen(false);
+  }
+
+  void _setMenuOpen(bool open) {
+    if (_menuOpen == open) {
       return;
     }
     setState(() {
-      _socialMenuOpen = false;
+      _menuOpen = open;
     });
+    if (_menuReduceMotion) {
+      _menuController.value = open ? 1 : 0;
+      return;
+    }
+    if (open) {
+      _menuController.forward();
+    } else {
+      _menuController.reverse();
+    }
   }
 
-  void _onSocialFriendsTap() {
-    _closeSocialMenu();
+  /// Rebuilds once the close animation lands so the panel and the tap-outside
+  /// barrier can unmount. Everything in between is driven by the controller.
+  void _onMenuStatus(AnimationStatus status) {
+    if (status == AnimationStatus.dismissed && mounted) {
+      setState(() {});
+    }
+  }
+
+  /// True while the menu should settle instantly. Deliberately narrower than
+  /// [_reduceMotion]: that getter also treats the widget-test binding as
+  /// reduced motion because [_pulseController] repeats forever. The menu
+  /// controller is one-shot, so `pumpAndSettle` handles it and tests keep
+  /// exercising the real transition.
+  bool get _menuReduceMotion => MediaQuery.disableAnimationsOf(context);
+
+  /// True while the menu occupies the screen, including the close animation.
+  bool get _menuVisible => _menuOpen || _menuController.value > 0;
+
+  void _onMenuNotificationsTap() {
+    _closeMenu();
+    widget.onNotifications();
+  }
+
+  void _onMenuFriendsTap() {
+    _closeMenu();
     widget.onOpenFriends?.call();
   }
 
-  void _onSocialChallengeTap() {
-    _closeSocialMenu();
+  void _onMenuChallengeTap() {
+    _closeMenu();
     widget.onOpenChallenge?.call();
   }
 
@@ -368,6 +413,9 @@ class _HomeStageMapState extends State<HomeStageMap>
       ..removeStatusListener(_onWalkStatus)
       ..dispose();
     _pulseController.dispose();
+    _menuController
+      ..removeStatusListener(_onMenuStatus)
+      ..dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -566,15 +614,16 @@ class _HomeStageMapState extends State<HomeStageMap>
         return Stack(
           children: [
             Positioned.fill(child: mapLayer),
-            // Tap-outside dismissal barrier: mounted only while the Social
-            // menu is open so the closed-state semantics and stage taps are
-            // unaffected. Intentionally opaque to map interaction while open.
-            if (_socialMenuOpen)
+            // Tap-outside dismissal barrier: mounted only while the menu is on
+            // screen so the closed-state semantics and stage taps are
+            // unaffected. It outlives the close animation so a stray tap
+            // during the 120ms exit cannot reach the map.
+            if (_menuVisible)
               Positioned.fill(
                 child: GestureDetector(
-                  key: const ValueKey<String>('homeSocialMenuBarrier'),
+                  key: const ValueKey<String>('homeMenuBarrier'),
                   behavior: HitTestBehavior.opaque,
-                  onTap: _closeSocialMenu,
+                  onTap: _closeMenu,
                   child: const SizedBox.expand(),
                 ),
               ),
@@ -586,28 +635,31 @@ class _HomeStageMapState extends State<HomeStageMap>
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   _HomeStageHeader(
-                    streakCount: widget.streakCount,
-                    unreadNotificationCount: widget.unreadNotificationCount,
                     levelBadgeLabel: widget.levelBadgeLabel,
                     levelProgressFraction: widget.levelProgressFraction,
                     progressLoading: widget.progressLoading,
                     profileLoading: widget.profileLoading,
                     profileInitials: widget.profileInitials,
-                    onNotifications: widget.onNotifications,
                     onProfile: widget.onProfile,
-                    socialMenuOpen: _socialMenuOpen,
-                    onToggleSocialMenu: _toggleSocialMenu,
+                    menuOpen: _menuOpen,
+                    menuAnimation: _menuController,
+                    onToggleMenu: _toggleMenu,
                     activeChallenge: widget.activeChallenge,
                     onOpenChallengeProgress: widget.onOpenChallengeProgress,
                     challengeClock: widget.challengeClock,
                     challengeTicker: widget.challengeTicker,
                   ),
-                  if (_socialMenuOpen)
+                  if (_menuVisible)
                     Padding(
                       padding: const EdgeInsets.only(right: 12),
-                      child: _HomeSocialMenuPanel(
-                        onFriends: _onSocialFriendsTap,
-                        onChallenge: _onSocialChallengeTap,
+                      child: _HomeMenuPanel(
+                        animation: _menuController,
+                        streakCount: widget.streakCount,
+                        streakLoading: widget.progressLoading,
+                        unreadNotificationCount: widget.unreadNotificationCount,
+                        onNotifications: _onMenuNotificationsTap,
+                        onFriends: _onMenuFriendsTap,
+                        onChallenge: _onMenuChallengeTap,
                       ),
                     ),
                 ],

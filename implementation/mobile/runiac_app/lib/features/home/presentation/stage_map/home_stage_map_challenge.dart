@@ -125,6 +125,3 @@ class _HomeActiveChallengeControlState
     );
   }
 }
-
-/// Always-visible pill below the profile badge that toggles the Social menu.
-/// Navigation trigger only — reads and writes no social data.

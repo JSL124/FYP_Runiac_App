@@ -92,12 +92,12 @@ class HomeTab extends StatefulWidget {
   final UserProgressRepository userProgressRepository;
   final LeaderboardRepository leaderboardRepository;
 
-  /// Auth-scoped Friends source reached from the Home Social menu. The
+  /// Auth-scoped Friends source reached from the Home Menu. The
   /// composition root supplies the Firebase implementation in production;
   /// the static source remains a deterministic fallback for local previews.
   final FriendsRepository friendsRepository;
 
-  /// Challenge distance-system source reached from the Home Social menu's
+  /// Challenge distance-system source reached from the Home Menu's
   /// Challenge item. Defaults to the deterministic static source for previews
   /// and tests; the composition root threads the Firebase-backed repository the
   /// same way [friendsRepository] is threaded.
