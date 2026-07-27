@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:runiac_app/core/legal/runiac_legal_urls.dart';
 import 'package:runiac_app/features/profile/presentation/privacy_safety_screen.dart';
 import 'package:runiac_app/features/home/domain/guide/home_guide_consent.dart';
+
+import 'support/recording_url_opener.dart';
 
 class _FakeConsentRepository implements HomeGuideConsentRepository {
   _FakeConsentRepository(this._status);
@@ -58,10 +61,7 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    expect(
-      tester.widget<Switch>(find.byKey(_switchKey)).value,
-      isFalse,
-    );
+    expect(tester.widget<Switch>(find.byKey(_switchKey)).value, isFalse);
 
     await tester.tap(find.byKey(_switchKey));
     await tester.pump();
@@ -69,5 +69,28 @@ void main() {
 
     expect(repo.updates, <bool>[true]);
     expect(tester.widget<Switch>(find.byKey(_switchKey)).value, isTrue);
+  });
+
+  testWidgets('links out to the hosted privacy policy', (tester) async {
+    final repo = _FakeConsentRepository(HomeGuideConsentStatus.granted);
+    final opener = RecordingUrlOpener();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PrivacySafetyScreen(
+          consentRepository: repo,
+          legalUrlOpener: opener,
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('privacySafetyPolicyRow')),
+    );
+    await tester.pump();
+
+    expect(opener.lastUrl, RuniacLegalUrls.privacy);
   });
 }

@@ -259,6 +259,15 @@ All spacing derives from a base of 4px.
 - **Badge case**: the Account 3x3 case preserves the committed artwork, slot geometry, and aspect ratio; earned tiers render the badge PNG full-color and unearned tiers render the same PNG dimmed. Semantics announce `N of 9 badges earned` when trusted ownership data is supplied.
 - **Boundary**: outcomes, eligibility, team totals, and badge ownership are rendered verbatim from trusted server data; the client never computes or persists them. GPS routes, coordinates, run timestamps, and activity history never appear on any challenge surface.
 
+### Legal Links
+
+- **Inline consent links**: `RuniacLegalLinksText` renders `By continuing you agree to our Terms and Privacy Policy.` at 12px w700 `textSecondary`, centered, with `Terms` and `Privacy Policy` in `primaryBlue` w800. The two link spans are the only tappable regions; the surrounding sentence is not. Used on the welcome/auth screen.
+- **Row links**: About Runiac and Privacy & Safety expose legal documents as standard `RuniacTappableSurface` rows (white surface, radius 18, `border` outline, 16px padding) matching the open-source licenses row, closed by an `open_in_new_rounded` `textSecondary` icon rather than a chevron so an outbound jump reads differently from in-app navigation.
+- **Paywall footer**: the admin-published `Terms of service` and `Privacy policy` labels stay 12px w600 underlined `textSecondary`, now wrapped in compact tap targets. Labels and visibility remain published through `config/paywall`; the destinations are app constants, never remote.
+- **Behavior**: every link resolves through `RuniacLegalUrls` and opens via `RuniacUrlOpener`, preferring an in-app browser view and falling back to the system browser. A refused launch shows a single SnackBar and changes nothing else.
+- **Accessibility**: row links announce their document name as a button and keep the shared 44x44-equivalent row height. Link spans stay inside the sentence's reading order.
+- **Boundary**: display and navigation only. No consent state is recorded, no account data is read, and no backend-owned value is touched.
+
 ## 6. Motion & Interaction
 
 ### Timing

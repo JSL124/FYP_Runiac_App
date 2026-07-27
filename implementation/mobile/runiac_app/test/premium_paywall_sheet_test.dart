@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/core/characters/runner_character.dart';
+import 'package:runiac_app/core/legal/runiac_legal_urls.dart';
 import 'package:runiac_app/features/paywall/domain/models/paywall_config_read_model.dart';
 import 'package:runiac_app/features/paywall/presentation/premium_paywall_sheet.dart';
+
+import 'support/recording_url_opener.dart';
 
 Future<void> _pumpSheet(
   WidgetTester tester, {
   bool disableAnimations = false,
   RunnerCharacter character = RunnerCharacter.pink,
+  RecordingUrlOpener? legalUrlOpener,
 }) async {
   final originalSize = tester.view.physicalSize;
   final originalDevicePixelRatio = tester.view.devicePixelRatio;
@@ -31,7 +35,9 @@ Future<void> _pumpSheet(
           ),
           child: SelectedRunnerCharacterScope(
             store: characterStore,
-            child: const PremiumPaywallSheet(),
+            child: PremiumPaywallSheet(
+              legalUrlOpener: legalUrlOpener ?? RecordingUrlOpener(),
+            ),
           ),
         ),
       ),
@@ -155,5 +161,23 @@ void main() {
       RunnerCharacter.blue.assetPath(RunnerCharacterFacing.front),
     );
     expect(find.byKey(const Key('paywall-title')), findsOneWidget);
+  });
+
+  testWidgets('footer links open the hosted terms and privacy documents', (
+    tester,
+  ) async {
+    // App Store Guideline 3.1.2: both links must be functional on the
+    // subscription surface, not decorative labels.
+    final opener = RecordingUrlOpener();
+    await _pumpSheet(tester, disableAnimations: true, legalUrlOpener: opener);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(defaults.footer.termsLabel));
+    await tester.pump();
+    expect(opener.lastUrl, RuniacLegalUrls.terms);
+
+    await tester.tap(find.text(defaults.footer.privacyLabel));
+    await tester.pump();
+    expect(opener.lastUrl, RuniacLegalUrls.privacy);
   });
 }

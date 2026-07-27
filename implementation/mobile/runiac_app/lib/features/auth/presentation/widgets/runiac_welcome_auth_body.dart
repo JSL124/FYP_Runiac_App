@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/legal/runiac_url_opener.dart';
 import '../../../../core/theme/runiac_colors.dart';
+import '../../../../core/widgets/runiac_legal_links_text.dart';
 import 'runiac_auth_buttons.dart';
 import 'runiac_auth_fields.dart';
 
@@ -8,11 +10,15 @@ class RuniacWelcomeAuthBody extends StatelessWidget {
   const RuniacWelcomeAuthBody({
     required this.onSignup,
     required this.onLogin,
+    this.legalUrlOpener = const UrlLauncherOpener(),
     super.key,
   });
 
   final VoidCallback onSignup;
   final VoidCallback onLogin;
+
+  /// Seam so tests can observe the legal links without launching a browser.
+  final RuniacUrlOpener legalUrlOpener;
 
   @override
   Widget build(BuildContext context) {
@@ -41,36 +47,7 @@ class RuniacWelcomeAuthBody extends StatelessWidget {
           variant: RuniacAuthButtonVariant.secondary,
         ),
         const SizedBox(height: 18),
-        const Text.rich(
-          TextSpan(
-            text: 'By continuing you agree to our ',
-            children: [
-              TextSpan(
-                text: 'Terms',
-                style: TextStyle(
-                  color: RuniacColors.primaryBlue,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              TextSpan(text: ' and '),
-              TextSpan(
-                text: 'Privacy Policy',
-                style: TextStyle(
-                  color: RuniacColors.primaryBlue,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              TextSpan(text: '.'),
-            ],
-          ),
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: RuniacColors.textSecondary,
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            height: 1.45,
-          ),
-        ),
+        RuniacLegalLinksText(opener: legalUrlOpener),
       ],
     );
   }

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../../../core/legal/runiac_legal_link_launcher.dart';
+import '../../../core/legal/runiac_legal_urls.dart';
+import '../../../core/legal/runiac_url_opener.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_back_header.dart';
 import '../../../core/widgets/runiac_buttons.dart';
@@ -15,7 +18,11 @@ class AboutRuniacScreen extends StatefulWidget {
     super.key,
     this.versionOverride,
     this.buildNumberOverride,
+    this.legalUrlOpener = const UrlLauncherOpener(),
   });
+
+  /// Seam so tests can observe the legal rows without launching a browser.
+  final RuniacUrlOpener legalUrlOpener;
 
   /// When provided (together with [buildNumberOverride]), the screen skips
   /// the platform lookup and renders these values directly. Intended for
@@ -92,6 +99,18 @@ class _AboutRuniacScreenState extends State<AboutRuniacScreen> {
                       const _AboutProjectCard(),
                       const SizedBox(height: 16),
                       _LicensesRow(applicationVersion: version ?? ''),
+                      const SizedBox(height: 12),
+                      _LegalDocumentRow(
+                        label: 'Terms of Service',
+                        url: RuniacLegalUrls.terms,
+                        opener: widget.legalUrlOpener,
+                      ),
+                      const SizedBox(height: 12),
+                      _LegalDocumentRow(
+                        label: 'Privacy Policy',
+                        url: RuniacLegalUrls.privacy,
+                        opener: widget.legalUrlOpener,
+                      ),
                     ],
                   ),
                 ),
@@ -239,6 +258,57 @@ class _LicensesRow extends StatelessWidget {
             Icons.chevron_right_rounded,
             color: RuniacColors.textSecondary,
             size: 22,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Row that opens a hosted legal document in an in-app browser. Matches the
+/// licenses row so the About list reads as one group.
+class _LegalDocumentRow extends StatelessWidget {
+  const _LegalDocumentRow({
+    required this.label,
+    required this.url,
+    required this.opener,
+  });
+
+  final String label;
+  final String url;
+  final RuniacUrlOpener opener;
+
+  @override
+  Widget build(BuildContext context) {
+    return RuniacTappableSurface(
+      semanticLabel: label,
+      borderRadius: BorderRadius.circular(18),
+      decoration: BoxDecoration(
+        color: RuniacColors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: RuniacColors.border),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      onTap: () => openRuniacLegalUrl(context, opener: opener, url: url),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: RuniacColors.textPrimary,
+                fontSize: 15,
+                fontWeight: FontWeight.w900,
+                height: 1.2,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          const Icon(
+            Icons.open_in_new_rounded,
+            color: RuniacColors.textSecondary,
+            size: 20,
           ),
         ],
       ),

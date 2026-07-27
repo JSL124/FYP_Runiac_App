@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../core/characters/runner_character.dart';
+import '../../../core/legal/runiac_legal_link_launcher.dart';
+import '../../../core/legal/runiac_legal_urls.dart';
+import '../../../core/legal/runiac_url_opener.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_bottom_sheet_handle.dart';
 import '../../../core/widgets/runiac_buttons.dart';
@@ -21,7 +24,13 @@ enum _PaywallPlanSelection { monthly, yearly }
 /// plays a friendly in-place "coming soon" note instead of starting a
 /// purchase. Real feature enforcement stays server-side.
 class PremiumPaywallSheet extends StatefulWidget {
-  const PremiumPaywallSheet({super.key});
+  const PremiumPaywallSheet({
+    this.legalUrlOpener = const UrlLauncherOpener(),
+    super.key,
+  });
+
+  /// Seam so tests can observe the footer links without launching a browser.
+  final RuniacUrlOpener legalUrlOpener;
 
   /// Presents the paywall with the app's canonical modal-sheet chrome.
   ///
@@ -267,7 +276,10 @@ class _PremiumPaywallSheetState extends State<PremiumPaywallSheet> {
                       )
                     : const SizedBox(width: double.infinity),
               ),
-              _PaywallFooterLinks(footer: config.footer),
+              _PaywallFooterLinks(
+                footer: config.footer,
+                opener: widget.legalUrlOpener,
+              ),
             ],
           ),
         ),
@@ -412,36 +424,47 @@ class _PlanPriceCard extends StatelessWidget {
 }
 
 class _PaywallFooterLinks extends StatelessWidget {
-  const _PaywallFooterLinks({required this.footer});
+  const _PaywallFooterLinks({required this.footer, required this.opener});
 
   final PaywallFooterConfig footer;
+  final RuniacUrlOpener opener;
 
   @override
   Widget build(BuildContext context) {
-    final labels = [
-      if (footer.showTerms) footer.termsLabel,
-      if (footer.showPrivacy) footer.privacyLabel,
+    // App Store Guideline 3.1.2 requires functional Terms/EULA and privacy
+    // links on a subscription surface, so these open the hosted documents.
+    // The labels and visibility stay admin-published; the destinations do not.
+    final links = <({String label, String url})>[
+      if (footer.showTerms)
+        (label: footer.termsLabel, url: RuniacLegalUrls.terms),
+      if (footer.showPrivacy)
+        (label: footer.privacyLabel, url: RuniacLegalUrls.privacy),
     ];
-    if (labels.isEmpty) {
+    if (links.isEmpty) {
       return const SizedBox(height: 4);
     }
-    // Display-only labels: there are no hosted policy pages yet, so these
-    // render as quiet link-styled text rather than dead buttons.
     return Padding(
       padding: const EdgeInsets.only(top: 12, bottom: 2),
       child: Wrap(
         alignment: WrapAlignment.center,
         spacing: 18,
         children: [
-          for (final label in labels)
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: RuniacColors.textSecondary,
-                decoration: TextDecoration.underline,
-                decorationColor: RuniacColors.textSecondary,
+          for (final link in links)
+            RuniacTappableSurface(
+              semanticLabel: link.label,
+              borderRadius: BorderRadius.circular(6),
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+              onTap: () =>
+                  openRuniacLegalUrl(context, opener: opener, url: link.url),
+              child: Text(
+                link.label,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: RuniacColors.textSecondary,
+                  decoration: TextDecoration.underline,
+                  decorationColor: RuniacColors.textSecondary,
+                ),
               ),
             ),
         ],

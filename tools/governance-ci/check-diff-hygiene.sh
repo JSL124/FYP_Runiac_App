@@ -788,6 +788,10 @@ is_allowed_path() {
     implementation/roadmap/capsules/friends-row-add-pending-icons.md)
       return 0
       ;;
+    # Approved: routed legal documents and in-app legal link capsule
+    implementation/roadmap/capsules/legal-documents-and-links.md)
+      return 0
+      ;;
     # Approved: routed profile lifetime-stats backend deploy capsule
     implementation/roadmap/capsules/profile-lifetime-stats-backend.md)
       return 0
@@ -876,6 +880,10 @@ is_share_rank_export_backend_path() {
   return 1
 }
 
+is_legal_documents_and_links_capsule_active() {
+  grep -Eq '^Newly routed Legal documents and links capsule on 2026-07-26 Asia/Singapore: `implementation/roadmap/capsules/legal-documents-and-links\.md`' implementation/roadmap/CURRENT.md
+}
+
 is_unrelated_mobile_native_artifact() {
   # The routed Share-rank export-targets capsule registers the Instagram Stories
   # Swift channel, which requires editing the Xcode project file.
@@ -883,6 +891,17 @@ is_unrelated_mobile_native_artifact() {
     && is_share_rank_export_capsule_active; then
     return 1
   fi
+  # The routed Legal documents and links capsule adds the user-approved
+  # url_launcher dependency, which regenerates the CocoaPods lockfile and can
+  # touch the Xcode project file.
+  case "$1" in
+    implementation/mobile/runiac_app/ios/Podfile.lock|\
+    implementation/mobile/runiac_app/ios/Runner.xcodeproj/project.pbxproj)
+      if is_legal_documents_and_links_capsule_active; then
+        return 1
+      fi
+      ;;
+  esac
   case "$1" in
     implementation/mobile/runiac_app/ios/Podfile.lock|\
     implementation/mobile/runiac_app/ios/Runner.xcodeproj/project.pbxproj|\
