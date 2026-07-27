@@ -400,6 +400,11 @@ void main() {
 
     expect(find.byIcon(Icons.more_horiz), findsNothing);
     expect(find.text('Session comment'), findsOneWidget);
+    // The fallback source has no repository, so `ownsComment` is always false
+    // even though this session comment is the signed-in viewer's own. The
+    // profile link has to read the viewer id directly, or a runner ends up
+    // with a link to their own read-only profile.
+    expect(find.bySemanticsLabel(RegExp('View .* profile')), findsNothing);
   });
 
   testWidgets(
