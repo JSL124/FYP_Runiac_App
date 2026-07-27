@@ -66,7 +66,12 @@ class NotificationInboxLegacyCleanup {
 
     var removed = 0;
     for (final item in items) {
-      if (!item.clientManaged || item.isDeleted) {
+      if (!item.clientManaged || item.isDeleted || item.recordsDelivery) {
+        // A recorded delivery is a notification the runner genuinely missed,
+        // never part of the backlog. The sweep marker is per-device but the
+        // inbox is per-account, so without this a second device's first
+        // launch after the upgrade would wipe deliveries the first device had
+        // already surfaced.
         continue;
       }
       try {

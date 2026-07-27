@@ -35,6 +35,43 @@ void main() {
       );
     });
 
+    test('keeps a recorded delivery another device already surfaced', () async {
+      // Given: the runner upgraded on one device, which swept its backlog and
+      // later recorded a real delivery. This is the second device's first
+      // launch after the upgrade, so its own sweep marker is still unset.
+      final inbox = InMemoryNotificationInboxRepository(
+        items: [
+          _item(id: 'legacy-backlog', clientManaged: true),
+          NotificationInboxItem(
+            id: 'plan-1-week-1-wed-easy-run-today',
+            title: 'Today has a planned run',
+            body: 'Easy Run is scheduled for today.',
+            createdAt: DateTime(2026, 7, 8, 7, 30),
+            clientManaged: true,
+            data: const <String, Object?>{
+              'kind': 'todaysPlanReminder',
+              notificationInboxDeliveredAtKey: 1783000000000,
+            },
+          ),
+        ],
+      );
+      final cleanup = NotificationInboxLegacyCleanup(
+        inboxRepository: inbox,
+        cleanupStore: InMemoryNotificationInboxCleanupStore(),
+        ownerUidProvider: () => 'runner-1',
+      );
+
+      // When
+      await cleanup.runOnce();
+
+      // Then: only the backlog goes.
+      expect(inbox.deletedItemIds, ['legacy-backlog']);
+      expect(
+        (await inbox.listInboxItems()).single.id,
+        'plan-1-week-1-wed-easy-run-today',
+      );
+    });
+
     test('runs at most once for a runner', () async {
       // Given
       final inbox = InMemoryNotificationInboxRepository(

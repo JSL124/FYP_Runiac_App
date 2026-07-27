@@ -106,6 +106,10 @@ class PlanNotificationDeliveryMaterializer {
           data: <String, Object?>{
             'kind': notification.kind.name,
             ...notification.payload,
+            // Stamped last so a payload key cannot displace it. The one-time
+            // legacy sweep skips items carrying this, which is what stops a
+            // second device from wiping a delivery the first device recorded.
+            notificationInboxDeliveredAtKey: deliveredAt.millisecondsSinceEpoch,
           },
           clientManaged: true,
         ),

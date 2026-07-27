@@ -52,6 +52,27 @@ void main() {
       );
     });
 
+    test('clears read and delete markers when recording a delivery', () {
+      // Given: a delivery reusing an id the runner had read and the legacy
+      // sweep had deleted.
+      final payload = notificationInboxDocumentPayload(
+        uid: 'runner-1',
+        item: NotificationInboxDocument(
+          id: 'item',
+          title: 'Title',
+          body: 'Body',
+          createdAt: DateTime.utc(2026, 7, 8, 8, 30),
+        ),
+        updatedAt: DateTime.utc(2026, 7, 8, 9),
+        clearReadState: true,
+      );
+
+      // Then: omitting the keys would preserve the stored state and hide a
+      // notification the runner genuinely missed, so they must be deleted.
+      expect(payload['readAt'], isA<FieldValue>());
+      expect(payload['deletedAt'], isA<FieldValue>());
+    });
+
     test('stays inside the keys the security rules allow', () {
       // Given
       final payload = notificationInboxDocumentPayload(
