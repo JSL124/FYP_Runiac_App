@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/runiac_colors.dart';
+import '../../../../core/widgets/runiac_avatar_photo.dart';
 import '../../../../core/widgets/runiac_back_header.dart';
 import '../../../../core/widgets/skeleton.dart';
 import '../../../profile/presentation/runner_public_profile_scope.dart';
@@ -287,6 +288,7 @@ class _PodiumSlot extends StatelessWidget {
             onTap: () => onProfileSelected(row.profile),
             child: _PodiumAvatar(
               name: row.name,
+              photoUrl: row.photoUrl,
               rank: rank,
               size: avatarSize,
               ringColor: colors.foreground,
@@ -326,6 +328,7 @@ class _PodiumSlot extends StatelessWidget {
 class _PodiumAvatar extends StatelessWidget {
   const _PodiumAvatar({
     required this.name,
+    required this.photoUrl,
     required this.rank,
     required this.size,
     required this.ringColor,
@@ -333,6 +336,12 @@ class _PodiumAvatar extends StatelessWidget {
   });
 
   final String name;
+
+  /// Raw, not-yet-sanitised avatar photo URL for this podium runner, same
+  /// value the list row below renders. Empty — or anything the sanitiser in
+  /// `runiac_avatar_photo.dart` rejects — falls back to the initial disc.
+  final String photoUrl;
+
   final int rank;
   final double size;
   final Color ringColor;
@@ -357,14 +366,17 @@ class _PodiumAvatar extends StatelessWidget {
               shape: BoxShape.circle,
               border: Border.all(color: ringColor, width: 3),
             ),
-            child: Text(
-              _initialLabel(name),
-              maxLines: 1,
-              style: TextStyle(
-                color: ringColor,
-                fontSize: size * 0.36,
-                fontWeight: FontWeight.w900,
-                height: 1,
+            child: RuniacAvatarPhotoDisc(
+              photoUrl: photoUrl,
+              fallback: Text(
+                _initialLabel(name),
+                maxLines: 1,
+                style: TextStyle(
+                  color: ringColor,
+                  fontSize: size * 0.36,
+                  fontWeight: FontWeight.w900,
+                  height: 1,
+                ),
               ),
             ),
           ),

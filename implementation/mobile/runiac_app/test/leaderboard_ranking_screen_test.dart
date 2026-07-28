@@ -1,5 +1,9 @@
+import 'dart:ui' as ui;
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:runiac_app/core/widgets/runiac_avatar_photo.dart';
 import 'package:runiac_app/features/leaderboard/domain/models/leaderboard_read_model.dart';
 import 'package:runiac_app/features/leaderboard/presentation/leaderboard_status_copy.dart';
 import 'package:runiac_app/features/leaderboard/presentation/models/leaderboard_display_models.dart';
@@ -27,6 +31,7 @@ LeaderboardRankRowDisplaySnapshot _row(
   String name, {
   bool isCurrentUser = false,
   RegionPreviewMedalTone? tone,
+  String photoUrl = '',
 }) {
   return LeaderboardRankRowDisplaySnapshot(
     rankLabel: rankLabel,
@@ -37,6 +42,7 @@ LeaderboardRankRowDisplaySnapshot _row(
     profile: _profile(name, isCurrentUser: isCurrentUser),
     isCurrentUser: isCurrentUser,
     medalTone: tone,
+    photoUrl: photoUrl,
   );
 }
 
@@ -77,12 +83,32 @@ Widget _app(LeaderboardDetailDisplaySnapshot snapshot) {
   );
 }
 
+const _testAvatarBucket = 'test-avatars-bucket.appspot.com';
+const _wellFormedPhotoUrl =
+    'https://firebasestorage.googleapis.com/v0/b/$_testAvatarBucket/o/'
+    'avatars%2F0123456789abcdef0123456789abcdef.png'
+    '?alt=media&token=aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+
 const _rank1Key = ValueKey('leaderboard_podium_rank_1');
 const _rank2Key = ValueKey('leaderboard_podium_rank_2');
 const _rank3Key = ValueKey('leaderboard_podium_rank_3');
 const _crownKey = Key('leaderboard_podium_crown');
 
 void main() {
+  late String Function() originalBucketResolver;
+  late ImageProvider Function(String url) originalImageProviderFactory;
+
+  setUp(() {
+    originalBucketResolver = avatarStorageBucketResolver;
+    originalImageProviderFactory = avatarImageProviderFactory;
+    avatarStorageBucketResolver = () => _testAvatarBucket;
+  });
+
+  tearDown(() {
+    avatarStorageBucketResolver = originalBucketResolver;
+    avatarImageProviderFactory = originalImageProviderFactory;
+  });
+
   testWidgets(
     'three entries render podium keys, crown, and a larger #1 avatar',
     (tester) async {
@@ -112,6 +138,76 @@ void main() {
       expect(firstAvatar.width, greaterThan(secondAvatar.width));
     },
   );
+
+  testWidgets('podium renders the runner photo in place of the initial', (
+    tester,
+  ) async {
+    // The podium is the same runner as the list row directly below it, so it
+    // has to render the same avatar photo rather than an initials disc.
+    await tester.runAsync(() async {
+      final image = await createTestImage();
+      avatarImageProviderFactory = (url) => _FakeSuccessImageProvider(image);
+
+      await tester.pumpWidget(
+        _app(
+          _snapshot(
+            topRanks: [
+              _row(
+                '#1',
+                'Alex',
+                tone: RegionPreviewMedalTone.gold,
+                photoUrl: _wellFormedPhotoUrl,
+              ),
+              _row('#2', 'Maya', tone: RegionPreviewMedalTone.silver),
+            ],
+          ),
+        ),
+      );
+      await tester.pump();
+    });
+
+    final podiumPhoto = find.descendant(
+      of: find.byKey(const ValueKey('leaderboard_podium_avatar_1')),
+      matching: find.byType(Image),
+    );
+    expect(podiumPhoto, findsOneWidget);
+    // 'A' is Alex's initial: it must be gone from the rank-1 slot, while
+    // Maya's photo-less rank-2 slot still shows hers.
+    expect(
+      find.descendant(of: find.byKey(_rank1Key), matching: find.text('A')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: find.byKey(_rank2Key), matching: find.text('M')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('podium keeps the initial when the photo URL is rejected', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _app(
+        _snapshot(
+          topRanks: [
+            _row(
+              '#1',
+              'Alex',
+              tone: RegionPreviewMedalTone.gold,
+              photoUrl: 'https://evil.example.com/not-an-avatar.png',
+            ),
+          ],
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(
+      find.descendant(of: find.byKey(_rank1Key), matching: find.text('A')),
+      findsOneWidget,
+    );
+    expect(find.byType(Image), findsNothing);
+  });
 
   testWidgets('two entries omit the rank-3 podium slot', (tester) async {
     await tester.pumpWidget(
@@ -284,4 +380,32 @@ void main() {
       );
     },
   );
+}
+
+/// A synchronous, non-network [ImageProvider] test double that always
+/// resolves to [image], mirroring the one in `challenge_initials_avatar_test`:
+/// `flutter_test` has no network, so the photo-renders path needs a provider
+/// that completes without one.
+class _FakeSuccessImageProvider
+    extends ImageProvider<_FakeSuccessImageProvider> {
+  const _FakeSuccessImageProvider(this.image);
+
+  final ui.Image image;
+
+  @override
+  Future<_FakeSuccessImageProvider> obtainKey(
+    ImageConfiguration configuration,
+  ) {
+    return SynchronousFuture<_FakeSuccessImageProvider>(this);
+  }
+
+  @override
+  ImageStreamCompleter loadImage(
+    _FakeSuccessImageProvider key,
+    ImageDecoderCallback decode,
+  ) {
+    return OneFrameImageStreamCompleter(
+      Future<ImageInfo>.value(ImageInfo(image: image)),
+    );
+  }
 }
