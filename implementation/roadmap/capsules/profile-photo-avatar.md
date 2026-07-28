@@ -240,6 +240,51 @@ firebase deploy --project runiac-fypp --only \
 - Not live: the mobile app release (so every surface still renders initials in production), and the `website/` admin-console takedown + suspension wiring, which ships through its own repository. Until the console ships there is no production takedown path for an uploaded photo.
 - `setProfileAvatar`/`clearProfileAvatar` enforce App Check in production, so a debug build used for device QA must have its App Check debug token registered in the Firebase Console or both callables fail.
 
+## Dependency Pin: firebase-admin must stay on 13.x (website repo)
+
+`website/package.json` pins `firebase-admin` to `^13.x`. **Do not upgrade it to 14
+without reading this first** — the upgrade takes the entire admin-console site
+down, not just the admin routes.
+
+Why: `firebase-admin@14` resolves `jwks-rsa@4`, which depends on `jose@6`. jose@6
+is ESM-only, and `jwks-rsa/src/utils.js` `require()`s it **at runtime from
+node_modules**. No bundler configuration can prevent that, because the require
+happens inside third-party code that was never bundled. `firebase-admin@13`
+resolves `jwks-rsa@3` -> `jose@4`, which ships CommonJS, so the require never
+crosses the ESM boundary.
+
+Failure signature, observed in production on 2026-07-28: every route returns 500,
+including the public marketing pages, with
+
+```
+Error: require() of ES Module /var/task/node_modules/jose/dist/webapi/index.js
+  from /var/task/node_modules/jwks-rsa/src/utils.js not supported
+  code: "ERR_REQUIRE_ESM"
+```
+
+Two properties of this failure made it expensive to diagnose, and both are worth
+knowing before touching this again:
+
+- **It does not reproduce locally.** `next start` on the same commit, with the
+  same environment variables, serves every route correctly. The precise reason
+  the local and Vercel runtimes diverge here was never established — only that
+  they do. Do not treat a passing local run as evidence.
+- **It stays hidden until Firebase credentials exist in the environment.**
+  `hasFirebaseEnv()` short-circuits before the Admin SDK is imported, so with no
+  service account configured the site looks healthy. Adding
+  `FIREBASE_SERVICE_ACCOUNT_KEY` is what surfaces it, which makes the credential
+  change look like the cause when it is not.
+
+Approaches that were tried and did **not** work — do not repeat them:
+`serverExternalPackages: ["firebase-admin"]`; switching the build from Turbopack
+to webpack (`next build --webpack`); pinning `engines.node`; `transpilePackages:
+["jose"]`; disabling Vercel Fluid Compute. All were reverted. Pinning `jose` to
+v5 is also not viable: `jwks-rsa@4` declares `^6.1.3`.
+
+Diagnosis route that did work: read the Vercel runtime logs and expand a log entry
+to get the full stack, rather than reasoning from the truncated message or from
+local reproduction.
+
 ## Exit Criteria
 
 - [ ] Target files completed.
