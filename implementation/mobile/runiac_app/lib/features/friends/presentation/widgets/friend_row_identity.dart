@@ -28,12 +28,14 @@ class FriendRowBadge extends StatelessWidget {
       uid: user.userId,
       displayName: user.displayName,
       avatarInitials: user.avatarInitials,
+      avatarUrl: user.avatarUrl,
       levelBadgeLabel: compactLevelLabel(user.levelLabel),
       enabled: enableProfileLink,
       child: RuniacLevelProfileBadge.row(
         initials: user.avatarInitials,
         levelLabel: compactLevelLabel(user.levelLabel),
         progressFraction: user.levelProgressFraction ?? 0,
+        photoUrl: user.avatarUrl,
       ),
     );
   }

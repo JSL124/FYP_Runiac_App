@@ -40,6 +40,7 @@ ChallengeParticipantRow _owner({
   bool isCurrentUser = true,
   String displayName = 'You',
   String levelLabel = 'Lv.5',
+  String avatarUrlSnapshot = '',
 }) =>
     ChallengeParticipantRow(
       uid: 'me',
@@ -51,6 +52,7 @@ ChallengeParticipantRow _owner({
       creditedMeters: 0,
       reward: ChallengeRewardStatus.notEligible,
       isCurrentUser: isCurrentUser,
+      avatarUrlSnapshot: avatarUrlSnapshot,
     );
 
 ChallengeParticipantRow _member({
@@ -130,6 +132,31 @@ void main() {
     // Friends and the invite picker, not the plain initials avatar.
     expect(find.byType(RuniacLevelProfileBadge), findsOneWidget);
   });
+
+  testWidgets(
+    'roster badge passes the resolved avatarUrlSnapshot to the level profile badge',
+    (tester) async {
+      const photoUrl =
+          'https://firebasestorage.googleapis.com/v0/b/bucket/o/avatars%2Fabc.png?alt=media&token=tok';
+      final repository = FakeChallengeRepository(
+        activeOverride: () => _lobby(
+          isOwner: true,
+          participants: [_owner(avatarUrlSnapshot: photoUrl)],
+        ),
+      );
+      await tester.pumpWidget(_harness(_screen(repository: repository)));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .widget<RuniacLevelProfileBadge>(
+              find.byType(RuniacLevelProfileBadge),
+            )
+            .photoUrl,
+        photoUrl,
+      );
+    },
+  );
 
   testWidgets('non-owner viewer sees plain Owner and You on their own row', (
     tester,

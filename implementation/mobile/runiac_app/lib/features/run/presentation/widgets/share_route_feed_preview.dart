@@ -102,6 +102,7 @@ class _FeedPreviewHeader extends StatelessWidget {
         initials: authorProfile.avatarInitials,
         levelLabel: authorProfile.compactLevelLabel,
         progressFraction: authorProfile.levelProgressFraction,
+        photoUrl: authorProfile.avatarUrl,
         size: 40,
         badgeHeight: 15,
         badgeMinWidth: 39,

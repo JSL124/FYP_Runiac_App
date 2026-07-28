@@ -14,6 +14,7 @@ class RunnerPublicProfileReadModel {
   const RunnerPublicProfileReadModel({
     this.displayName = '',
     this.avatarInitials = '',
+    this.avatarUrl = '',
     this.regionLabel = '',
     this.level = 0,
     this.levelProgressFraction = 0,
@@ -31,6 +32,10 @@ class RunnerPublicProfileReadModel {
 
   final String displayName;
   final String avatarInitials;
+
+  /// Raw, not-yet-sanitised avatar photo URL relayed from
+  /// `getRunnerPublicProfile`. Empty when the runner has no photo set.
+  final String avatarUrl;
   final String regionLabel;
   final int level;
   final double levelProgressFraction;

@@ -35,6 +35,7 @@ class FeedPostSection extends StatelessWidget {
                 uid: post.authorUserId,
                 displayName: post.authorDisplayName,
                 avatarInitials: authorProfile.avatarInitials,
+                avatarUrl: authorProfile.avatarUrl,
                 levelBadgeLabel: authorProfile.compactLevelLabel,
                 // A null viewer uid means this build cannot tell whose post
                 // this is (the demo/no-viewer-context path), so it must not
@@ -49,6 +50,7 @@ class FeedPostSection extends StatelessWidget {
                   initials: authorProfile.avatarInitials,
                   levelLabel: authorProfile.compactLevelLabel,
                   progressFraction: authorProfile.levelProgressFraction,
+                  photoUrl: authorProfile.avatarUrl,
                   size: 44,
                 ),
               ),

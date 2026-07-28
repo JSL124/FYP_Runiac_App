@@ -27,6 +27,7 @@ class AccountIdentityCard extends StatelessWidget {
                 initials: snapshot.avatarInitials,
                 levelLabel: snapshot.previewLevelBadge,
                 progressFraction: snapshot.levelProgressFraction,
+                photoUrl: snapshot.avatarUrl,
                 size: 104,
                 badgeHeight: 28,
                 badgeMinWidth: 64,

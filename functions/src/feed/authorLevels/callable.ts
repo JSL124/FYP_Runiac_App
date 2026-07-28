@@ -3,6 +3,7 @@ import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import { onCall } from "firebase-functions/v2/https";
 import { getFeedAuthorLevels as getFeedAuthorLevelsCore, type FeedAuthorLevelsPorts } from "./core.js";
 import { withCallableErrorReporting } from "../../errors/withErrorReporting.js";
+import { avatarUrlContextFromEnvironment } from "../../profile/avatar/context.js";
 
 if (getApps().length === 0) initializeApp();
 
@@ -12,7 +13,7 @@ export const getFeedAuthorLevels = onCall(
   { region: "asia-southeast1" },
   withCallableErrorReporting("getFeedAuthorLevels", async (request: GetFeedAuthorLevelsRequest) => {
     const callableRequest = request.auth === undefined ? { data: request.data } : { auth: { uid: request.auth.uid }, data: request.data };
-    return getFeedAuthorLevelsCore(callableRequest, createAuthorLevelsPorts(getFirestore()));
+    return getFeedAuthorLevelsCore(callableRequest, createAuthorLevelsPorts(getFirestore()), avatarUrlContextFromEnvironment());
   }),
 );
 

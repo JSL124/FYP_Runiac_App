@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/core/characters/runner_character.dart';
+import 'package:runiac_app/core/widgets/runiac_level_profile_badge.dart';
 import 'package:runiac_app/features/home/domain/guide/home_guide_agent.dart';
 import 'package:runiac_app/features/home/domain/guide/home_guide_consent.dart';
 import 'package:runiac_app/features/home/domain/guide/rule_based_home_guide_agent.dart';
@@ -213,6 +214,40 @@ void main() {
     await tester.pumpAndSettle();
     expect(notifications, 1);
   });
+
+  testWidgets(
+    'passes the profile photo URL through to the header level badge',
+    (WidgetTester tester) async {
+      const photoUrl =
+          'https://firebasestorage.googleapis.com/v0/b/bucket/o/avatars%2Fabc.png?alt=media&token=tok';
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: HomeStageMap(
+              model: null,
+              streakCount: 0,
+              unreadNotificationCount: 0,
+              profileInitials: 'MT',
+              profilePhotoUrl: photoUrl,
+              levelBadgeLabel: 'Lv.3',
+              levelProgressFraction: 0.5,
+              onNotifications: () {},
+              onProfile: () {},
+              onTapTodayStage: () {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.widget<RuniacLevelProfileBadge>(
+          find.byType(RuniacLevelProfileBadge),
+        ).photoUrl,
+        photoUrl,
+      );
+    },
+  );
 
   testWidgets('active plan renders stage stones and a tappable today stage', (
     WidgetTester tester,

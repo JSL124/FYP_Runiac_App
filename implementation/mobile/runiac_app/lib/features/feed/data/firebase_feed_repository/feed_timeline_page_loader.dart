@@ -139,12 +139,17 @@ class FeedTimelinePagingSession {
       final levelLabel = resolved.levelLabel.trim();
       final displayName = resolved.displayName.trim();
       final avatarInitials = resolved.avatarInitials.trim();
-      if (levelLabel.isEmpty && displayName.isEmpty && avatarInitials.isEmpty) {
+      final avatarUrl = resolved.avatarUrl.trim();
+      if (levelLabel.isEmpty &&
+          displayName.isEmpty &&
+          avatarInitials.isEmpty &&
+          avatarUrl.isEmpty) {
         continue;
       }
       page[index] = page[index].copyWith(
         authorDisplayName: displayName.isEmpty ? null : displayName,
         authorAvatarInitials: avatarInitials.isEmpty ? null : avatarInitials,
+        authorAvatarUrl: avatarUrl.isEmpty ? null : avatarUrl,
         authorLevelLabel: levelLabel.isEmpty ? null : levelLabel,
         authorLevelProgressFraction: levelLabel.isEmpty
             ? null

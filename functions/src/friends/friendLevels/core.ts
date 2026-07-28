@@ -1,8 +1,20 @@
 import { HttpsError } from "firebase-functions/v2/https";
 import { resolveProfileLevelDisplay, type ProfileLevelDisplay } from "../../progression/profileLevelDisplay.js";
+import { resolveProfileAvatarDisplay, type ProfileAvatarDisplay } from "../../profile/profileIdentityDisplay.js";
+import type { AvatarUrlContext } from "../../profile/avatar/avatarPaths.js";
+import { NULL_AVATAR_URL_CONTEXT } from "../../profile/avatar/avatarUrlContextDefaults.js";
 
 export type FriendLevelsRequest = { readonly auth?: { readonly uid: string }; readonly data: unknown };
-export type FriendLevel = ProfileLevelDisplay;
+// Deliberately NOT `ProfileLevelDisplay & ProfileIdentityDisplay`: this
+// callable owns the caller's live LEVEL (and, now, live avatar) for a uid
+// already on their Friends/Requests/Blocked tab — the friends fan-out
+// (friendsProfiles.ts) owns friends-row IDENTITY (displayName/avatarInitials)
+// for that same uid. Reusing ProfileIdentityDisplay here would look like the
+// obvious refactor but would be wrong: it would hand this callable a second,
+// independently-resolved copy of the name/initials the friends list already
+// serves, and the two could disagree (e.g. differing nickname timing) with no
+// single source of truth left. Only the avatar is added here.
+export type FriendLevel = ProfileLevelDisplay & ProfileAvatarDisplay;
 export type FriendLevelsResult = { readonly levels: Readonly<Record<string, FriendLevel>> };
 export interface FriendLevelsPorts {
   /**
@@ -20,7 +32,14 @@ export interface FriendLevelsPorts {
 
 const MAX_UIDS = 50;
 
-export async function getFriendLevels(request: FriendLevelsRequest, ports: FriendLevelsPorts): Promise<FriendLevelsResult> {
+export async function getFriendLevels(
+  request: FriendLevelsRequest,
+  ports: FriendLevelsPorts,
+  // Injected by the callable layer (see profile/avatar/context.ts); defaults
+  // to a context that can never match a real avatar URL, so an omitted
+  // context still fails closed to avatarUrl: "".
+  avatarContext: AvatarUrlContext = NULL_AVATAR_URL_CONTEXT,
+): Promise<FriendLevelsResult> {
   const uid = request.auth?.uid;
   if (uid === undefined || uid.length === 0) throw new HttpsError("unauthenticated", "Authentication is required.");
   const requested = parseUids(request.data);
@@ -37,7 +56,9 @@ export async function getFriendLevels(request: FriendLevelsRequest, ports: Frien
   if (permitted.length === 0) return { levels: {} };
   const profiles = await ports.readProfiles(permitted);
   const levels: Record<string, FriendLevel> = {};
-  permitted.forEach((otherUid, index) => { levels[otherUid] = resolveProfileLevelDisplay(profiles[index]); });
+  permitted.forEach((otherUid, index) => {
+    levels[otherUid] = { ...resolveProfileLevelDisplay(profiles[index]), ...resolveProfileAvatarDisplay(profiles[index], avatarContext) };
+  });
   return { levels };
 }
 

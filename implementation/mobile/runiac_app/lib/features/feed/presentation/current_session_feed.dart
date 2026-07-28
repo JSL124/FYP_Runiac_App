@@ -118,7 +118,8 @@ class _CurrentSessionFeedState extends State<CurrentSessionFeed> {
     if (previous == null || next == null) return false;
     return previous.userId == next.userId &&
         (previous.displayName != next.displayName ||
-            previous.avatarInitials != next.avatarInitials);
+            previous.avatarInitials != next.avatarInitials ||
+            previous.avatarUrl != next.avatarUrl);
   }
 
   void _rebuild() {

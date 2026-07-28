@@ -59,6 +59,7 @@ class LeaderboardRowReadModel {
     this.isCurrentUser = false,
     this.snapshotId = '',
     this.buildId = '',
+    this.avatarUrl = '',
   });
 
   final String userId;
@@ -69,6 +70,10 @@ class LeaderboardRowReadModel {
   final String divisionLabel;
   final String regionLabel;
   final bool isCurrentUser;
+
+  /// Raw, not-yet-sanitised avatar photo URL relayed from the snapshot/rank
+  /// row (`entry['avatarUrl']`). Empty when the runner has no photo set.
+  final String avatarUrl;
 
   /// The board this row was read from, taken from its own source document —
   /// the snapshot for a top row, the rank projection for a nearby row. A

@@ -38,12 +38,21 @@ class FeedPostDocument {
     required this.commentCount,
     required this.viewerLiked,
     required this.viewerCommented,
+    this.authorAvatarUrl = '',
   });
 
   final String postId;
   final String authorUid;
   final String authorDisplayName;
   final String authorAvatarInitials;
+
+  /// Optional stored avatar photo URL, mirroring [authorLevelLabel]'s
+  /// optional-and-defensive read. No current backend revision writes this to
+  /// `feedPosts` — every value seen in production comes from the live
+  /// author-level overlay instead — but the field exists so a post can never
+  /// silently lose a future stored value, and so the overlay's
+  /// never-erase-a-stored-value contract is meaningful for this field too.
+  final String authorAvatarUrl;
   final String authorLevelLabel;
   final DateTime createdAt;
   final int distanceMeters;
@@ -121,6 +130,7 @@ class FeedAuthorLevel {
     required this.levelProgressFraction,
     this.displayName = '',
     this.avatarInitials = '',
+    this.avatarUrl = '',
   });
 
   final String levelLabel;
@@ -133,6 +143,10 @@ class FeedAuthorLevel {
 
   /// The author's current avatar initials.
   final String avatarInitials;
+
+  /// The author's current, not-yet-sanitised avatar photo URL. Empty when
+  /// the backend resolved no photo for this author.
+  final String avatarUrl;
 }
 
 /// Typed Firestore/Functions boundary. Tests replace it without Firebase.

@@ -7,6 +7,7 @@ class _HomeStageHeader extends StatelessWidget {
     required this.progressLoading,
     required this.profileLoading,
     required this.profileInitials,
+    this.profilePhotoUrl = '',
     required this.onProfile,
     required this.menuOpen,
     required this.menuAnimation,
@@ -22,6 +23,9 @@ class _HomeStageHeader extends StatelessWidget {
   final bool progressLoading;
   final bool profileLoading;
   final String profileInitials;
+
+  /// Raw, not-yet-sanitised avatar photo URL. Empty renders the initials disc.
+  final String profilePhotoUrl;
   final VoidCallback onProfile;
   final bool menuOpen;
   final Animation<double> menuAnimation;
@@ -94,6 +98,7 @@ class _HomeStageHeader extends StatelessWidget {
                                 initials: profileInitials,
                                 levelLabel: levelBadgeLabel,
                                 progressFraction: levelProgressFraction,
+                                photoUrl: profilePhotoUrl,
                                 size: 54,
                                 badgeHeight: 17,
                                 badgeMinWidth: 44,

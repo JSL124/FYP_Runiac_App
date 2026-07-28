@@ -201,10 +201,10 @@ function rankNumber(value: unknown): number {
   return Number(value.slice(1));
 }
 
-function isSafePublicEntry(value: unknown): value is { readonly divisionLabel: string; readonly levelLabel: string; readonly publicAlias: string; readonly rankLabel: string; readonly regionLabel: string; readonly score: number; readonly scoreLabel: string } {
+function isSafePublicEntry(value: unknown): value is { readonly avatarUrl: string; readonly divisionLabel: string; readonly levelLabel: string; readonly publicAlias: string; readonly rankLabel: string; readonly regionLabel: string; readonly score: number; readonly scoreLabel: string } {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
-  const keys = ["divisionLabel", "levelLabel", "publicAlias", "rankLabel", "regionLabel", "score", "scoreLabel"];
-  return JSON.stringify(Object.keys(value).sort()) === JSON.stringify(keys.sort()) && typeof Reflect.get(value, "divisionLabel") === "string" && typeof Reflect.get(value, "levelLabel") === "string" && typeof Reflect.get(value, "publicAlias") === "string" && typeof Reflect.get(value, "rankLabel") === "string" && typeof Reflect.get(value, "regionLabel") === "string" && typeof Reflect.get(value, "score") === "number" && typeof Reflect.get(value, "scoreLabel") === "string";
+  const keys = ["avatarUrl", "divisionLabel", "levelLabel", "publicAlias", "rankLabel", "regionLabel", "score", "scoreLabel"];
+  return JSON.stringify(Object.keys(value).sort()) === JSON.stringify(keys.sort()) && typeof Reflect.get(value, "avatarUrl") === "string" && typeof Reflect.get(value, "divisionLabel") === "string" && typeof Reflect.get(value, "levelLabel") === "string" && typeof Reflect.get(value, "publicAlias") === "string" && typeof Reflect.get(value, "rankLabel") === "string" && typeof Reflect.get(value, "regionLabel") === "string" && typeof Reflect.get(value, "score") === "number" && typeof Reflect.get(value, "scoreLabel") === "string";
 }
 
 function sameStringList(value: unknown, expected: readonly string[]): boolean {

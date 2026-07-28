@@ -12,6 +12,7 @@ class UserProfileReadModel {
     this.nickname = '',
     this.dateOfBirthIso = '',
     required this.avatarInitials,
+    this.avatarUrl = '',
     this.ageYears,
     this.weightKg,
     required this.locationLabel,
@@ -35,6 +36,12 @@ class UserProfileReadModel {
   final String nickname;
   final String dateOfBirthIso;
   final String avatarInitials;
+
+  /// Raw, not-yet-sanitised avatar photo URL from `userProfiles/{uid}`.
+  /// Empty when no photo is set. Always passed through
+  /// `resolveProfileAvatarUrl` at render time before reaching an
+  /// `Image`/`NetworkImage`.
+  final String avatarUrl;
   final int? ageYears;
   final num? weightKg;
   final String locationLabel;

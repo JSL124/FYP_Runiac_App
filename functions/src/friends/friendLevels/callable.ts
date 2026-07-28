@@ -4,6 +4,7 @@ import { onCall } from "firebase-functions/v2/https";
 import { getFriendLevels as getFriendLevelsCore, type FriendLevelsPorts } from "./core.js";
 import { blockRef, friendRef, profileRef, requestRef } from "../friendsPaths.js";
 import { withCallableErrorReporting } from "../../errors/withErrorReporting.js";
+import { avatarUrlContextFromEnvironment } from "../../profile/avatar/context.js";
 
 if (getApps().length === 0) initializeApp();
 
@@ -13,7 +14,7 @@ export const getFriendLevels = onCall(
   { region: "asia-southeast1" },
   withCallableErrorReporting("getFriendLevels", async (request: GetFriendLevelsRequest) => {
     const callableRequest = request.auth === undefined ? { data: request.data } : { auth: { uid: request.auth.uid }, data: request.data };
-    return getFriendLevelsCore(callableRequest, createFriendLevelsPorts(getFirestore()));
+    return getFriendLevelsCore(callableRequest, createFriendLevelsPorts(getFirestore()), avatarUrlContextFromEnvironment());
   }),
 );
 

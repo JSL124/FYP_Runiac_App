@@ -287,6 +287,7 @@ class FirestoreLeaderboardRepository
             levelLabel: _string(entry['levelLabel']),
             divisionLabel: _string(entry['divisionLabel']),
             regionLabel: _string(entry['regionLabel']),
+            avatarUrl: _string(entry['avatarUrl']),
             isCurrentUser:
                 currentEntry != null &&
                 _string(entry['rankLabel']) ==
@@ -320,6 +321,7 @@ class FirestoreLeaderboardRepository
         levelLabel: _string(currentEntry['levelLabel']),
         divisionLabel: _string(currentEntry['divisionLabel']),
         regionLabel: _string(currentEntry['regionLabel']),
+        avatarUrl: _string(currentEntry['avatarUrl']),
         isCurrentUser: true,
         snapshotId: snapshotId,
         buildId: buildId,

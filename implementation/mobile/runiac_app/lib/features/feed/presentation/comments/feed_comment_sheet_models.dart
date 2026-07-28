@@ -11,6 +11,7 @@ List<FeedCommentReadModel> sessionCommentModels({
     authorUserId: authorUserId,
     authorDisplayName: authorProfile?.displayName ?? 'You',
     authorAvatarInitials: authorProfile?.avatarInitials ?? 'YO',
+    authorAvatarUrl: authorProfile?.avatarUrl ?? '',
     authorLevelLabel: authorProfile?.levelLabel ?? '',
     body: comments[index],
     createdAt: DateTime.fromMillisecondsSinceEpoch(index),

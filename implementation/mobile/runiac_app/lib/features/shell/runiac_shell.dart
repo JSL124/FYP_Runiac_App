@@ -898,6 +898,7 @@ FeedAuthorProfileSnapshot _feedAuthorProfileFrom({
     userId: ownerUid ?? profile.userId,
     displayName: displayName.isEmpty ? 'You' : displayName,
     avatarInitials: initials.isEmpty ? 'R' : initials,
+    avatarUrl: profile.avatarUrl.trim(),
     levelLabel: levelLabel.isEmpty ? progress.levelBadgeLabel : levelLabel,
     levelProgressFraction: progress.levelProgressFraction,
   );

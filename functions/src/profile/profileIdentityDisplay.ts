@@ -5,22 +5,47 @@
  * Feed posts and Feed comments freeze the author's name and initials at write
  * time, so a rename would otherwise leave every earlier post labelled with the
  * old name forever. Every surface that shows another runner's CURRENT identity
- * resolves it through this single helper — the runner public profile
- * projection and the Feed author overlay — so the nickname-wins rule and the
- * trimming rules exist in exactly one place.
+ * — the runner public profile projection, the Feed author overlay, and the
+ * avatar disc each renders next to it — resolves it through this single
+ * helper, so the nickname-wins rule, the trimming rules, and the avatarUrl
+ * sanitisation rule exist in exactly one place.
  *
- * This only ever reads `nickname` / `displayName` / `avatarInitials`, all of
- * which the nickname callable already owns and wrote. It never derives an
- * identity from anything else.
+ * This only ever reads `nickname` / `displayName` / `avatarInitials` /
+ * `avatarUrl`, all of which the nickname callable and the profile avatar
+ * callables already own and wrote. It never derives an identity from
+ * anything else.
  */
+
+import { resolveProfileAvatarUrl, type AvatarUrlContext } from "./avatar/avatarPaths.js";
+
+export type ProfileAvatarDisplay = { readonly avatarUrl: string };
 
 export type ProfileIdentityDisplay = {
   readonly displayName: string;
   readonly avatarInitials: string;
-};
+} & ProfileAvatarDisplay;
 
-export function resolveProfileIdentityDisplay(data: Readonly<Record<string, unknown>> | undefined): ProfileIdentityDisplay {
-  return { displayName: profileDisplayName(data), avatarInitials: trimmedString(data?.["avatarInitials"]) };
+export function resolveProfileIdentityDisplay(
+  data: Readonly<Record<string, unknown>> | undefined,
+  avatarContext: AvatarUrlContext,
+): ProfileIdentityDisplay {
+  return {
+    displayName: profileDisplayName(data),
+    avatarInitials: trimmedString(data?.["avatarInitials"]),
+    ...resolveProfileAvatarDisplay(data, avatarContext),
+  };
+}
+
+/**
+ * Standalone avatar-only resolution for callers that want the avatar
+ * without the name/initials half of the identity (`getFriendLevels`, whose
+ * result deliberately excludes `displayName` — see friendLevels/core.ts).
+ */
+export function resolveProfileAvatarDisplay(
+  data: Readonly<Record<string, unknown>> | undefined,
+  avatarContext: AvatarUrlContext,
+): ProfileAvatarDisplay {
+  return { avatarUrl: resolveProfileAvatarUrl(data, avatarContext) };
 }
 
 /**

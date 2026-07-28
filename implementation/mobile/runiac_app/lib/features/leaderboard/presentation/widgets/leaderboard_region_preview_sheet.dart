@@ -337,6 +337,7 @@ class _RegionPreviewRankRow extends StatelessWidget {
                   name: row.name,
                   levelLabel: row.levelBadgeLabel,
                   isCurrentUser: row.isCurrentUser,
+                  photoUrl: row.photoUrl,
                 ),
                 SizedBox(width: nameGap),
                 Expanded(

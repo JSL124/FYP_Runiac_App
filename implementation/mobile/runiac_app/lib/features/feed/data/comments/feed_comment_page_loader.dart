@@ -33,6 +33,10 @@ class FeedCommentPageLoader {
             // empty value keeps the stored copy rather than blanking the row.
             final resolvedName = resolved?.displayName.trim() ?? '';
             final resolvedInitials = resolved?.avatarInitials.trim() ?? '';
+            // Comments never store an avatar URL at write time (only
+            // `authorAvatarInitials` is frozen there), so there is no stored
+            // copy to keep — an unresolved uid simply renders no photo.
+            final resolvedAvatarUrl = resolved?.avatarUrl.trim() ?? '';
             return FeedCommentReadModel(
               commentId: comment.commentId,
               authorUserId: comment.authorUid,
@@ -42,6 +46,7 @@ class FeedCommentPageLoader {
               authorAvatarInitials: resolvedInitials.isEmpty
                   ? comment.authorAvatarInitials
                   : resolvedInitials,
+              authorAvatarUrl: resolvedAvatarUrl,
               authorLevelLabel: hasResolvedLabel
                   ? resolved.levelLabel
                   : comment.authorLevelLabel,

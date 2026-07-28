@@ -1,10 +1,28 @@
 import assert from "node:assert/strict";
 import { after, before, describe, it } from "node:test";
 import { getApps, initializeApp } from "firebase-admin/app";
+import { getAuth, type DecodedIdToken } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
-import { createRunnerPublicProfilePorts } from "../src/profile/publicProfile/callable.js";
+import { getStorage } from "firebase-admin/storage";
+import type { CallableRequest } from "firebase-functions/v2/https";
+import {
+  createRunnerPublicProfilePorts,
+  getRunnerPublicProfile as getRunnerPublicProfileCallable,
+} from "../src/profile/publicProfile/callable.js";
 import { getRunnerPublicProfile } from "../src/profile/publicProfile/core.js";
 import { canonicalizeNickname, nicknameIndexKey } from "../src/friends/nickname.js";
+import { buildAvatarDownloadUrl } from "../src/profile/avatar/avatarPaths.js";
+import {
+  callEmulatorCallable,
+  createEmulatorActor,
+  stageAvatarPngObject,
+  stringAt,
+  type EmulatorActor,
+} from "./helpers/avatarEmulatorHelpers.js";
+
+const PROJECT_ID = "runiac-functions-test";
+const FUNCTIONS_ORIGIN = "http://127.0.0.1:5001";
+const AUTH_EMULATOR_ORIGIN = "http://127.0.0.1:9099";
 
 /**
  * Integration coverage for `getRunnerPublicProfile` against the Firestore
@@ -41,9 +59,10 @@ const discoverableNickname = "Sprinter_disco";
 const discoverableCanonical = canonicalizeNickname(discoverableNickname);
 const discoverableIndexKey = nicknameIndexKey(discoverableCanonical);
 
-if (getApps().length === 0) initializeApp();
+if (getApps().length === 0) initializeApp({ projectId: PROJECT_ID, storageBucket: `${PROJECT_ID}.appspot.com` });
 const db = getFirestore();
 const ports = createRunnerPublicProfilePorts(db);
+const bucket = getStorage().bucket();
 
 before(async () => {
   // Fail closed: this suite writes real documents, so it must never run
@@ -249,6 +268,115 @@ describe("Runner public profile emulator integration — uid-addressed form", ()
     await assertRejects(() => getRunnerPublicProfile({ auth: { uid: viewer }, data: { uid: suspended } }, ports), "not-found");
   });
 });
+
+/**
+ * The gap this closes: every test above calls `getRunnerPublicProfile` the
+ * CORE function directly with fake or hand-assembled ports, so nothing in
+ * this suite (or the fake-port unit test) ever proved that the deployed
+ * callable in publicProfile/callable.ts actually injects a real
+ * AvatarUrlContext at read time, or that the bucket name it resolves via
+ * `getStorage().bucket().name` agrees with the bucket a real
+ * `setProfileAvatar` promotion embedded in the stored avatarUrl. A caller
+ * could drop the `avatarUrlContextFromEnvironment()` argument from the
+ * callable, or the two bucket names could silently diverge, and every other
+ * test here would stay green — the only symptom would be avatars silently
+ * never appearing.
+ *
+ * This describe block closes that gap by going through the REAL exported
+ * `getRunnerPublicProfile` callable (not the core function) with no
+ * explicitly-passed avatar context — the callable resolves its own context
+ * internally — against a real avatar staged and promoted through the real
+ * `setProfileAvatar` callable, invoked over HTTP through the Functions
+ * emulator exactly like profileAvatarEmulatorIntegration.test.ts does.
+ */
+describe("Runner public profile emulator integration — avatarUrl end-to-end via the real callable", () => {
+  const avatarRunner = "rpp-avatar-runner";
+  const avatarViewer = "rpp-avatar-viewer";
+  let actor: EmulatorActor;
+
+  before(async () => {
+    assert.notEqual(process.env["FIREBASE_STORAGE_EMULATOR_HOST"], undefined, "FIREBASE_STORAGE_EMULATOR_HOST must be set");
+    assert.notEqual(process.env["FIREBASE_AUTH_EMULATOR_HOST"], undefined, "FIREBASE_AUTH_EMULATOR_HOST must be set");
+    await avatarFixtureCleanup();
+    actor = await createEmulatorActor(getAuth(), avatarRunner, { authEmulatorOrigin: AUTH_EMULATOR_ORIGIN, signInKey: "rpp-avatar" });
+    await db.doc(`userProfiles/${avatarRunner}`).set({ displayName: "Avatar Runner", avatarInitials: "AR", locationLabel: "Bedok, Singapore" });
+    await db.doc(`userProfiles/${avatarViewer}`).set({ displayName: "Avatar Viewer", avatarInitials: "AV", locationLabel: "Bedok, Singapore" });
+    // Visibility: the same accepted-friend edge the uid-addressed describe
+    // block above already relies on to grant a view — no new gate is
+    // introduced for this suite.
+    await db.doc(`users/${avatarViewer}/friends/${avatarRunner}`).set({ createdAt: new Date(0) });
+  });
+
+  after(async () => {
+    await avatarFixtureCleanup();
+  });
+
+  it("surfaces a real promoted avatar's exact URL through the real callable, with no explicitly-passed avatar context", async () => {
+    const stagingPath = `avatar-staging/${avatarRunner}/upload-rpp-avatar.png`;
+    await stageAvatarPngObject(bucket, stagingPath, avatarRunner);
+
+    const promoted = await callEmulatorCallable(
+      { functionsOrigin: FUNCTIONS_ORIGIN, projectId: PROJECT_ID, region: "asia-southeast1" },
+      "setProfileAvatar",
+      actor,
+      { stagingPath },
+    );
+    assert.equal(promoted.ok, true);
+    if (!promoted.ok) return;
+    const writtenAvatarUrl = stringAt(promoted.data, "avatarUrl");
+    assert.notEqual(writtenAvatarUrl, "");
+
+    const storedProfile = await db.doc(`userProfiles/${avatarRunner}`).get();
+    assert.equal(storedProfile.get("avatarUrl"), writtenAvatarUrl);
+
+    // The real callable, called with NO explicitly-passed avatar context —
+    // it must resolve its own via avatarUrlContextFromEnvironment() and use
+    // the exact same bucket setProfileAvatar just promoted into.
+    const profile = await getRunnerPublicProfileCallable.run(realCallableRequest(avatarViewer, { uid: avatarRunner }));
+    assert.notEqual(profile.avatarUrl, "");
+    assert.equal(profile.avatarUrl, writtenAvatarUrl);
+  });
+
+  it("resolves a foreign-bucket avatarUrl to empty through the real callable, proving the bucket check is live", async () => {
+    const foreignUrl = buildAvatarDownloadUrl({
+      bucket: "some-other-bucket.appspot.com",
+      objectPath: "avatars/0123456789abcdef0123456789abcdef.png",
+      token: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      emulatorHost: "127.0.0.1:9199",
+    });
+    await db.doc(`userProfiles/${avatarRunner}`).set({ avatarUrl: foreignUrl }, { merge: true });
+
+    const profile = await getRunnerPublicProfileCallable.run(realCallableRequest(avatarViewer, { uid: avatarRunner }));
+    assert.equal(profile.avatarUrl, "");
+  });
+
+  async function avatarFixtureCleanup(): Promise<void> {
+    await Promise.all([
+      db.doc(`userProfiles/${avatarRunner}`).delete().catch(() => undefined),
+      db.doc(`userProfiles/${avatarViewer}`).delete().catch(() => undefined),
+      db.doc(`users/${avatarViewer}/friends/${avatarRunner}`).delete().catch(() => undefined),
+      getAuth().deleteUser(avatarRunner).catch(() => undefined),
+    ]);
+    const [stagingFiles] = await bucket.getFiles({ prefix: `avatar-staging/${avatarRunner}/` });
+    await Promise.all(stagingFiles.map((file) => file.delete({ ignoreNotFound: true })));
+  }
+});
+
+/**
+ * Builds the real `CallableRequest` shape `getRunnerPublicProfileCallable.run`
+ * requires — unlike the simplified `{ auth?: { uid }, data }` shape the core
+ * function accepts, firebase-functions' own type requires a full `AuthData`
+ * (including a `DecodedIdToken`). Only `auth.uid` is ever read by the
+ * callable's own request-normalisation, so the token fields are irrelevant
+ * filler — this is exactly what `.run()`'s own doc comment describes it for
+ * ("Used for unit testing").
+ */
+function realCallableRequest(uid: string, data: unknown): CallableRequest<unknown> {
+  return {
+    auth: { uid, token: {} as DecodedIdToken },
+    data,
+  } as CallableRequest<unknown>;
+}
 
 async function assertRejects(run: () => Promise<unknown>, code: string): Promise<void> {
   await assert.rejects(run, (error: unknown) => typeof error === "object" && error !== null && "code" in error && error["code"] === code);

@@ -572,6 +572,7 @@ class _ChallengeLobbyScreenState extends State<ChallengeLobbyScreen> {
                 levelLabel: row.levelLabelSnapshot,
                 uid: row.uid,
                 displayName: row.displayNameSnapshot,
+                photoUrl: row.avatarUrlSnapshot,
                 enabled: !row.isCurrentUser,
               ),
               const SizedBox(width: 12),
@@ -673,12 +674,14 @@ Widget _rosterBadge({
   String levelLabel = '',
   String uid = '',
   String displayName = '',
+  String photoUrl = '',
   bool enabled = true,
 }) {
   return RunnerProfileAvatarLink(
     uid: uid,
     displayName: displayName,
     avatarInitials: initials,
+    avatarUrl: photoUrl,
     levelBadgeLabel: levelLabel,
     enabled: enabled,
     child: ExcludeSemantics(
@@ -686,6 +689,7 @@ Widget _rosterBadge({
         initials: initials,
         levelLabel: levelLabel.trim().isEmpty ? 'Lv.0' : levelLabel,
         progressFraction: 0,
+        photoUrl: photoUrl,
       ),
     ),
   );

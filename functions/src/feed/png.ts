@@ -20,8 +20,22 @@ const signature = [137, 80, 78, 71, 13, 10, 26, 10] as const;
 const canonicalChromaticities = [31_270, 32_900, 64_000, 33_000, 30_000, 60_000, 15_000, 6_000] as const;
 const maximumBytes = 1_048_576;
 
+type ValidatePngOptions = {
+  readonly maximumBytes: number;
+  readonly isAllowedDimension: (width: number, height: number) => boolean;
+  readonly allowsBitDepth16: (width: number, height: number) => boolean;
+};
+
 export function validateFeedThumbnailPng(bytes: Uint8Array): PngValidationResult {
-  if (bytes.byteLength === 0 || bytes.byteLength > maximumBytes) return { ok: false, error: "byte_limit" };
+  return validatePng(bytes, { maximumBytes, isAllowedDimension, allowsBitDepth16: isWideDimension });
+}
+
+export function validateAvatarPng(bytes: Uint8Array): PngValidationResult {
+  return validatePng(bytes, { maximumBytes, isAllowedDimension: isAllowedAvatarDimension, allowsBitDepth16: () => false });
+}
+
+function validatePng(bytes: Uint8Array, options: ValidatePngOptions): PngValidationResult {
+  if (bytes.byteLength === 0 || bytes.byteLength > options.maximumBytes) return { ok: false, error: "byte_limit" };
   if (!signature.every((value, index) => bytes[index] === value)) return { ok: false, error: "signature" };
   let offset: number = signature.length;
   let width: number | undefined;
@@ -46,9 +60,9 @@ export function validateFeedThumbnailPng(bytes: Uint8Array): PngValidationResult
       if (offset !== signature.length || width !== undefined || length !== 13) return { ok: false, error: "ihdr" };
       width = uint32(bytes, dataStart);
       height = uint32(bytes, dataStart + 4);
-      if (!isAllowedDimension(width, height)) return { ok: false, error: "dimensions" };
+      if (!options.isAllowedDimension(width, height)) return { ok: false, error: "dimensions" };
       bitDepth = bytes[dataStart + 8];
-      if (!hasSafeIhdrFields(bytes, dataStart, width, height)) return { ok: false, error: "ihdr" };
+      if (!hasSafeIhdrFields(bytes, dataStart, options.allowsBitDepth16(width, height))) return { ok: false, error: "ihdr" };
     } else if (isAllowedAncillary(chunk)) {
       if (width === undefined || sawIdat) return { ok: false, error: "chunk_order" };
       if (seenAncillary.has(chunk) || !hasSafeAncillaryData(chunk, bytes, dataStart, length, bitDepth)) return { ok: false, error: "metadata" };
@@ -80,9 +94,13 @@ function isAllowedDimension(width: number, height: number): boolean {
   return (width === 344 && height === 184) || (width === 688 && height === 368) || (width === 1032 && height === 552);
 }
 
-function hasSafeIhdrFields(bytes: Uint8Array, dataStart: number, width: number, height: number): boolean {
+function isAllowedAvatarDimension(width: number, height: number): boolean {
+  return width === 256 && height === 256;
+}
+
+function hasSafeIhdrFields(bytes: Uint8Array, dataStart: number, allowsBitDepth16: boolean): boolean {
   const bitDepth = bytes[dataStart + 8];
-  const hasSafeBitDepth = bitDepth === 8 || (bitDepth === 16 && isWideDimension(width, height));
+  const hasSafeBitDepth = bitDepth === 8 || (bitDepth === 16 && allowsBitDepth16);
   return hasSafeBitDepth && bytes[dataStart + 9] === 6 && bytes[dataStart + 10] === 0 && bytes[dataStart + 11] === 0 && bytes[dataStart + 12] === 0;
 }
 

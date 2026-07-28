@@ -19,12 +19,20 @@ class ChallengeParticipantRow {
     required this.creditedMeters,
     required this.reward,
     required this.isCurrentUser,
+    this.avatarUrlSnapshot = '',
   });
 
   /// Backend uid. Not for display — used only for self-detection and ordering.
   final String uid;
   final String displayNameSnapshot;
   final String avatarInitialsSnapshot;
+
+  /// Raw, not-yet-sanitised avatar photo URL resolved live from the
+  /// participant's profile, exactly like [levelLabelSnapshot]. Empty is the
+  /// common case (no photo set), so unlike the other snapshot fields this is
+  /// never parsed through [ChallengeParse.string]/[ChallengeParse.optionalString]
+  /// (both reject an empty string) — see [fromMap].
+  final String avatarUrlSnapshot;
 
   /// Backend-owned level label (e.g. `Lv.2`) read back verbatim for display.
   /// May be empty when the backend cannot resolve a level; callers fall back
@@ -55,6 +63,16 @@ class ChallengeParticipantRow {
       creditedMeters: ChallengeParse.integer(map, 'creditedMeters'),
       reward: ChallengeRewardStatus.parse(ChallengeParse.string(map, 'reward')),
       isCurrentUser: currentUid != null && currentUid == uid,
+      avatarUrlSnapshot: _avatarUrlSnapshot(map),
     );
+  }
+
+  /// Lenient read of `avatarUrlSnapshot`: unlike every other field here, an
+  /// empty string is the NORMAL case (no photo set), not a malformed
+  /// response, so this never throws — a missing or non-string value simply
+  /// resolves to `''`, the same as an explicitly empty one.
+  static String _avatarUrlSnapshot(Map<String, Object?> map) {
+    final value = map['avatarUrlSnapshot'];
+    return value is String ? value : '';
   }
 }

@@ -233,7 +233,19 @@ export type ChallengeParticipantView = {
   // the participant's profile when the roster is served. Empty when the
   // participant's profile has no level yet; the client falls back to "Lv.0".
   readonly levelLabelSnapshot: string;
+  // Backend-owned, display-only avatar URL resolved live from the
+  // participant's profile when the roster is served, exactly like
+  // levelLabelSnapshot above — never derived from anything the participant
+  // doc itself stores, and never relayed unless it passes
+  // resolveProfileAvatarUrl. Empty when the participant has no avatar set, or
+  // when the stored value is foreign/malformed.
+  readonly avatarUrlSnapshot: string;
 };
+
+/** The live, per-uid display values `sortedParticipantViews` overlays onto each stored participant doc. */
+export type ParticipantLiveDisplay = { readonly levelLabel: string; readonly avatarUrl: string };
+
+const EMPTY_PARTICIPANT_LIVE_DISPLAY: ParticipantLiveDisplay = { levelLabel: "", avatarUrl: "" };
 
 export function serializeInstance(
   challengeId: string,
@@ -266,7 +278,7 @@ export function serializeInstance(
 
 export function serializeParticipant(
   data: DocumentData,
-  levelLabel = "",
+  liveDisplay: ParticipantLiveDisplay = EMPTY_PARTICIPANT_LIVE_DISPLAY,
 ): ChallengeParticipantView {
   return {
     uid: readString(data, "uid"),
@@ -276,18 +288,19 @@ export function serializeParticipant(
     reward: readString(data, "reward"),
     displayNameSnapshot: readString(data, "displayNameSnapshot"),
     avatarInitialsSnapshot: readString(data, "avatarInitialsSnapshot"),
-    levelLabelSnapshot: levelLabel,
+    levelLabelSnapshot: liveDisplay.levelLabel,
+    avatarUrlSnapshot: liveDisplay.avatarUrl,
   };
 }
 
 export function sortedParticipantViews(
   snapshot: QuerySnapshot,
-  levelByUid: ReadonlyMap<string, string> = new Map(),
+  liveDisplayByUid: ReadonlyMap<string, ParticipantLiveDisplay> = new Map(),
 ): readonly ChallengeParticipantView[] {
   return snapshot.docs
     .map((doc) => {
       const data = doc.data();
-      return serializeParticipant(data, levelByUid.get(readString(data, "uid")) ?? "");
+      return serializeParticipant(data, liveDisplayByUid.get(readString(data, "uid")) ?? EMPTY_PARTICIPANT_LIVE_DISPLAY);
     })
     .sort((left, right) => left.uid.localeCompare(right.uid));
 }

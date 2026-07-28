@@ -86,6 +86,58 @@ void main() {
       },
     );
 
+    test(
+      'keeps the seeded avatar for a known uid and blanks an unseeded one, '
+      'the same hybrid treatment as the level label',
+      () {
+        final avatarSeed = const <String, String>{
+          'uidA':
+              'https://firebasestorage.googleapis.com/v0/b/bucket/o/avatars%2Fabc.png?alt=media&token=tok',
+        };
+
+        final view = _view(
+          instance: _instanceView(rosterUids: const <String>['uidA', 'uidB']),
+          participants: <Map<String, Object?>>[
+            _participantView(uid: 'uidA', role: 'owner', meters: 100),
+            _participantView(uid: 'uidB', role: 'member', meters: 50),
+          ],
+        );
+        final active = mapActiveChallengeView(
+          view,
+          levelLabelSeed: const <String, String>{},
+          avatarUrlSeed: avatarSeed,
+          currentUid: 'uidA',
+        )!;
+        final rowA = active.participants.firstWhere((r) => r.uid == 'uidA');
+        final rowB = active.participants.firstWhere((r) => r.uid == 'uidB');
+
+        expect(
+          rowA.avatarUrlSnapshot,
+          'https://firebasestorage.googleapis.com/v0/b/bucket/o/avatars%2Fabc.png?alt=media&token=tok',
+        );
+        expect(rowB.avatarUrlSnapshot, '');
+      },
+    );
+
+    test(
+      'defaults every participant\'s avatar to empty when no seed is given',
+      () {
+        final view = _view(
+          instance: _instanceView(rosterUids: const <String>['uidA']),
+          participants: <Map<String, Object?>>[
+            _participantView(uid: 'uidA', role: 'owner', meters: 100),
+          ],
+        );
+        final active = mapActiveChallengeView(
+          view,
+          levelLabelSeed: const <String, String>{},
+          currentUid: 'uidA',
+        )!;
+
+        expect(active.participants.single.avatarUrlSnapshot, '');
+      },
+    );
+
     test('wraps a malformed view as INVALID_RESPONSE', () {
       final broken = _view(
         instance: _instanceView(),

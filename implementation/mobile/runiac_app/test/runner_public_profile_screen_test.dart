@@ -418,6 +418,8 @@ void main() {
           return <Object?, Object?>{
             'displayName': 'Jinseo_main',
             'avatarInitials': 'JI',
+            'avatarUrl':
+                'https://firebasestorage.googleapis.com/v0/b/bucket/o/avatars%2Fabc.png?alt=media&token=tok',
             'regionLabel': 'Jurong East, Singapore',
             'level': 8,
             'levelProgressPercent': 97.5,
@@ -453,9 +455,35 @@ void main() {
       expect(profile.levelProgressFraction, closeTo(0.975, 0.0001));
       expect(profile.xpToNextLevel, 20);
       expect(profile.subscriptionStatusLabel, 'Basic');
+      expect(
+        profile.avatarUrl,
+        'https://firebasestorage.googleapis.com/v0/b/bucket/o/avatars%2Fabc.png?alt=media&token=tok',
+      );
       // An id this build does not know is skipped, never thrown on.
       expect(profile.ownedTierIds, <ChallengeTierId>{ChallengeTierId.k250});
     });
+
+    test(
+      'defaults avatarUrl to empty when an older deployment omits it',
+      () async {
+        final repository = CloudFunctionsRunnerPublicProfileRepository(
+          callable: (payload) async {
+            return <Object?, Object?>{
+              'displayName': 'Jinseo_main',
+              'avatarInitials': 'JI',
+              'regionLabel': 'Jurong East, Singapore',
+              'level': 8,
+            };
+          },
+        );
+
+        final profile = await repository.loadRunnerPublicProfile(
+          query: const RunnerPublicProfileQuery.runner(uid: 'runner-uid'),
+        );
+
+        expect(profile!.avatarUrl, '');
+      },
+    );
 
     test('reports an unusable response as a failure', () async {
       final repository = CloudFunctionsRunnerPublicProfileRepository(

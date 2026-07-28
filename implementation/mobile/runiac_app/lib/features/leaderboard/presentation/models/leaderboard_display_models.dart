@@ -180,6 +180,7 @@ class LeaderboardRankRowDisplaySnapshot {
     this.trophy = false,
     this.isCurrentUser = false,
     this.medalTone,
+    this.photoUrl = '',
   });
 
   final String rankLabel;
@@ -187,6 +188,10 @@ class LeaderboardRankRowDisplaySnapshot {
   final String levelLabel;
   final String levelBadgeLabel;
   final String xpLabel;
+
+  /// Raw, not-yet-sanitised avatar photo URL for this row. Empty when the
+  /// backend has no photo on record for this runner.
+  final String photoUrl;
   final RunnerAchievementProfileSnapshot profile;
   final bool trophy;
   final bool isCurrentUser;
@@ -211,6 +216,7 @@ class RunnerAchievementProfileSnapshot {
     this.divisionLabel = '',
     this.snapshotId = '',
     this.buildId = '',
+    this.photoUrl = '',
   });
 
   /// Seeds a profile opened by uid from a non-leaderboard surface (feed,
@@ -221,6 +227,7 @@ class RunnerAchievementProfileSnapshot {
     required this.uid,
     required this.name,
     this.initial = '',
+    this.photoUrl = '',
     this.levelBadgeLabel = '',
     this.isCurrentUser = false,
     this.privacyNote = 'Only public running achievements are shown.',
@@ -237,6 +244,11 @@ class RunnerAchievementProfileSnapshot {
 
   final String name;
   final String initial;
+
+  /// Raw, not-yet-sanitised avatar photo URL fallback shown until the
+  /// runner's backend-owned public profile resolves. Empty when the seeding
+  /// surface had no photo to hand down.
+  final String photoUrl;
   final String regionRankLabel;
   final String levelBadgeLabel;
   final String divisionLevelLabel;

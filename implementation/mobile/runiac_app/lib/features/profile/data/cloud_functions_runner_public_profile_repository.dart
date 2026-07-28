@@ -64,6 +64,7 @@ class CloudFunctionsRunnerPublicProfileRepository
     return RunnerPublicProfileReadModel(
       displayName: _string(data['displayName']),
       avatarInitials: _string(data['avatarInitials']),
+      avatarUrl: _string(data['avatarUrl']),
       regionLabel: _string(data['regionLabel']),
       level: _nonNegativeInteger(data['level']),
       levelProgressFraction: _progressFraction(data['levelProgressPercent']),

@@ -39,6 +39,8 @@ import type {
   ParticipantState,
 } from "./challengeTypes.js";
 import { challengeError } from "./challengeErrors.js";
+import { resolveProfileAvatarUrl, type AvatarUrlContext } from "../profile/avatar/avatarPaths.js";
+import { NULL_AVATAR_URL_CONTEXT } from "../profile/avatar/avatarUrlContextDefaults.js";
 import { assertCallerAccountNotSuspendedInTransaction } from "../security/accountStatus.js";
 import { loadChallengeAccessConfig } from "../config/configLoader.js";
 import { isPremiumSubscription } from "../progression/progressionAuditHelpers.js";
@@ -81,6 +83,7 @@ import {
   type CallableRequest,
   type ChallengeInstanceView,
   type ChallengeParticipantView,
+  type ParticipantLiveDisplay,
 } from "./challengeLobbySupport.js";
 
 export type {
@@ -848,6 +851,11 @@ export type ActiveChallengeView = {
 export async function getActiveChallengeForCallable(
   request: CallableRequest,
   firestore: Firestore,
+  // Injected by the callable layer (see profile/avatar/context.ts); defaults
+  // to a context that can never match a real avatar URL, so an omitted
+  // context still fails closed to avatarUrlSnapshot: "" for every roster
+  // member.
+  avatarContext: AvatarUrlContext = NULL_AVATAR_URL_CONTEXT,
 ): Promise<ActiveChallengeView> {
   const uid = requireAuthUid(request);
 
@@ -873,41 +881,52 @@ export async function getActiveChallengeForCallable(
       return { challenge: null };
     }
 
-    // Level is backend-owned and display-only: resolve each roster member's
-    // current level label live from their profile (no write). All transaction
-    // reads happen before any write, and this happy path performs none.
+    // Level and avatar are both backend-owned and display-only: resolve each
+    // roster member's current level label and avatar URL live from their
+    // profile (no write), exactly the same live-overlay treatment as
+    // displayNameSnapshot/avatarInitialsSnapshot get at write time. All
+    // transaction reads happen before any write, and this happy path
+    // performs none.
     const participantUids = loaded.participants.docs.map((doc) =>
       readString(doc.data(), "uid"),
     );
-    const levelByUid = await readParticipantLevels(transaction, firestore, participantUids);
+    const liveDisplayByUid = await readParticipantLiveDisplays(transaction, firestore, participantUids, avatarContext);
 
     return {
       challenge: {
         instance: serializeInstance(challengeId, loaded.data),
-        participants: sortedParticipantViews(loaded.participants, levelByUid),
+        participants: sortedParticipantViews(loaded.participants, liveDisplayByUid),
       },
     };
   });
 }
 
-// Reads the display-only level label for each participant from their trusted
-// `userProfiles/{uid}` document. Falls back to `Lv.{level}` when only the numeric
-// level is present, and to an empty label (client renders `Lv.0`) when neither
-// exists. Deduplicates refs so one getAll covers the whole roster.
-async function readParticipantLevels(
+// Reads the display-only level label AND avatar URL for each participant from
+// their trusted `userProfiles/{uid}` document, in a single getAll pass so the
+// two are always resolved against the same profile snapshot. The level label
+// falls back to `Lv.{level}` when only the numeric level is present, and to an
+// empty label (client renders `Lv.0`) when neither exists. The avatar URL
+// always passes through resolveProfileAvatarUrl, so a foreign, malformed, or
+// missing stored value resolves to "" — never relayed as-is. Deduplicates
+// refs so one getAll covers the whole roster.
+async function readParticipantLiveDisplays(
   transaction: Transaction,
   firestore: Firestore,
   uids: readonly string[],
-): Promise<ReadonlyMap<string, string>> {
-  const levels = new Map<string, string>();
+  avatarContext: AvatarUrlContext,
+): Promise<ReadonlyMap<string, ParticipantLiveDisplay>> {
+  const displays = new Map<string, ParticipantLiveDisplay>();
   const unique = [...new Set(uids)].filter((uid) => uid.length > 0);
-  if (unique.length === 0) return levels;
+  if (unique.length === 0) return displays;
   const snaps = await transaction.getAll(...unique.map((uid) => profileRef(firestore, uid)));
   unique.forEach((uid, index) => {
-    const label = participantLevelLabel(snaps[index]?.data());
-    if (label.length > 0) levels.set(uid, label);
+    const data = snaps[index]?.data();
+    displays.set(uid, {
+      levelLabel: participantLevelLabel(data),
+      avatarUrl: resolveProfileAvatarUrl(data, avatarContext),
+    });
   });
-  return levels;
+  return displays;
 }
 
 function participantLevelLabel(data: DocumentData | undefined): string {

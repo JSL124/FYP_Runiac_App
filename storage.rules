@@ -59,5 +59,36 @@ service firebase.storage {
     match /project-documents/{docId}/{fileName} {
       allow read, write: if false;
     }
+
+    // Client-uploaded avatar photo, staged before the setProfileAvatar
+    // Cloud Function promotes it to the durable avatars/ object below. The
+    // owner segment must equal the caller's own uid (isOwner(uid)), the same
+    // shape as feed-thumbnail-staging above.
+    match /avatar-staging/{uid}/{uploadName} {
+      allow create: if isOwner(uid)
+        && uploadName.matches('^[A-Za-z0-9_-]+\\.png$')
+        && request.resource.size > 0
+        && request.resource.size <= 1024 * 1024
+        && request.resource.contentType == 'image/png'
+        && request.resource.metadata.keys().hasOnly(['ownerUid'])
+        && request.resource.metadata.ownerUid == uid;
+      allow read, delete: if isOwner(uid);
+      allow update: if false;
+    }
+
+    // Durable avatar photo, written only by the setProfileAvatar Cloud
+    // Function via the Admin SDK (which bypasses these rules entirely) using
+    // an opaque server-minted id — the file name never contains a uid. The
+    // Firebase Storage download token embedded in the served avatarUrl is
+    // the ONLY read gate on this object, so these rules are intentionally
+    // bypassed by design for every legitimate read: knowing the URL is
+    // sufficient, with no auth, no App Check, and no rules check applied.
+    // That makes every object under this prefix a public, unauthenticated
+    // bearer-capability asset for as long as its token is live — the same
+    // trade-off already accepted for share-cards above, just applied here to
+    // a photo instead of a rank card.
+    match /avatars/{fileName} {
+      allow read, write: if false;
+    }
   }
 }

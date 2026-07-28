@@ -172,6 +172,8 @@ class _FeedCommentSheetState extends State<FeedCommentSheet> {
                   widget._source.currentAuthorProfile?.displayName ?? 'You',
               authorAvatarInitials:
                   widget._source.currentAuthorProfile?.avatarInitials ?? 'YO',
+              authorAvatarUrl:
+                  widget._source.currentAuthorProfile?.avatarUrl ?? '',
               authorLevelLabel:
                   widget._source.currentAuthorProfile?.levelLabel ?? '',
               body: body,

@@ -26,6 +26,7 @@ import {
   leaveChallengeForCallable,
 } from "./challengeSettlementCore.js";
 import { withCallableErrorReporting } from "../errors/withErrorReporting.js";
+import { avatarUrlContextFromEnvironment } from "../profile/avatar/context.js";
 
 if (getApps().length === 0) initializeApp();
 
@@ -82,7 +83,7 @@ export const startChallenge = onCall(
 export const getActiveChallenge = onCall(
   { region: "asia-southeast1" },
   withCallableErrorReporting("getActiveChallenge", async (request: RawCallableRequest) =>
-    getActiveChallengeForCallable(normalize(request), getFirestore())),
+    getActiveChallengeForCallable(normalize(request), getFirestore(), avatarUrlContextFromEnvironment())),
 );
 
 export const getChallengeInvitations = onCall(

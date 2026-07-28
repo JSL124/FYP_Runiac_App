@@ -18,6 +18,7 @@ void openRunnerProfile(
   required String uid,
   required String displayName,
   String avatarInitials = '',
+  String avatarUrl = '',
   String levelBadgeLabel = '',
 }) {
   if (uid.isEmpty) {
@@ -32,6 +33,7 @@ void openRunnerProfile(
           uid: uid,
           name: displayName,
           initial: avatarInitials,
+          photoUrl: avatarUrl,
           levelBadgeLabel: levelBadgeLabel,
         ),
         onBack: () => Navigator.of(routeContext).pop(),

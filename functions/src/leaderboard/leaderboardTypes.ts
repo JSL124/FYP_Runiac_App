@@ -43,6 +43,19 @@ export type LeaderboardPublicEntry = {
   readonly divisionLabel: string;
   readonly regionLabel: string;
   readonly score: number;
+  /**
+   * A Firebase Storage download URL resolved via
+   * `resolveProfileAvatarUrl`/`AvatarUrlContext` (see
+   * `functions/src/profile/avatar/avatarPaths.ts`), or `""` when the owner
+   * has no avatar set or the stored value fails sanitisation. Deliberately a
+   * URL whose object path is an opaque, server-minted id — never the uid —
+   * because `LeaderboardPublicEntry` rows land in `leaderboardSnapshots`
+   * (`allow read: if isSignedIn()`, world-readable to every signed-in user)
+   * and `leaderboardUserRanks`, and this row carries no `ownerUid` field on
+   * purpose. A uid-bearing avatar URL here would disclose every ranked
+   * runner's uid to every other signed-in user.
+   */
+  readonly avatarUrl: string;
 };
 
 export type MonthlyLeaderboardSnapshotPlan = {

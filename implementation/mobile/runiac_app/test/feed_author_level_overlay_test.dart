@@ -130,6 +130,59 @@ void main() {
   );
 
   test(
+    'a resolved avatarUrl replaces the stored one',
+    () async {
+      final port = FeedTestDataPort.withSingleFriend(
+        'friend-15',
+        storedAvatarUrl:
+            'https://firebasestorage.googleapis.com/v0/b/bucket/o/avatars%2Fold.png?alt=media&token=old-tok',
+      );
+      port.authorLevels['friend-15'] = const FeedAuthorLevel(
+        levelLabel: 'Level 12',
+        levelProgressFraction: 0.75,
+        avatarUrl:
+            'https://firebasestorage.googleapis.com/v0/b/bucket/o/avatars%2Fnew.png?alt=media&token=new-tok',
+      );
+      final repository = FirebaseFeedRepository(port: port);
+
+      final state = await repository.loadInitial(viewer);
+
+      final post = state.posts.single;
+      expect(
+        post.authorAvatarUrl,
+        'https://firebasestorage.googleapis.com/v0/b/bucket/o/avatars%2Fnew.png?alt=media&token=new-tok',
+      );
+    },
+  );
+
+  test(
+    'a resolved empty avatarUrl leaves the stored one intact',
+    () async {
+      final port = FeedTestDataPort.withSingleFriend(
+        'friend-16',
+        storedAvatarUrl:
+            'https://firebasestorage.googleapis.com/v0/b/bucket/o/avatars%2Fold.png?alt=media&token=old-tok',
+      );
+      port.authorLevels['friend-16'] = const FeedAuthorLevel(
+        levelLabel: 'Level 12',
+        levelProgressFraction: 0.75,
+        avatarUrl: '',
+      );
+      final repository = FirebaseFeedRepository(port: port);
+
+      final state = await repository.loadInitial(viewer);
+
+      final post = state.posts.single;
+      expect(
+        post.authorAvatarUrl,
+        'https://firebasestorage.googleapis.com/v0/b/bucket/o/avatars%2Fold.png?alt=media&token=old-tok',
+        reason:
+            'an empty resolved avatarUrl must never erase a stored photo',
+      );
+    },
+  );
+
+  test(
     'a resolved identity is applied even when the level label resolves empty',
     () async {
       final port = FeedTestDataPort.withSingleFriend('friend-12');

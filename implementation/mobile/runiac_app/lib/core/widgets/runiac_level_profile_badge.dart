@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../theme/runiac_colors.dart';
+import 'runiac_avatar_photo.dart';
 
 class RuniacLevelProfileBadge extends StatelessWidget {
   const RuniacLevelProfileBadge({
@@ -18,6 +19,7 @@ class RuniacLevelProfileBadge extends StatelessWidget {
     this.discColor,
     this.discBorderColor,
     this.initialsColor,
+    this.photoUrl,
     super.key,
   });
 
@@ -35,6 +37,7 @@ class RuniacLevelProfileBadge extends StatelessWidget {
     this.discColor = RuniacColors.primaryBlue,
     this.discBorderColor = RuniacColors.white,
     this.initialsColor = RuniacColors.white,
+    this.photoUrl,
     super.key,
   })  : badgeHeight = 16,
         badgeMinWidth = 42,
@@ -54,6 +57,11 @@ class RuniacLevelProfileBadge extends StatelessWidget {
   final Color? discColor;
   final Color? discBorderColor;
   final Color? initialsColor;
+
+  /// Raw, not-yet-sanitised avatar photo URL. Renders the initials disc
+  /// when absent, when it fails the client-side sanitiser in
+  /// `runiac_avatar_photo.dart`, or if the image fails to load.
+  final String? photoUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -92,6 +100,7 @@ class RuniacLevelProfileBadge extends StatelessWidget {
                     discBorderColor ??
                     RuniacColors.primaryBlue.withValues(alpha: 0.10),
                 textColor: initialsColor ?? RuniacColors.primaryBlue,
+                photoUrl: photoUrl,
               ),
             ),
             if (levelLabel.isNotEmpty)
@@ -120,6 +129,7 @@ class _ProfileInitialsDisc extends StatelessWidget {
     required this.fillColor,
     required this.borderColor,
     required this.textColor,
+    this.photoUrl,
   });
 
   final String initials;
@@ -128,6 +138,7 @@ class _ProfileInitialsDisc extends StatelessWidget {
   final Color fillColor;
   final Color borderColor;
   final Color textColor;
+  final String? photoUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -140,20 +151,23 @@ class _ProfileInitialsDisc extends StatelessWidget {
         shape: BoxShape.circle,
         border: Border.all(color: borderColor, width: 2),
       ),
-      child: Padding(
-        padding: EdgeInsets.all(size * 0.10),
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            _initialLabel(initials),
-            maxLines: 1,
-            overflow: TextOverflow.clip,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: textColor,
-              fontSize: fontSize,
-              fontWeight: FontWeight.w900,
-              height: 1,
+      child: RuniacAvatarPhotoDisc(
+        photoUrl: photoUrl,
+        fallback: Padding(
+          padding: EdgeInsets.all(size * 0.10),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              _initialLabel(initials),
+              maxLines: 1,
+              overflow: TextOverflow.clip,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: textColor,
+                fontSize: fontSize,
+                fontWeight: FontWeight.w900,
+                height: 1,
+              ),
             ),
           ),
         ),

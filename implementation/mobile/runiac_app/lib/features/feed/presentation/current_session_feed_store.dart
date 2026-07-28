@@ -52,6 +52,7 @@ class CurrentSessionFeedStore extends ChangeNotifier {
         _sessionPosts[index] = post.copyWith(
           authorDisplayName: profile.displayName,
           authorAvatarInitials: profile.avatarInitials,
+          authorAvatarUrl: profile.avatarUrl,
           authorLevelLabel: profile.levelLabel,
         );
       }
@@ -85,6 +86,7 @@ class CurrentSessionFeedStore extends ChangeNotifier {
             : profile.userId,
         authorDisplayName: profile.displayName,
         authorAvatarInitials: profile.avatarInitials,
+        authorAvatarUrl: profile.avatarUrl,
         authorLevelLabel: profile.levelLabel,
         relativeTimeLabel: summary.dateTimeLabel,
         activityTitle: summary.title,
