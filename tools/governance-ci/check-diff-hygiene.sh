@@ -746,6 +746,32 @@ is_notification_inbox_delivery_semantics_path() {
   esac
 }
 
+# Exact paths touched by the routed 8-bit PNG encoding capsule: one new shared
+# core helper, the four existing call sites that rasterize a ui.Image into PNG
+# bytes the app uploads, and their tests. Client-only by construction — no
+# functions/, rules, index, config, or dependency path is or may be listed here.
+is_eight_bit_png_encoding_capsule_active() {
+  grep -Eq '^- Newly routed 8-bit PNG encoding on 2026-07-28 Asia/Singapore: `implementation/roadmap/capsules/eight-bit-png-encoding\.md`' implementation/roadmap/CURRENT.md
+}
+
+is_eight_bit_png_encoding_path() {
+  case "$1" in
+    implementation/roadmap/capsules/eight-bit-png-encoding.md|\
+    implementation/mobile/runiac_app/lib/core/imaging/eight_bit_png.dart|\
+    implementation/mobile/runiac_app/lib/core/share/share_card_export_service.dart|\
+    implementation/mobile/runiac_app/lib/features/feed/data/feed_publish/history_artifact_resolver.dart|\
+    implementation/mobile/runiac_app/lib/features/you/presentation/widgets/activity_route_mapbox_snapshot_provider.dart|\
+    implementation/mobile/runiac_app/lib/features/profile/data/avatar/avatar_image_encoder.dart|\
+    implementation/mobile/runiac_app/test/eight_bit_png_test.dart|\
+    implementation/mobile/runiac_app/test/avatar_image_encoder_test.dart)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_profile_photo_avatar_capsule_active() {
   grep -Eq '^- Newly routed profile photo avatars on 2026-07-28 Asia/Singapore: `implementation/roadmap/capsules/profile-photo-avatar\.md`' implementation/roadmap/CURRENT.md
 }
@@ -899,6 +925,10 @@ is_profile_photo_avatar_path() {
 }
 
 is_allowed_path() {
+  if is_eight_bit_png_encoding_path "$1" && is_eight_bit_png_encoding_capsule_active; then
+    return 0
+  fi
+
   if is_profile_photo_avatar_path "$1" && is_profile_photo_avatar_capsule_active; then
     return 0
   fi
