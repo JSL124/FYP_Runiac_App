@@ -284,6 +284,50 @@ describe("monthly leaderboard aggregation", () => {
     assert.equal(withoutMap.snapshots[0]?.topEntries[0]?.avatarUrl, "");
   });
 
+  it("publishes the live publicAliasByOwner nickname over the alias frozen into the contribution", () => {
+    const renamed = planMonthlyLeaderboards({
+      periodKey: "2026-07",
+      publicAliasByOwner: new Map([
+        ["je-iron-1", "Jinseo_main"],
+        // A profile with no usable nickname must not blank the row.
+        ["je-iron-2", "   "],
+      ]),
+      contributions: [
+        contribution({ ownerUid: "je-iron-1", scoreXp: 130 }),
+        contribution({ ownerUid: "je-iron-2", scoreXp: 90 }),
+        // Absent from the map entirely: keeps the stored alias.
+        contribution({ ownerUid: "je-iron-3", scoreXp: 50 }),
+      ],
+    });
+
+    assert.deepEqual(
+      renamed.snapshots[0]?.topEntries.map((entry) => entry.publicAlias),
+      ["Jinseo_main", "Runner je-iron-2", "Runner je-iron-3"],
+    );
+    assert.equal(
+      renamed.ranks.find((item) => item.ownerUid === "je-iron-1")?.currentEntry
+        .publicAlias,
+      "Jinseo_main",
+    );
+    // Nearby entries are projected from the same rows, so the rename reaches
+    // every runner's view of the renamed one, not only their own.
+    assert.deepEqual(
+      renamed.ranks
+        .find((item) => item.ownerUid === "je-iron-3")
+        ?.nearbyEntries.map((entry) => entry.publicAlias),
+      ["Jinseo_main", "Runner je-iron-2", "Runner je-iron-3"],
+    );
+
+    const withoutMap = planMonthlyLeaderboards({
+      periodKey: "2026-07",
+      contributions: [contribution({ ownerUid: "je-iron-1", scoreXp: 130 })],
+    });
+    assert.equal(
+      withoutMap.snapshots[0]?.topEntries[0]?.publicAlias,
+      "Runner je-iron-1",
+    );
+  });
+
   it("uses Asia Singapore month boundaries and labels", () => {
     assert.equal(
       currentSingaporeMonthKey(new Date("2026-06-30T15:59:59.000Z")),

@@ -160,6 +160,18 @@ export async function refreshMonthlyLeaderboardSnapshots(
         resolveProfileAvatarUrl(facts.profile, avatarContext),
       ]),
     );
+    // Same `ownerFacts`, so also zero new reads. A contribution stores the
+    // alias captured by the run that wrote it, so a runner who changes their
+    // nickname after their last run of the period would keep appearing on the
+    // board under the old name until they ran again. Resolving the alias here
+    // instead means every refresh republishes the current nickname, which also
+    // self-heals rows already published under a stale one.
+    const publicAliasByOwner = new Map<string, string>(
+      [...ownerFacts.entries()].map(([uid, facts]) => [
+        uid,
+        readString(facts.profile?.["nickname"]) ?? "",
+      ]),
+    );
     const plan = planMonthlyLeaderboards({
       periodKey,
       contributions: contributionSnapshot.docs.map((document) =>
@@ -169,6 +181,7 @@ export async function refreshMonthlyLeaderboardSnapshots(
       excludePremium: leaderboardConfig.excludePremium,
       minRunsToQualify: leaderboardConfig.minRunsToQualify,
       avatarUrlByOwner,
+      publicAliasByOwner,
     });
     const currentViews = mergeRolloverViews({
       periodKey,

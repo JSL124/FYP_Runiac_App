@@ -56,6 +56,17 @@ export function planMonthlyLeaderboards(input: {
    * their row, same as "no avatar set".
    */
   readonly avatarUrlByOwner?: ReadonlyMap<string, string>;
+  /**
+   * Per-owner public alias read live from `userProfiles.nickname` by the caller
+   * (`monthlyLeaderboardWriter.ts`, from the same `ownerFacts` — zero extra
+   * reads). A contribution only carries the alias captured at the run that
+   * wrote it, so a runner who renames after their last run of the period would
+   * otherwise stay on the board under the old nickname until they run again.
+   * Optional, and an owner absent from the map (or a blank entry) falls back to
+   * the contribution's stored alias, so every existing planner test and every
+   * caller without profile access keeps its current behaviour.
+   */
+  readonly publicAliasByOwner?: ReadonlyMap<string, string>;
 }): MonthlyLeaderboardPlan {
   const premiumUids = input.currentPremiumUids ?? emptyUidSet;
   const excludePremium = input.excludePremium ?? false;
@@ -142,6 +153,7 @@ export function planMonthlyLeaderboards(input: {
         league,
         index + 1,
         input.avatarUrlByOwner,
+        input.publicAliasByOwner,
       ),
     );
     snapshots.push({
@@ -278,9 +290,14 @@ function publicEntry(
   league: LeaderboardLeagueDefinition,
   rank: number,
   avatarUrlByOwner: ReadonlyMap<string, string> | undefined,
+  publicAliasByOwner: ReadonlyMap<string, string> | undefined,
 ): LeaderboardPublicEntry {
   return {
-    publicAlias: contribution.publicAlias,
+    // Live profile nickname wins over the alias frozen into the contribution
+    // at the last run; a blank or missing live value keeps the stored one.
+    publicAlias:
+      readRequiredString(publicAliasByOwner?.get(contribution.ownerUid)) ??
+      contribution.publicAlias,
     rankLabel: `#${rank}`,
     scoreLabel: `${contribution.scoreXp.toLocaleString("en-US")} XP`,
     levelLabel: contribution.levelLabel,

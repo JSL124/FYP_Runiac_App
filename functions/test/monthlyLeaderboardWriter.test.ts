@@ -512,8 +512,10 @@ describe(
         .doc("leaderboardSnapshots/monthly_jurong-east_tier_01_2026-07")
         .get();
       const topEntries = snapshot.get("topEntries") as readonly Record<string, unknown>[];
-      const withAvatarEntry = topEntries.find((entryItem) => entryItem["publicAlias"] === "Runner avatar-writer-with-avatar");
-      const withoutAvatarEntry = topEntries.find((entryItem) => entryItem["publicAlias"] === "Runner avatar-writer-without-avatar");
+      // Rows carry the live profile nickname, not the alias stored on the
+      // contribution — see the rename test below.
+      const withAvatarEntry = topEntries.find((entryItem) => entryItem["publicAlias"] === "Has Avatar");
+      const withoutAvatarEntry = topEntries.find((entryItem) => entryItem["publicAlias"] === "No Avatar");
       assert.equal(withAvatarEntry?.["avatarUrl"], avatarUrl);
       assert.equal(withoutAvatarEntry?.["avatarUrl"], "");
 
@@ -523,8 +525,74 @@ describe(
       const currentEntry = rank.get("currentEntry") as Record<string, unknown>;
       assert.equal(currentEntry["avatarUrl"], avatarUrl);
       const nearbyEntries = rank.get("nearbyEntries") as readonly Record<string, unknown>[];
-      const nearbySelf = nearbyEntries.find((entryItem) => entryItem["publicAlias"] === "Runner avatar-writer-with-avatar");
+      const nearbySelf = nearbyEntries.find((entryItem) => entryItem["publicAlias"] === "Has Avatar");
       assert.equal(nearbySelf?.["avatarUrl"], avatarUrl);
+    });
+
+    // A contribution stores the alias captured by the run that wrote it, so a
+    // runner who renames afterwards stayed on the board under the old name
+    // until their next run. This asserts the refresh republishes the current
+    // nickname over the stale stored one, on every projected row.
+    it("republishes the live profile nickname over the alias frozen into the contribution", async () => {
+      const renamedUid = "alias-writer-renamed";
+      const namelessUid = "alias-writer-no-nickname";
+      await Promise.all([
+        firestore.doc(`users/${renamedUid}`).set({ subscriptionStatus: "basic" }),
+        firestore.doc(`userProfiles/${renamedUid}`).set({
+          nickname: "Jinseo_main",
+          locationLabel: "Jurong East, Singapore",
+          divisionKey: "tier_01",
+          level: 1,
+        }),
+        firestore
+          .doc(`leaderboardContributions/${renamedUid}_monthly_2026-07`)
+          .set({
+            ...contribution({ ownerUid: renamedUid, scoreXp: 200 }),
+            publicAlias: "babo",
+          }),
+        firestore.doc(`users/${namelessUid}`).set({ subscriptionStatus: "basic" }),
+        firestore.doc(`userProfiles/${namelessUid}`).set({
+          locationLabel: "Jurong East, Singapore",
+          divisionKey: "tier_01",
+          level: 1,
+        }),
+        firestore
+          .doc(`leaderboardContributions/${namelessUid}_monthly_2026-07`)
+          .set(contribution({ ownerUid: namelessUid, scoreXp: 100 })),
+      ]);
+
+      await refreshMonthlyLeaderboardSnapshots(firestore, "2026-07", {
+        now: new Date("2026-07-10T00:00:00.000Z"),
+        buildId: "alias-refresh-build",
+      });
+
+      const snapshot = await firestore
+        .doc("leaderboardSnapshots/monthly_jurong-east_tier_01_2026-07")
+        .get();
+      assert.deepEqual(
+        (snapshot.get("topEntries") as readonly Record<string, unknown>[]).map(
+          (entryItem) => entryItem["publicAlias"],
+        ),
+        ["Jinseo_main", `Runner ${namelessUid}`],
+      );
+
+      const rank = await firestore
+        .doc(`leaderboardUserRanks/${renamedUid}_monthly_2026-07`)
+        .get();
+      assert.equal(
+        (rank.get("currentEntry") as Record<string, unknown>)["publicAlias"],
+        "Jinseo_main",
+      );
+      // The renamed runner also has to be renamed inside everyone else's view.
+      const neighbourRank = await firestore
+        .doc(`leaderboardUserRanks/${namelessUid}_monthly_2026-07`)
+        .get();
+      assert.deepEqual(
+        (
+          neighbourRank.get("nearbyEntries") as readonly Record<string, unknown>[]
+        ).map((entryItem) => entryItem["publicAlias"]),
+        ["Jinseo_main", `Runner ${namelessUid}`],
+      );
     });
 
     it("resolves a foreign-bucket avatarUrl to empty string, proving the sanitiser is live on the leaderboard read path and not vacuous", async () => {
