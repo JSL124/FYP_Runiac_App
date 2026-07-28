@@ -177,6 +177,12 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
   /// resume or a widget update while the overlay is already open must not
   /// stack a second one).
   bool _celebratingPlanCompletion = false;
+
+  /// Whether Home is the screen the runner is actually looking at: its route
+  /// is the top of the navigator stack *and* the Home tab is the selected one.
+  /// Null until the first [didChangeDependencies], so the initial mount does
+  /// not read as a transition. See [_maybeCelebratePlanCompletion].
+  bool? _homeIsFrontmost;
   HomeGuideConsentStatus _homeGuideConsentStatus =
       HomeGuideConsentStatus.unknown;
   String? _homeGuideConsentOwnerUid;
@@ -227,13 +233,25 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
   /// Celebrates a backend-recorded plan completion exactly once. The seen
   /// marker is advanced *before* the ceremony opens so a crash or a force-quit
   /// mid-animation cannot leave the celebration re-firing on every launch.
+  ///
+  /// The completion signal arrives while the runner is still inside the run
+  /// flow — `completeRun` records it and the app re-reads plan progress during
+  /// `RunCompletionCoordinator.complete()`, before the cool-down screen is even
+  /// pushed. Celebrating there would open the overlay on top of the cool-down,
+  /// summary or XP-update screen, block their CTAs behind its non-dismissible
+  /// barrier, and spend the one-shot marker on a screen the ceremony was never
+  /// meant for — leaving Home silent by the time the runner reaches it. So when
+  /// Home is not frontmost this holds the celebration instead: nothing is
+  /// shown, the marker is left untouched, and [_syncHomeFrontmost] retries the
+  /// moment Home comes back to the front.
   Future<void> _maybeCelebratePlanCompletion() async {
     final seenStore = widget.planCompletionSeenStore;
     final completedAt = widget.planCompletedAt;
     if (seenStore == null ||
         completedAt == null ||
         !mounted ||
-        _celebratingPlanCompletion) {
+        _celebratingPlanCompletion ||
+        _homeIsFrontmost == false) {
       return;
     }
 
@@ -242,7 +260,11 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
     if (lastSeenMs != null && completedAtMs <= lastSeenMs) {
       return;
     }
-    if (!mounted || _celebratingPlanCompletion) {
+    // Re-checked after the await: the runner may have left Home (or the run
+    // flow may have pushed another screen) while the marker was being read.
+    if (!mounted ||
+        _celebratingPlanCompletion ||
+        _homeIsFrontmost == false) {
       return;
     }
 
@@ -363,6 +385,32 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
     if (CurrentSessionUserProgressScope.maybeRead(context) == null &&
         !_userProgressFutureInitialized) {
       _setUserProgressFuture(refresh: false);
+    }
+    _syncHomeFrontmost();
+  }
+
+  /// Tracks whether Home is frontmost and retries the plan-completion ceremony
+  /// the moment it becomes so.
+  ///
+  /// Both inputs are inherited, so this method runs again on every change to
+  /// either: `ModalRoute.of` depends on `_ModalScopeStatus`, which the route
+  /// rebuilds whenever `isCurrent` flips (including the `popUntil` that the
+  /// XP-update screen's Home action performs), and `TickerMode.valuesOf`
+  /// depends on the shell's per-tab `TickerMode`, which is enabled only for
+  /// the selected tab — and which the `Overlay` also disables for any route
+  /// sitting under an opaque one. That makes this the retry hook: Home is not
+  /// rebuilt and no app
+  /// lifecycle event fires when the run flow pops back to it.
+  void _syncHomeFrontmost() {
+    final route = ModalRoute.of(context);
+    // A null route means Home is not inside a navigator at all (widget tests
+    // that pump it bare), in which case there is nothing above it to hide it.
+    final frontmost =
+        (route?.isCurrent ?? true) && TickerMode.valuesOf(context).enabled;
+    final previous = _homeIsFrontmost;
+    _homeIsFrontmost = frontmost;
+    if (previous == false && frontmost) {
+      _maybeCelebratePlanCompletion();
     }
   }
 

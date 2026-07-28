@@ -18,6 +18,12 @@ import '../../../core/haptics/runiac_haptics_scope.dart';
 /// by the `completeRun` Cloud Function). The client never derives completion
 /// itself. The celebration is one-shot per completion, guarded by a local
 /// `PlanCompletionSeenStore` marker.
+///
+/// The signal arrives while the runner is still inside the run flow, so
+/// `HomeTab` holds the celebration until Home is frontmost rather than opening
+/// it over the cool-down, summary or XP-update screen — this route is pushed
+/// onto the shared root navigator and would otherwise sit on top of whatever
+/// the runner is actually looking at.
 Future<void> showPlanCompletionCeremony(BuildContext context) {
   final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
   return showGeneralDialog<void>(
