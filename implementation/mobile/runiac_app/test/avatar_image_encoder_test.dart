@@ -46,7 +46,89 @@ void main() {
         await _expectCompliantAvatarPng(await encodeAvatarPng(source));
       },
     );
+
+    // The encoder narrows its output to 8 bits per channel by reading the
+    // rendered pixels back as raw RGBA and rebuilding the image from them.
+    // That round-trip is where a wrong pixel format or a premultiplied/straight
+    // alpha mismatch would silently corrupt every uploaded photo rather than
+    // fail it, so this decodes the encoded result and checks the actual pixels
+    // survived: the centre lands inside the source's yellow circle and the
+    // corner in its blue field, with the centre crop keeping both in place.
+    test('preserves image content through the 8-bit round trip', () async {
+      final encoded = await encodeAvatarPng(await _sourcePng(400, 200));
+      final pixels = await _decodeToRgba(encoded);
+
+      _expectPixel(pixels, x: 128, y: 128, red: 0xFF, green: 0xCC, blue: 0x00);
+      _expectPixel(pixels, x: 4, y: 4, red: 0x33, green: 0x66, blue: 0x99);
+    });
+
+    test('encodes an opaque avatar, so the round trip loses no alpha', () async {
+      final encoded = await encodeAvatarPng(await _sourcePng(400, 200));
+      final pixels = await _decodeToRgba(encoded);
+
+      const corners = <List<int>>[
+        <int>[0, 0],
+        <int>[255, 0],
+        <int>[0, 255],
+        <int>[255, 255],
+        <int>[128, 128],
+      ];
+      for (final point in corners) {
+        final offset = ((point[1] * avatarEncodedDimension) + point[0]) * 4;
+        expect(
+          pixels.getUint8(offset + 3),
+          255,
+          reason: 'pixel ${point[0]},${point[1]} must stay fully opaque',
+        );
+      }
+    });
   });
+}
+
+/// Decodes [png] back into raw RGBA bytes so a test can assert on real pixel
+/// values rather than only on chunk structure.
+Future<ByteData> _decodeToRgba(Uint8List png) async {
+  final codec = await ui.instantiateImageCodec(png);
+  final frame = await codec.getNextFrame();
+  codec.dispose();
+  final image = frame.image;
+  try {
+    expect(image.width, avatarEncodedDimension);
+    expect(image.height, avatarEncodedDimension);
+    final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+    expect(data, isNotNull, reason: 'the encoded avatar PNG must be decodable');
+    return data!;
+  } finally {
+    image.dispose();
+  }
+}
+
+/// Asserts the pixel at ([x], [y]) matches the expected channels. The tolerance
+/// absorbs resampling at the circle's antialiased edge and the sRGB clamp the
+/// narrowing step performs; it is far tighter than any channel swap, alpha
+/// premultiplication mistake, or garbled round-trip would produce.
+void _expectPixel(
+  ByteData pixels, {
+  required int x,
+  required int y,
+  required int red,
+  required int green,
+  required int blue,
+}) {
+  final offset = ((y * avatarEncodedDimension) + x) * 4;
+  final actual = <int>[
+    pixels.getUint8(offset),
+    pixels.getUint8(offset + 1),
+    pixels.getUint8(offset + 2),
+  ];
+  final expected = <int>[red, green, blue];
+  for (var channel = 0; channel < expected.length; channel++) {
+    expect(
+      actual[channel],
+      closeTo(expected[channel], 8),
+      reason: 'pixel $x,$y expected RGB $expected but decoded as $actual',
+    );
+  }
 }
 
 Future<void> _expectCompliantAvatarPng(Uint8List encoded) async {
