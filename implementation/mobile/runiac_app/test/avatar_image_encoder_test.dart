@@ -58,7 +58,32 @@ Future<void> _expectCompliantAvatarPng(Uint8List encoded) async {
   final structure = _walkPng(encoded);
   expect(structure.width, avatarEncodedDimension);
   expect(structure.height, avatarEncodedDimension);
-  expect(structure.bitDepth, 8, reason: 'validateAvatarPng requires bit depth 8');
+  // Host/simulator Skia emits bit depth 8; a wide-gamut (Display P3) device
+  // renders into an F16 surface and emits bit depth 16 with sBIT 10,10,10,10
+  // instead. The server accepts both and nothing else, so this test cannot
+  // pin the depth to 8 — that assertion passed on the host while every real
+  // device upload was rejected.
+  expect(
+    structure.bitDepth,
+    anyOf(8, 16),
+    reason: 'validateAvatarPng requires bit depth 8, or 16 with sBIT 10',
+  );
+  final significantBits = structure.bitDepth == 16 ? 10 : 8;
+  if (structure.bitDepth == 16) {
+    expect(
+      structure.sBitValues,
+      isNotNull,
+      reason: 'validateAvatarPng requires an sBIT chunk at bit depth 16',
+    );
+  }
+  if (structure.sBitValues != null) {
+    expect(
+      structure.sBitValues,
+      List<int>.filled(4, significantBits),
+      reason: 'validateAvatarPng requires sBIT to declare $significantBits '
+          'significant bits per channel at bit depth ${structure.bitDepth}',
+    );
+  }
   expect(structure.colorType, 6, reason: 'validateAvatarPng requires colour type 6 (RGBA)');
   expect(structure.compression, 0);
   expect(structure.filter, 0);
@@ -117,6 +142,7 @@ class _PngStructure {
     required this.interlace,
     required this.idatChunkCount,
     required this.idatTotalBytes,
+    required this.sBitValues,
   });
 
   final int width;
@@ -128,6 +154,11 @@ class _PngStructure {
   final int interlace;
   final int idatChunkCount;
   final int idatTotalBytes;
+
+  /// The four sBIT bytes when the encoder emitted an sBIT chunk, or null when
+  /// it did not. `validateAvatarPng` requires one at bit depth 16 and pins its
+  /// value in either case.
+  final List<int>? sBitValues;
 }
 
 /// Small local PNG chunk-walker, deliberately independent of the server's
@@ -159,6 +190,7 @@ _PngStructure _walkPng(Uint8List bytes) {
   var idatCount = 0;
   var idatBytes = 0;
   var sawIend = false;
+  List<int>? sBitValues;
 
   while (offset < bytes.length) {
     expect(
@@ -194,6 +226,9 @@ _PngStructure _walkPng(Uint8List bytes) {
       filter = bytes[dataStart + 11];
       interlace = bytes[dataStart + 12];
       sawIhdr = true;
+    } else if (type == 'sBIT') {
+      expect(length, 4, reason: 'validateAvatarPng requires a 4-byte sBIT');
+      sBitValues = bytes.sublist(dataStart, dataStart + length).toList();
     } else if (type == 'IDAT') {
       expect(sawIhdr, isTrue, reason: 'IDAT must follow IHDR');
       expect(length, greaterThan(0), reason: 'IDAT chunk must not be empty');
@@ -233,6 +268,7 @@ _PngStructure _walkPng(Uint8List bytes) {
     interlace: interlace!,
     idatChunkCount: idatCount,
     idatTotalBytes: idatBytes,
+    sBitValues: sBitValues,
   );
 }
 

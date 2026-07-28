@@ -7,7 +7,12 @@ const avatarEncodedDimension = 256;
 
 /// Encodes arbitrary source image bytes (whatever `image_picker`/the OS photo
 /// library handed back) into the exact PNG shape `validateAvatarPng` demands:
-/// 256x256, 8-bit depth, colour type 6 (RGBA), no interlace. Modelled
+/// 256x256, colour type 6 (RGBA), no interlace, and either 8-bit depth or —
+/// on a wide-gamut (Display P3) device, where Flutter renders into an F16
+/// surface and Skia therefore emits depth 16 with `sBIT` 10,10,10,10 — that
+/// wide-gamut shape. The bit depth is not something this function can choose;
+/// it follows the device's rendering surface, which is exactly why the server
+/// accepts both. Modelled
 /// directly on `encodePrivacyMaskedPng` in
 /// `../../../you/presentation/widgets/activity_route_mapbox_snapshot_provider.dart` —
 /// decode via `ui.instantiateImageCodec`, draw into a fixed-size canvas, then

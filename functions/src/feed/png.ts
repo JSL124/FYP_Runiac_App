@@ -30,8 +30,18 @@ export function validateFeedThumbnailPng(bytes: Uint8Array): PngValidationResult
   return validatePng(bytes, { maximumBytes, isAllowedDimension, allowsBitDepth16: isWideDimension });
 }
 
+// Bit depth 16 is allowed for the same reason isWideDimension allows it on
+// feed thumbnails: on a wide-gamut (Display P3) device — every recent iPhone —
+// Flutter renders Picture.toImage into an F16 surface, so Skia's PNG encoder
+// emits depth 16 with sBIT 10,10,10,10 rather than depth 8. Rejecting it made
+// avatar upload fail with "Staged avatar image is invalid." for every real
+// device while passing on host/simulator Skia, which emits depth 8. This is
+// not a blanket relaxation: the depth-16 branch below still requires an sBIT
+// chunk declaring exactly 10 significant bits per channel, so only that
+// encoder's shape is accepted, and the 1 MiB byte limit and fixed 256x256
+// dimension are unchanged.
 export function validateAvatarPng(bytes: Uint8Array): PngValidationResult {
-  return validatePng(bytes, { maximumBytes, isAllowedDimension: isAllowedAvatarDimension, allowsBitDepth16: () => false });
+  return validatePng(bytes, { maximumBytes, isAllowedDimension: isAllowedAvatarDimension, allowsBitDepth16: () => true });
 }
 
 function validatePng(bytes: Uint8Array, options: ValidatePngOptions): PngValidationResult {

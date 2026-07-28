@@ -15,8 +15,28 @@ describe("Avatar PNG validation", () => {
     rejects(png(512, 512), "dimensions");
   });
 
-  it("rejects bit depth 16 at 256x256", () => {
-    rejects(png(256, 256, { bitDepth: 16 }), "ihdr");
+  // What a wide-gamut (Display P3) device actually uploads: Flutter renders
+  // Picture.toImage into an F16 surface there, so Skia emits depth 16 plus an
+  // sBIT declaring 10 significant bits. Host/simulator Skia emits depth 8, so
+  // only a real device ever produced this shape — and rejecting it failed
+  // every real avatar upload with "Staged avatar image is invalid."
+  it("accepts bit depth 16 at 256x256 when sBIT declares 10 significant bits", () => {
+    const result = validateAvatarPng(png(256, 256, { bitDepth: 16, sBit: [10, 10, 10, 10] }));
+    assert.equal(result.ok, true);
+    assert.equal(result.ok && result.width, 256);
+  });
+
+  it("rejects bit depth 16 at 256x256 without an sBIT chunk", () => {
+    rejects(png(256, 256, { bitDepth: 16 }), "metadata");
+  });
+
+  it("rejects bit depth 16 at 256x256 with any sBIT other than 10 significant bits", () => {
+    rejects(png(256, 256, { bitDepth: 16, sBit: [8, 8, 8, 8] }), "metadata");
+    rejects(png(256, 256, { bitDepth: 16, sBit: [10, 10, 10, 16] }), "metadata");
+  });
+
+  it("rejects an sBIT declaring 10 significant bits at bit depth 8", () => {
+    rejects(png(256, 256, { sBit: [10, 10, 10, 10] }), "metadata");
   });
 
   it("rejects colour type 2 at 256x256", () => {
@@ -46,10 +66,11 @@ function rejects(bytes: Uint8Array, error: string): void {
   assert.equal(!result.ok && result.error, error);
 }
 
-function png(width: number, height: number, options: { bitDepth?: number; colourType?: number } = {}): Uint8Array {
+function png(width: number, height: number, options: { bitDepth?: number; colourType?: number; sBit?: readonly number[] } = {}): Uint8Array {
   const bitDepth = options.bitDepth ?? 8;
   const colourType = options.colourType ?? 6;
-  return Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10, ...chunk("IHDR", [...u32(width), ...u32(height), bitDepth, colourType, 0, 0, 0]), ...chunk("IDAT", [0]), ...chunk("IEND", [])]);
+  const sBit = options.sBit === undefined ? [] : chunk("sBIT", options.sBit);
+  return Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10, ...chunk("IHDR", [...u32(width), ...u32(height), bitDepth, colourType, 0, 0, 0]), ...sBit, ...chunk("IDAT", [0]), ...chunk("IEND", [])]);
 }
 
 function pngWithTextChunk(): Uint8Array {
