@@ -40,8 +40,11 @@ DateTime _systemClock() => DateTime.timestamp().toLocal();
 class _LeaderboardTabState extends State<LeaderboardTab> {
   // Tall enough for the two-line unranked encouragement card in the My Rank
   // Preview section; device fonts render taller than the test-only font.
-  static const double _userRegionExpandedSheetHeight = 472;
-  static const double _regionalExpandedSheetHeight = 374;
+  // Each preview row is sized by `LeaderboardInitialBadge`, so both heights
+  // carry the ~17px per row the enlarged profile badge added: four rows for
+  // the user region (three top ranks plus My Rank), three otherwise.
+  static const double _userRegionExpandedSheetHeight = 540;
+  static const double _regionalExpandedSheetHeight = 425;
   static const double _collapsedSheetHeight = 46;
   static const _expiredRetryDelays = [
     Duration.zero,

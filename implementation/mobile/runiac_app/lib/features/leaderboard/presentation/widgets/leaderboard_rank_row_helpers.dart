@@ -40,23 +40,35 @@ class LeaderboardInitialBadge extends StatelessWidget {
   /// initials disc.
   final String photoUrl;
 
+  static const double _size = 56;
+  static const double _levelPillHeight = 18;
+
+  /// Exact painted height of the badge. `RuniacLevelProfileBadge` paints the
+  /// ring across `size` and then hangs the level pill below it, starting at
+  /// `size - badgeHeight * 0.85`, so the lowest ink is the pill's bottom edge.
+  /// Sizing the box to that instead of rounding up matters: the inner stack is
+  /// top-aligned, so any spare height would collect entirely below the badge
+  /// and the row's symmetric vertical padding would look bottom-heavy.
+  static const double _paintedHeight =
+      _size - (_levelPillHeight * 0.85) + _levelPillHeight;
+
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       key: const Key('leaderboard_profile_level_badge'),
-      width: 38,
-      height: 40,
+      width: _size,
+      height: _paintedHeight,
       child: RuniacLevelProfileBadge(
         initials: name,
         levelLabel: levelLabel,
         progressFraction: 0,
         photoUrl: photoUrl,
-        size: 34,
-        badgeHeight: 13,
-        badgeMinWidth: isCurrentUser ? 30 : 24,
-        badgeHorizontalPadding: 5,
-        badgeFontSize: 8,
-        ringStrokeWidth: 3.4,
+        size: _size,
+        badgeHeight: _levelPillHeight,
+        badgeMinWidth: isCurrentUser ? 42 : 34,
+        badgeHorizontalPadding: 7,
+        badgeFontSize: 10,
+        ringStrokeWidth: 4.8,
       ),
     );
   }

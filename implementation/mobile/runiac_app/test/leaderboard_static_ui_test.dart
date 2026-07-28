@@ -16,14 +16,90 @@ import 'package:runiac_app/features/leaderboard/presentation/widgets/leaderboard
 import 'package:runiac_app/features/leaderboard/presentation/widgets/leaderboard_rank_row_helpers.dart';
 import 'package:runiac_app/features/profile/presentation/widgets/account_challenge_badge_case.dart';
 
-void _useCompactShareSheetSurface(WidgetTester tester) {
+/// Phone-shaped viewport. The default 800x600 test surface is shorter than any
+/// real device, so the region preview sheet — a fixed-height sheet anchored to
+/// the bottom — rides up over the top overlay there and swallows its taps.
+void _usePhoneSurface(WidgetTester tester) {
   tester.view
     ..physicalSize = const Size(390, 900)
     ..devicePixelRatio = 1;
   addTearDown(tester.view.reset);
 }
 
+void _useCompactShareSheetSurface(WidgetTester tester) {
+  _usePhoneSurface(tester);
+}
+
 void main() {
+  // The badge's level pill hangs below the ring, so its box has to be sized to
+  // the pill's bottom edge. Any spare height collects under the badge — the
+  // inner stack is top-aligned — and the row reads as bottom-heavy even though
+  // its own padding is symmetric.
+  testWidgets('Leaderboard row centres the profile badge vertically', (
+    WidgetTester tester,
+  ) async {
+    _usePhoneSurface(tester);
+    await tester.pumpWidget(
+      const RuniacApp(showSplash: false, enableForegroundGps: false),
+    );
+    await tester.tap(find.byTooltip('Leaderboard'));
+    await tester.pumpAndSettle();
+
+    void expectCentredBadge(ValueKey<String> rowKey) {
+      final row = tester.getRect(find.byKey(rowKey));
+      final badgeFinder = find.descendant(
+        of: find.byKey(rowKey),
+        matching: find.byKey(const Key('leaderboard_profile_level_badge')),
+      );
+      final badge = tester.getRect(badgeFinder);
+      expect(
+        badge.top - row.top,
+        moreOrLessEquals(row.bottom - badge.bottom, epsilon: 0.01),
+        reason: 'profile badge box is off-centre in $rowKey',
+      );
+      // Centring the box is only half of it: the box also has to be sized to
+      // the badge's real ink. The lowest-reaching descendant (the level pill)
+      // must land on the box's bottom edge — anything less is dead space that
+      // pushes the visible badge above the row's centre line.
+      var lowestInk = double.negativeInfinity;
+      for (final element
+          in find
+              .descendant(
+                of: badgeFinder,
+                matching: find.byWidgetPredicate((_) => true),
+              )
+              .evaluate()) {
+        final renderObject = element.renderObject;
+        if (renderObject is RenderBox && renderObject.hasSize) {
+          final bottom = renderObject
+              .localToGlobal(Offset(0, renderObject.size.height))
+              .dy;
+          if (bottom > lowestInk) {
+            lowestInk = bottom;
+          }
+        }
+      }
+      expect(
+        lowestInk,
+        moreOrLessEquals(badge.bottom, epsilon: 0.01),
+        reason: 'dead space below the badge ink in $rowKey',
+      );
+    }
+
+    expectCentredBadge(const ValueKey('leaderboard_region_top_rank_row_0'));
+    expectCentredBadge(const ValueKey('leaderboard_region_my_rank_row_0'));
+
+    // The routed ranking page reuses the same row and badge, so it is measured
+    // here too rather than assumed to match.
+    await tester.tap(
+      find.byKey(const Key('leaderboard_view_more_ranking_button')),
+    );
+    await tester.pumpAndSettle();
+
+    expectCentredBadge(const ValueKey('leaderboard_detail_top_rank_row_0'));
+    expectCentredBadge(const ValueKey('leaderboard_detail_nearby_rank_row_0'));
+  });
+
   testWidgets('Leaderboard tab displays backend-owned repository rows', (
     WidgetTester tester,
   ) async {
@@ -149,6 +225,7 @@ void main() {
   testWidgets('Leaderboard tab shows static map-first landing shell', (
     WidgetTester tester,
   ) async {
+    _usePhoneSurface(tester);
     await tester.pumpWidget(
       const RuniacApp(showSplash: false, enableForegroundGps: false),
     );
@@ -180,7 +257,11 @@ void main() {
     );
     expect(
       tester.getSize(find.byKey(const Key('leaderboard_sheet_handle_area'))),
-      const Size(768, 46),
+      Size(
+        tester.getSize(find.byKey(const Key('leaderboard_sheet_surface'))).width -
+            32,
+        46,
+      ),
     );
     expect(
       tester.getSize(find.byKey(const Key('leaderboard_sheet_handle'))),
@@ -678,7 +759,9 @@ void main() {
             find.byKey(const Key('leaderboard_view_more_ranking_button')),
           )
           .width;
-      expect(sheetHeight, lessThan(410));
+      // A region that is not the runner's own drops the My Rank Preview row,
+      // so its sheet stays shorter than the user-region sheet (540).
+      expect(sheetHeight, lessThan(455));
       expect(viewMoreWidth, greaterThan(sheetWidth * 0.84));
 
       await tester.tap(
