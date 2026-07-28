@@ -54,10 +54,16 @@ class FeedTestDataPort implements FeedDataPort {
   }
 
   /// A minimal, deterministic single-author fixture for author-level overlay
-  /// tests, where pagination composition doesn't matter.
-  FeedTestDataPort.withSingleFriend(String friendUid) {
+  /// tests, where pagination composition doesn't matter. [storedAvatarUrl]
+  /// seeds the post's stored `authorAvatarUrl` (empty by default, matching
+  /// every real `feedPosts` document) so a test can prove the live overlay's
+  /// never-erase-a-stored-value contract for that field too.
+  FeedTestDataPort.withSingleFriend(
+    String friendUid, {
+    String storedAvatarUrl = '',
+  }) {
     friends = <String>[friendUid];
-    _posts.add(_post(friendUid, 0, 100));
+    _posts.add(_post(friendUid, 0, 100, authorAvatarUrl: storedAvatarUrl));
   }
 
   late List<String> friends;
@@ -233,7 +239,7 @@ class FeedTestDataPort implements FeedDataPort {
   }) async => mutations.add('comment-delete:$postId');
 
   void addTopPost(String postId) =>
-      _posts.add(_post('viewer', 99, 9999, postId));
+      _posts.add(_post('viewer', 99, 9999, id: postId));
 
   Future<FeedIdPage> _ids(
     List<String> ids,
@@ -255,13 +261,15 @@ class FeedTestDataPort implements FeedDataPort {
   static FeedPostDocument _post(
     String author,
     int item,
-    int minute, [
+    int minute, {
     String? id,
-  ]) => FeedPostDocument(
+    String authorAvatarUrl = '',
+  }) => FeedPostDocument(
     postId: id ?? '$author-$item',
     authorUid: author,
     authorDisplayName: author,
     authorAvatarInitials: 'FR',
+    authorAvatarUrl: authorAvatarUrl,
     authorLevelLabel: 'Level 3',
     createdAt: DateTime.utc(2026, 1, 1).add(Duration(minutes: minute)),
     distanceMeters: 3000,

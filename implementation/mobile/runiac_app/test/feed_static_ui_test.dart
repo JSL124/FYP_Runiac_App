@@ -4,6 +4,8 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:runiac_app/core/widgets/runiac_level_profile_badge.dart';
+import 'package:runiac_app/features/feed/data/firebase_feed_repository/feed_data_port.dart';
 import 'package:runiac_app/features/feed/data/firebase_feed_repository/feed_test_data_port.dart';
 import 'package:runiac_app/features/feed/data/firebase_feed_repository/firebase_feed_repository.dart';
 import 'package:runiac_app/features/feed/domain/models/feed_display_models.dart';
@@ -69,6 +71,42 @@ void main() {
     expect(find.byType(Card), findsNothing);
     semantics.dispose();
   });
+
+  testWidgets(
+    'Feed post passes a resolved avatarUrl to the level profile badge',
+    (WidgetTester tester) async {
+      const photoUrl =
+          'https://firebasestorage.googleapis.com/v0/b/bucket/o/avatars%2Fabc.png?alt=media&token=tok';
+      final port = FeedTestDataPort.withSingleFriend('friend-photo');
+      port.authorLevels['friend-photo'] = const FeedAuthorLevel(
+        levelLabel: 'Level 5',
+        levelProgressFraction: 0.5,
+        avatarUrl: photoUrl,
+      );
+      final repository = FirebaseFeedRepository(port: port);
+      const viewer = FeedViewerContext(
+        currentUserId: 'viewer',
+        acceptedFriendUserIds: <String>{},
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CurrentSessionFeed(
+              repository: repository,
+              viewerContext: viewer,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final badge = tester.widget<RuniacLevelProfileBadge>(
+        find.byType(RuniacLevelProfileBadge),
+      );
+      expect(badge.photoUrl, photoUrl);
+    },
+  );
 
   testWidgets(
     "Feed post avatar is tappable for another runner but not for the "

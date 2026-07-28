@@ -345,6 +345,7 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
               displayName: friend.displayName,
               initials: friend.avatarInitials,
               levelLabel: friend.levelLabel,
+              avatarUrl: friend.avatarUrl,
             ),
           )
           .toList(growable: false);
@@ -1062,6 +1063,7 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
       streakCount: progress?.officialStreakCount ?? 0,
       unreadNotificationCount: unreadNotificationCount,
       profileInitials: _homeProfileInitials(profile),
+      profilePhotoUrl: profile?.avatarUrl ?? '',
       levelBadgeLabel: progress?.levelBadgeLabel ?? 'Lv.0',
       levelProgressFraction: progress?.levelProgressFraction ?? 0,
       progressLoading: progress == null,

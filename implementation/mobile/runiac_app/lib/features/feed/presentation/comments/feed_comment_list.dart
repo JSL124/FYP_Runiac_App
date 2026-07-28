@@ -114,6 +114,7 @@ class _CommentRow extends StatelessWidget {
           uid: comment.authorUserId,
           displayName: comment.authorDisplayName,
           avatarInitials: authorProfile.avatarInitials,
+          avatarUrl: authorProfile.avatarUrl,
           levelBadgeLabel: authorProfile.compactLevelLabel,
           enabled:
               viewerUserId != null && comment.authorUserId != viewerUserId,
@@ -122,6 +123,7 @@ class _CommentRow extends StatelessWidget {
             initials: authorProfile.avatarInitials,
             levelLabel: authorProfile.compactLevelLabel,
             progressFraction: authorProfile.levelProgressFraction,
+            photoUrl: authorProfile.avatarUrl,
           ),
         ),
         const SizedBox(width: 12),

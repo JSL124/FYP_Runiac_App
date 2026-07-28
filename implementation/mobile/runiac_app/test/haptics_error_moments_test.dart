@@ -138,7 +138,7 @@ void main() {
                 generatedPlanPersistenceRepository:
                     const NoopGeneratedPlanPersistenceRepository(),
                 profile: _profile(),
-                onBack: () {},
+                onBack: (_) {},
               ),
             ),
           ),
@@ -177,7 +177,7 @@ void main() {
               generatedPlanPersistenceRepository:
                   const NoopGeneratedPlanPersistenceRepository(),
               profile: _profile(),
-              onBack: () {},
+              onBack: (_) {},
             ),
           ),
         ),
@@ -209,19 +209,20 @@ void main() {
           haptics: recorder,
           child: MaterialApp(
             home: Navigator(
-              onGenerateRoute: (settings) => MaterialPageRoute<bool>(
-                builder: (context) => AccountEditProfileScreen(
-                  authRepository: authRepository,
-                  persistenceRepository:
-                      const _SucceedingPersistenceRepository(),
-                  generatedPlanPersistenceRepository:
-                      const NoopGeneratedPlanPersistenceRepository(),
-                  profile: _profile(),
-                  onBack: () {
-                    didPop = true;
-                  },
-                ),
-              ),
+              onGenerateRoute: (settings) =>
+                  MaterialPageRoute<AccountEditProfileResult>(
+                    builder: (context) => AccountEditProfileScreen(
+                      authRepository: authRepository,
+                      persistenceRepository:
+                          const _SucceedingPersistenceRepository(),
+                      generatedPlanPersistenceRepository:
+                          const NoopGeneratedPlanPersistenceRepository(),
+                      profile: _profile(),
+                      onBack: (_) {
+                        didPop = true;
+                      },
+                    ),
+                  ),
             ),
           ),
         ),

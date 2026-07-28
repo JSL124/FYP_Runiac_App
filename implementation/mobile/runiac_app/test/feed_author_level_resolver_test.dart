@@ -147,6 +147,8 @@ void main() {
               'levelProgressPercent': 42,
               'displayName': 'Renamed Runner',
               'avatarInitials': 'RR',
+              'avatarUrl':
+                  'https://firebasestorage.googleapis.com/v0/b/bucket/o/avatars%2Fabc.png?alt=media&token=tok',
             },
             // What an older backend deployment returns.
             'uid-level-only': <String, Object?>{
@@ -164,8 +166,13 @@ void main() {
 
       expect(result['uid-named']?.displayName, 'Renamed Runner');
       expect(result['uid-named']?.avatarInitials, 'RR');
+      expect(
+        result['uid-named']?.avatarUrl,
+        'https://firebasestorage.googleapis.com/v0/b/bucket/o/avatars%2Fabc.png?alt=media&token=tok',
+      );
       expect(result['uid-level-only']?.displayName, '');
       expect(result['uid-level-only']?.avatarInitials, '');
+      expect(result['uid-level-only']?.avatarUrl, '');
       expect(result['uid-malformed-name']?.displayName, '');
     });
 

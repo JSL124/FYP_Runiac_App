@@ -54,3 +54,4 @@ export {
 } from "./friends/callable.js";
 export { getFriendLevels } from "./friends/friendLevels/callable.js";
 export { getRunnerPublicProfile } from "./profile/publicProfile/callable.js";
+export { setProfileAvatar, clearProfileAvatar } from "./profile/avatar/callable.js";

@@ -9,7 +9,11 @@ import '../domain/models/friends_read_model.dart';
 /// at all, so this is the only source of a Friends-row level. The client
 /// only transports and formats these values; it never computes them.
 class FriendLevel {
-  const FriendLevel({required this.levelLabel, this.levelProgressFraction});
+  const FriendLevel({
+    required this.levelLabel,
+    this.levelProgressFraction,
+    this.avatarUrl = '',
+  });
 
   final String levelLabel;
 
@@ -17,6 +21,10 @@ class FriendLevel {
   /// clamped. `null` means the backend didn't return a usable percent for
   /// this uid, distinct from a genuine resolved `0.0`.
   final double? levelProgressFraction;
+
+  /// Raw, not-yet-sanitised avatar photo URL. Empty when the backend
+  /// resolved no photo for this uid.
+  final String avatarUrl;
 }
 
 /// Invokes the `getFriendLevels` callable for a batch of uids and returns its
@@ -106,6 +114,7 @@ class FriendLevelResolver {
             levelLabel: level.levelLabel,
             levelProgressFraction: level.levelProgressFraction,
             subtitleLabel: user.subtitleLabel,
+            avatarUrl: level.avatarUrl,
           );
         })
         .toList(growable: false);
@@ -144,11 +153,13 @@ class FriendLevelResolver {
       if (uid is! String || value is! Map<Object?, Object?>) continue;
       final label = value['levelLabel'];
       final percent = value['levelProgressPercent'];
+      final avatarUrl = value['avatarUrl'];
       result[uid] = FriendLevel(
         levelLabel: label is String ? label : '',
         levelProgressFraction: percent is num
             ? (percent / 100).clamp(0.0, 1.0).toDouble()
             : null,
+        avatarUrl: avatarUrl is String ? avatarUrl : '',
       );
     }
     return result;

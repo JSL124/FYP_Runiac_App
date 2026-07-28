@@ -40,6 +40,8 @@ void main() {
               'levelLabel': 'Level 19',
               'divisionLabel': 'Bronze League',
               'regionLabel': 'Jurong East',
+              'avatarUrl':
+                  'https://firebasestorage.googleapis.com/v0/b/bucket/o/avatars%2Fari.png?alt=media&token=tok',
             },
           ],
         },
@@ -58,6 +60,8 @@ void main() {
               'levelLabel': 'Level 18',
               'divisionLabel': 'Bronze League',
               'regionLabel': 'Jurong East',
+              // No avatar on record for this row — must default to empty,
+              // never null or a throw.
             },
           ],
         },
@@ -75,7 +79,14 @@ void main() {
     expect(leaderboard.divisionLabel, 'Bronze League');
     expect(leaderboard.currentRunnerRankLabel, '#12');
     expect(leaderboard.entries.single.displayName, 'Ari S.');
+    expect(
+      leaderboard.entries.single.avatarUrl,
+      'https://firebasestorage.googleapis.com/v0/b/bucket/o/avatars%2Fari.png?alt=media&token=tok',
+    );
     expect(leaderboard.nearbyEntries.single.displayName, 'Jinseo');
+    // No avatar on record for this row — must default to empty, never null
+    // or a throw.
+    expect(leaderboard.nearbyEntries.single.avatarUrl, '');
     expect(leaderboard.nearbyEntries.single.isCurrentUser, isTrue);
     expect(leaderboard.periodLabel, 'July 2026');
     expect(leaderboard.periodEndsAt, DateTime.utc(2026, 7, 31, 16));

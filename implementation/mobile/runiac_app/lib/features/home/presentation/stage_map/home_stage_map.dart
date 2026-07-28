@@ -98,6 +98,7 @@ class HomeStageMap extends StatefulWidget {
     this.streakCount = 0,
     this.unreadNotificationCount = 0,
     this.profileInitials = 'R',
+    this.profilePhotoUrl = '',
     this.levelBadgeLabel = 'Lv.0',
     this.levelProgressFraction = 0,
     this.progressLoading = false,
@@ -119,6 +120,9 @@ class HomeStageMap extends StatefulWidget {
   final int streakCount;
   final int unreadNotificationCount;
   final String profileInitials;
+
+  /// Raw, not-yet-sanitised avatar photo URL. Empty renders the initials disc.
+  final String profilePhotoUrl;
   final String levelBadgeLabel;
   final double levelProgressFraction;
   final bool progressLoading;
@@ -640,6 +644,7 @@ class _HomeStageMapState extends State<HomeStageMap>
                     progressLoading: widget.progressLoading,
                     profileLoading: widget.profileLoading,
                     profileInitials: widget.profileInitials,
+                    profilePhotoUrl: widget.profilePhotoUrl,
                     onProfile: widget.onProfile,
                     menuOpen: _menuOpen,
                     menuAnimation: _menuController,

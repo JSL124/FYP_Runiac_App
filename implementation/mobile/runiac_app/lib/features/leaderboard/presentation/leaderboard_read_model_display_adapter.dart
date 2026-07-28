@@ -84,9 +84,11 @@ leaderboardRankRowDisplaySnapshotFromReadModel(
     trophy: ordinal == 0,
     medalTone: _medalToneForOrdinal(ordinal),
     isCurrentUser: entry.isCurrentUser,
+    photoUrl: entry.avatarUrl,
     profile: RunnerAchievementProfileSnapshot(
       name: displayName,
       initial: _initialFor(displayName),
+      photoUrl: entry.avatarUrl,
       regionRankLabel: _regionRankLabel(regionLabel, rankLabel),
       levelBadgeLabel: _levelBadgeLabel(levelLabel),
       divisionLevelLabel: divisionLabel.isEmpty

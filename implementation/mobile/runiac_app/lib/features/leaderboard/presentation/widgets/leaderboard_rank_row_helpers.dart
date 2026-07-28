@@ -29,11 +29,16 @@ class LeaderboardInitialBadge extends StatelessWidget {
     required this.name,
     required this.levelLabel,
     required this.isCurrentUser,
+    this.photoUrl = '',
   });
 
   final String name;
   final String levelLabel;
   final bool isCurrentUser;
+
+  /// Raw, not-yet-sanitised avatar photo URL for this row. Empty renders the
+  /// initials disc.
+  final String photoUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -45,6 +50,7 @@ class LeaderboardInitialBadge extends StatelessWidget {
         initials: name,
         levelLabel: levelLabel,
         progressFraction: 0,
+        photoUrl: photoUrl,
         size: 34,
         badgeHeight: 13,
         badgeMinWidth: isCurrentUser ? 30 : 24,

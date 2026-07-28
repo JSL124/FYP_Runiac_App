@@ -746,7 +746,163 @@ is_notification_inbox_delivery_semantics_path() {
   esac
 }
 
+is_profile_photo_avatar_capsule_active() {
+  grep -Eq '^- Newly routed profile photo avatars on 2026-07-28 Asia/Singapore: `implementation/roadmap/capsules/profile-photo-avatar\.md`' implementation/roadmap/CURRENT.md
+}
+
+# Exact paths touched across the full multi-stage profile-photo-avatar plan
+# of record, matching this capsule's own Exact Target Files list. Stage 1
+# (this registration) is governance-only; later stages land the server
+# avatar module, the leaderboard/friends/challenge/feed read fan-in, the
+# Flutter avatar widgets and upload flow, and the admin-console takedown
+# wiring this predicate pre-authorizes ahead of time. Deliberately NOT a
+# directory glob for functions/src/challenge/*, functions/src/leaderboard/*,
+# or functions/test/*: those directories are shared with other capsules'
+# negative-space regression probes (see tests/governance/backend_functions_scope_test.sh),
+# and this capsule's own routing bullet is append-only/permanent, so a broad
+# glob here would permanently defeat those other capsules' inactive-capsule
+# rejection tests.
+is_profile_photo_avatar_path() {
+  case "$1" in
+    implementation/roadmap/capsules/profile-photo-avatar.md|\
+    storage.rules|\
+    firestore.rules|\
+    firestore.indexes.json|\
+    functions/src/index.ts|\
+    functions/package.json|\
+    functions/src/profile/avatar/*|\
+    functions/src/feed/png.ts|\
+    functions/src/profile/profileIdentityDisplay.ts|\
+    functions/src/profile/publicProfile/core.ts|\
+    functions/src/profile/publicProfile/callable.ts|\
+    functions/src/friends/friendLevels/core.ts|\
+    functions/src/friends/friendLevels/callable.ts|\
+    functions/src/feed/authorLevels/core.ts|\
+    functions/src/feed/authorLevels/callable.ts|\
+    functions/src/challenge/challengeLobbyCore.ts|\
+    functions/src/challenge/challengeLobbySupport.ts|\
+    functions/src/challenge/callable.ts|\
+    functions/src/leaderboard/leaderboardTypes.ts|\
+    functions/src/leaderboard/monthlyLeaderboardPlanner.ts|\
+    functions/src/leaderboard/monthlyLeaderboardWriter.ts|\
+    functions/src/leaderboard/monthlyLeaderboard.ts|\
+    functions/src/leaderboard/leaderboardAdminCommand.ts|\
+    functions/test/avatarPng.test.ts|\
+    functions/test/avatarPaths.test.ts|\
+    functions/test/profileAvatar.test.ts|\
+    functions/test/profileAvatarEmulatorIntegration.test.ts|\
+    functions/test/helpers/avatarEmulatorHelpers.ts|\
+    functions/test/runnerPublicProfileEmulatorIntegration.test.ts|\
+    functions/test/feedCallableSurface.test.ts|\
+    functions/test/runnerPublicProfile.test.ts|\
+    functions/test/feedAuthorLevels.test.ts|\
+    functions/test/friendLevels.test.ts|\
+    functions/test/challengeLobby.test.ts|\
+    functions/test/monthlyLeaderboard.test.ts|\
+    functions/test/monthlyLeaderboardWriter.test.ts|\
+    tests/cross-system/avatar-path-contract-drift.mjs|\
+    tests/governance/avatar_path_contract_drift_test.sh|\
+    tests/firebase-rules/avatar.storage.rules.test.mjs|\
+    tests/firebase-rules/package.json|\
+    website/src/lib/actions/admin.ts|\
+    website/src/lib/firebase/storage.ts|\
+    website/src/lib/firebase/firestore.ts|\
+    website/src/lib/firebase/types.ts|\
+    website/src/lib/avatarPaths.ts|\
+    website/src/lib/admin/types.ts|\
+    website/src/lib/admin/live-data.ts|\
+    website/src/components/admin/UserManagement.tsx|\
+    website/src/components/admin/UserOperationsPanel.tsx|\
+    website/src/lib/firebase/__tests__/storage.avatar.test.ts|\
+    website/src/lib/firebase/__tests__/firestore.avatar.test.ts|\
+    website/src/lib/actions/__tests__/admin.avatar.test.ts|\
+    website/src/app/admin/users/page.tsx|\
+    implementation/mobile/runiac_app/lib/core/widgets/runiac_avatar_photo.dart|\
+    implementation/mobile/runiac_app/lib/core/widgets/runiac_level_profile_badge.dart|\
+    implementation/mobile/runiac_app/lib/features/challenge/presentation/widgets/challenge_widgets.dart|\
+    implementation/mobile/runiac_app/test/runiac_level_profile_badge_test.dart|\
+    implementation/mobile/runiac_app/test/runiac_avatar_photo_test.dart|\
+    implementation/mobile/runiac_app/test/challenge_initials_avatar_test.dart|\
+    implementation/mobile/runiac_app/pubspec.yaml|\
+    implementation/mobile/runiac_app/pubspec.lock|\
+    implementation/mobile/runiac_app/ios/Runner/Info.plist|\
+    implementation/mobile/runiac_app/lib/features/profile/data/avatar/avatar_image_encoder.dart|\
+    implementation/mobile/runiac_app/lib/features/profile/data/avatar/firebase_avatar_upload_gateway.dart|\
+    implementation/mobile/runiac_app/lib/features/profile/presentation/widgets/avatar_action_sheet.dart|\
+    implementation/mobile/runiac_app/lib/features/profile/presentation/account_edit_profile_screen.dart|\
+    implementation/mobile/runiac_app/lib/features/profile/presentation/account_profile_screen.dart|\
+    implementation/mobile/runiac_app/test/avatar_image_encoder_test.dart|\
+    implementation/mobile/runiac_app/test/account_avatar_upload_test.dart|\
+    implementation/mobile/runiac_app/test/haptics_error_moments_test.dart|\
+    implementation/mobile/runiac_app/lib/features/challenge/data/firebase_challenge_repository.dart|\
+    implementation/mobile/runiac_app/lib/features/challenge/domain/models/challenge_participant_row.dart|\
+    implementation/mobile/runiac_app/lib/features/challenge/presentation/challenge_friend_picker_screen.dart|\
+    implementation/mobile/runiac_app/lib/features/challenge/presentation/challenge_lobby_screen.dart|\
+    implementation/mobile/runiac_app/lib/features/challenge/presentation/challenge_progress_screen.dart|\
+    implementation/mobile/runiac_app/lib/features/feed/data/comments/feed_comment_page_loader.dart|\
+    implementation/mobile/runiac_app/lib/features/feed/data/firebase_feed_repository/feed_data_port.dart|\
+    implementation/mobile/runiac_app/lib/features/feed/data/firebase_feed_repository/feed_post_display_mapper.dart|\
+    implementation/mobile/runiac_app/lib/features/feed/data/firebase_feed_repository/feed_test_data_port.dart|\
+    implementation/mobile/runiac_app/lib/features/feed/data/firebase_feed_repository/feed_timeline_page_loader.dart|\
+    implementation/mobile/runiac_app/lib/features/feed/data/firebase_feed_repository/firebase_feed_data_port.dart|\
+    implementation/mobile/runiac_app/lib/features/feed/data/firebase_feed_repository/firebase_feed_post_mapper.dart|\
+    implementation/mobile/runiac_app/lib/features/feed/domain/models/feed_display_models.dart|\
+    implementation/mobile/runiac_app/lib/features/feed/presentation/comments/feed_comment_list.dart|\
+    implementation/mobile/runiac_app/lib/features/feed/presentation/comments/feed_comment_sheet_models.dart|\
+    implementation/mobile/runiac_app/lib/features/feed/presentation/comments/feed_comment_sheet.dart|\
+    implementation/mobile/runiac_app/lib/features/feed/presentation/current_session_feed_store.dart|\
+    implementation/mobile/runiac_app/lib/features/feed/presentation/current_session_feed.dart|\
+    implementation/mobile/runiac_app/lib/features/feed/presentation/widgets/feed_post_section.dart|\
+    implementation/mobile/runiac_app/lib/features/friends/data/friend_level_resolver.dart|\
+    implementation/mobile/runiac_app/lib/features/friends/domain/models/friends_read_model.dart|\
+    implementation/mobile/runiac_app/lib/features/friends/presentation/widgets/friend_row_identity.dart|\
+    implementation/mobile/runiac_app/lib/features/home/presentation/home_tab.dart|\
+    implementation/mobile/runiac_app/lib/features/home/presentation/stage_map/home_stage_map_header.dart|\
+    implementation/mobile/runiac_app/lib/features/home/presentation/stage_map/home_stage_map.dart|\
+    implementation/mobile/runiac_app/lib/features/home/presentation/widgets/home_header.dart|\
+    implementation/mobile/runiac_app/lib/features/leaderboard/data/firestore_leaderboard_repository.dart|\
+    implementation/mobile/runiac_app/lib/features/leaderboard/domain/models/leaderboard_read_model.dart|\
+    implementation/mobile/runiac_app/lib/features/leaderboard/presentation/leaderboard_read_model_display_adapter.dart|\
+    implementation/mobile/runiac_app/lib/features/leaderboard/presentation/models/leaderboard_display_models.dart|\
+    implementation/mobile/runiac_app/lib/features/leaderboard/presentation/widgets/leaderboard_rank_row_helpers.dart|\
+    implementation/mobile/runiac_app/lib/features/leaderboard/presentation/widgets/leaderboard_ranking_screen.dart|\
+    implementation/mobile/runiac_app/lib/features/leaderboard/presentation/widgets/leaderboard_region_preview_sheet.dart|\
+    implementation/mobile/runiac_app/lib/features/leaderboard/presentation/widgets/runner_achievement_profile_screen.dart|\
+    implementation/mobile/runiac_app/lib/features/profile/data/cloud_functions_runner_public_profile_repository.dart|\
+    implementation/mobile/runiac_app/lib/features/profile/data/firestore_user_profile_repository.dart|\
+    implementation/mobile/runiac_app/lib/features/profile/domain/models/runner_public_profile_read_model.dart|\
+    implementation/mobile/runiac_app/lib/features/profile/domain/models/user_profile_read_model.dart|\
+    implementation/mobile/runiac_app/lib/features/profile/presentation/data/account_profile_demo_snapshots.dart|\
+    implementation/mobile/runiac_app/lib/features/profile/presentation/open_runner_profile.dart|\
+    implementation/mobile/runiac_app/lib/features/profile/presentation/widgets/account_profile_identity.dart|\
+    implementation/mobile/runiac_app/lib/features/profile/presentation/widgets/runner_profile_avatar_link.dart|\
+    implementation/mobile/runiac_app/lib/features/run/presentation/widgets/share_route_feed_preview.dart|\
+    implementation/mobile/runiac_app/lib/features/shell/runiac_shell.dart|\
+    implementation/mobile/runiac_app/test/account_profile_read_flow_test.dart|\
+    implementation/mobile/runiac_app/test/challenge_lobby_ui_test.dart|\
+    implementation/mobile/runiac_app/test/challenge_progress_ui_test.dart|\
+    implementation/mobile/runiac_app/test/challenge_realtime_test.dart|\
+    implementation/mobile/runiac_app/test/feed_author_level_overlay_test.dart|\
+    implementation/mobile/runiac_app/test/feed_author_level_resolver_test.dart|\
+    implementation/mobile/runiac_app/test/feed_static_ui_test.dart|\
+    implementation/mobile/runiac_app/test/firestore_leaderboard_repository_test.dart|\
+    implementation/mobile/runiac_app/test/friends_static_ui_test.dart|\
+    implementation/mobile/runiac_app/test/home_stage_map_widget_test.dart|\
+    implementation/mobile/runiac_app/test/leaderboard_static_ui_test.dart|\
+    implementation/mobile/runiac_app/test/runner_public_profile_screen_test.dart)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_allowed_path() {
+  if is_profile_photo_avatar_path "$1" && is_profile_photo_avatar_capsule_active; then
+    return 0
+  fi
+
   if is_notification_inbox_delivery_semantics_path "$1" && is_notification_inbox_delivery_semantics_capsule_active; then
     return 0
   fi
@@ -965,6 +1121,17 @@ is_unrelated_mobile_native_artifact() {
       fi
       ;;
   esac
+  # The routed Profile photo avatars capsule adds the user-approved
+  # image_picker dependency, which regenerates the CocoaPods lockfile and can
+  # touch the Xcode project file.
+  case "$1" in
+    implementation/mobile/runiac_app/ios/Podfile.lock|\
+    implementation/mobile/runiac_app/ios/Runner.xcodeproj/project.pbxproj)
+      if is_profile_photo_avatar_capsule_active; then
+        return 1
+      fi
+      ;;
+  esac
   case "$1" in
     implementation/mobile/runiac_app/ios/Podfile.lock|\
     implementation/mobile/runiac_app/ios/Runner.xcodeproj/project.pbxproj|\
@@ -980,6 +1147,10 @@ is_unrelated_mobile_native_artifact() {
 }
 
 is_forbidden_path() {
+  if is_profile_photo_avatar_path "$1" && is_profile_photo_avatar_capsule_active; then
+    return 1
+  fi
+
   if is_error_reporting_pipeline_path "$1" && is_error_reporting_pipeline_capsule_active; then
     return 1
   fi

@@ -14,12 +14,17 @@ class FriendUserReadModel {
     this.levelLabel = '',
     this.levelProgressFraction,
     this.subtitleLabel = '',
+    this.avatarUrl = '',
   });
 
   final String userId;
   final String nickname;
   final String displayName;
   final String avatarInitials;
+
+  /// Raw, not-yet-sanitised avatar photo URL, resolved live via
+  /// `getFriendLevels`. Empty when the friend has no photo set.
+  final String avatarUrl;
 
   /// Pre-formatted backend-owned display string, e.g. `'Lv.12'`.
   /// Never computed on the client.

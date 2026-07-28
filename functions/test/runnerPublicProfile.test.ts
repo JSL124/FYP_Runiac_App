@@ -2,11 +2,26 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { getRunnerPublicProfile, type BlockEdges, type RunnerPublicProfilePorts } from "../src/profile/publicProfile/core.js";
 import { canonicalizeNickname, nicknameIndexKey } from "../src/friends/nickname.js";
+import { buildAvatarDownloadUrl, type AvatarUrlContext } from "../src/profile/avatar/avatarPaths.js";
 
 const viewer = "viewer-a";
 const runner = "runner-a";
 const snapshotId = "monthly_jurong-east_tier_03_2026-07";
 const buildId = "build-2026-07-26T09";
+
+const BUCKET = "runiac-fypp.appspot.com";
+const AVATAR_CONTEXT: AvatarUrlContext = { bucket: BUCKET };
+const TOKEN = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
+const VALID_AVATAR_URL = buildAvatarDownloadUrl({
+  bucket: BUCKET,
+  objectPath: "avatars/0123456789abcdef0123456789abcdef.png",
+  token: TOKEN,
+});
+const FOREIGN_AVATAR_URL = buildAvatarDownloadUrl({
+  bucket: "some-other-bucket.appspot.com",
+  objectPath: "avatars/0123456789abcdef0123456789abcdef.png",
+  token: TOKEN,
+});
 
 function rankKey(snapshot: string, rankLabel: string, build: string): string {
   return `${snapshot}::${rankLabel}::${build}`;
@@ -54,6 +69,7 @@ describe("Runner public profile core", () => {
     assert.deepEqual(profile, {
       displayName: "Jinseo_main",
       avatarInitials: "JI",
+      avatarUrl: "",
       regionLabel: "Jurong East, Singapore",
       levelLabel: "Level 8",
       level: 8,
@@ -375,6 +391,41 @@ describe("Runner public profile core", () => {
       assert.equal(ports.socialEdgeCalls.length, 1);
       assert.equal(ports.coMemberCalls.length, 1);
       assert.equal(ports.badgeReadCalls.length, 0);
+    });
+  });
+
+  describe("avatarUrl", () => {
+    it("surfaces a valid stored avatarUrl", async () => {
+      const ports = fakePorts();
+      ports.rankOwners.set(rankKey(snapshotId, "#3", buildId), runner);
+      ports.profiles.set(runner, { displayName: "Jinseo", avatarInitials: "JI", locationLabel: "Jurong East", avatarUrl: VALID_AVATAR_URL });
+      const profile = await getRunnerPublicProfile({ auth: { uid: viewer }, data: entry() }, ports, AVATAR_CONTEXT);
+      assert.equal(profile.avatarUrl, VALID_AVATAR_URL);
+    });
+
+    it("resolves a foreign-bucket avatarUrl to empty rather than relaying it", async () => {
+      const ports = fakePorts();
+      ports.rankOwners.set(rankKey(snapshotId, "#3", buildId), runner);
+      ports.profiles.set(runner, { displayName: "Jinseo", avatarInitials: "JI", locationLabel: "Jurong East", avatarUrl: FOREIGN_AVATAR_URL });
+      const profile = await getRunnerPublicProfile({ auth: { uid: viewer }, data: entry() }, ports, AVATAR_CONTEXT);
+      assert.equal(profile.avatarUrl, "");
+    });
+
+    it("resolves a malformed avatarUrl string to empty", async () => {
+      const ports = fakePorts();
+      ports.rankOwners.set(rankKey(snapshotId, "#3", buildId), runner);
+      ports.profiles.set(runner, { displayName: "Jinseo", avatarInitials: "JI", locationLabel: "Jurong East", avatarUrl: "not a url at all" });
+      const profile = await getRunnerPublicProfile({ auth: { uid: viewer }, data: entry() }, ports, AVATAR_CONTEXT);
+      assert.equal(profile.avatarUrl, "");
+    });
+
+    it("resolves a profile with no avatar fields to empty, never undefined", async () => {
+      const ports = fakePorts();
+      ports.rankOwners.set(rankKey(snapshotId, "#3", buildId), runner);
+      ports.profiles.set(runner, { displayName: "Jinseo", avatarInitials: "JI", locationLabel: "Jurong East" });
+      const profile = await getRunnerPublicProfile({ auth: { uid: viewer }, data: entry() }, ports, AVATAR_CONTEXT);
+      assert.equal(profile.avatarUrl, "");
+      assert.equal("avatarUrl" in profile, true);
     });
   });
 });

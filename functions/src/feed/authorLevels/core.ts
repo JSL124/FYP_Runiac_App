@@ -3,6 +3,8 @@ import type { FeedRelationshipCheckInput, FeedRelationshipDecision } from "../re
 import { evaluateFeedRelationship } from "../relationship.js";
 import { resolveProfileLevelDisplay, type ProfileLevelDisplay } from "../../progression/profileLevelDisplay.js";
 import { resolveProfileIdentityDisplay, type ProfileIdentityDisplay } from "../../profile/profileIdentityDisplay.js";
+import type { AvatarUrlContext } from "../../profile/avatar/avatarPaths.js";
+import { NULL_AVATAR_URL_CONTEXT } from "../../profile/avatar/avatarUrlContextDefaults.js";
 
 export type FeedAuthorLevelsRequest = { readonly auth?: { readonly uid: string }; readonly data: unknown };
 
@@ -14,7 +16,9 @@ export type FeedAuthorLevelsRequest = { readonly auth?: { readonly uid: string }
  * `authorAvatarInitials`, and `authorLevelLabel` at write time, and
  * `feedPosts` is closed to every client write, so a renamed runner would keep
  * appearing under their old name on every earlier post. This is what the
- * client overlays on top of those stored values.
+ * client overlays on top of those stored values. `avatarUrl` (via
+ * `ProfileIdentityDisplay`) rides along the same overlay for the same reason:
+ * a replaced avatar must show up on a runner's old posts too.
  *
  * The callable id stays `getFeedAuthorLevels` because it is already deployed
  * and older app builds still call it; only its result grew.
@@ -40,7 +44,14 @@ export type FeedPostVisibility = { readonly status: string; readonly authorUid: 
 
 const MAX_UIDS = 50;
 
-export async function getFeedAuthorLevels(request: FeedAuthorLevelsRequest, ports: FeedAuthorLevelsPorts): Promise<FeedAuthorLevelsResult> {
+export async function getFeedAuthorLevels(
+  request: FeedAuthorLevelsRequest,
+  ports: FeedAuthorLevelsPorts,
+  // Injected by the callable layer (see profile/avatar/context.ts); defaults
+  // to a context that can never match a real avatar URL, so an omitted
+  // context still fails closed to avatarUrl: "".
+  avatarContext: AvatarUrlContext = NULL_AVATAR_URL_CONTEXT,
+): Promise<FeedAuthorLevelsResult> {
   const uid = request.auth?.uid;
   if (uid === undefined || uid.length === 0) throw new HttpsError("unauthenticated", "Authentication is required.");
   const parsed = parseRequest(request.data);
@@ -62,7 +73,7 @@ export async function getFeedAuthorLevels(request: FeedAuthorLevelsRequest, port
   const profiles = await ports.readProfiles(resolvable);
   const levels: Record<string, FeedAuthorLevel> = {};
   resolvable.forEach((authorUid, index) => {
-    levels[authorUid] = { ...resolveProfileLevelDisplay(profiles[index]), ...resolveProfileIdentityDisplay(profiles[index]) };
+    levels[authorUid] = { ...resolveProfileLevelDisplay(profiles[index]), ...resolveProfileIdentityDisplay(profiles[index], avatarContext) };
   });
   return { levels };
 }

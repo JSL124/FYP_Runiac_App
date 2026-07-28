@@ -624,10 +624,12 @@ class _ParticipantTile extends StatelessWidget {
                   uid: row.uid,
                   displayName: row.displayNameSnapshot,
                   avatarInitials: row.avatarInitialsSnapshot,
+                  avatarUrl: row.avatarUrlSnapshot,
                   enabled: !row.isCurrentUser,
                   child: ChallengeInitialsAvatar(
                     initials: row.avatarInitialsSnapshot,
                     highlighted: row.isCurrentUser && !muted,
+                    photoUrl: row.avatarUrlSnapshot,
                   ),
                 ),
                 const SizedBox(width: 12),

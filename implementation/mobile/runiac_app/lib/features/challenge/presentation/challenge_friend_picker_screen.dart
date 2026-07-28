@@ -26,6 +26,7 @@ class ChallengeInvitableFriend {
     required this.displayName,
     required this.initials,
     this.levelLabel = '',
+    this.avatarUrl = '',
   });
 
   final String uid;
@@ -35,6 +36,10 @@ class ChallengeInvitableFriend {
   /// Pre-formatted backend-owned display string, e.g. `'Lv.12'`. Never
   /// computed on the client.
   final String levelLabel;
+
+  /// Raw, not-yet-sanitised avatar photo URL. Empty when the friend has no
+  /// photo set.
+  final String avatarUrl;
 }
 
 /// Reciprocal-friends picker with a capacity-capped checkbox selection.
@@ -224,6 +229,7 @@ class _FriendPickRow extends StatelessWidget {
               uid: friend.uid,
               displayName: friend.displayName,
               avatarInitials: friend.initials,
+              avatarUrl: friend.avatarUrl,
               levelBadgeLabel: friend.levelLabel,
               child: ExcludeSemantics(
                 child: RuniacLevelProfileBadge.row(
@@ -232,6 +238,7 @@ class _FriendPickRow extends StatelessWidget {
                       ? 'Lv.0'
                       : friend.levelLabel,
                   progressFraction: 0,
+                  photoUrl: friend.avatarUrl,
                 ),
               ),
             ),

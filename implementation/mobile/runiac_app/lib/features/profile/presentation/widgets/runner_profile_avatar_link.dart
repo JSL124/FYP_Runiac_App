@@ -18,6 +18,7 @@ class RunnerProfileAvatarLink extends StatelessWidget {
     required this.displayName,
     required this.child,
     this.avatarInitials = '',
+    this.avatarUrl = '',
     this.levelBadgeLabel = '',
     this.enabled = true,
   });
@@ -26,6 +27,11 @@ class RunnerProfileAvatarLink extends StatelessWidget {
   final String displayName;
   final Widget child;
   final String avatarInitials;
+
+  /// Raw, not-yet-sanitised avatar photo URL, forwarded to the opened
+  /// profile so it renders the photo immediately rather than waiting for a
+  /// fresh callable resolve.
+  final String avatarUrl;
   final String levelBadgeLabel;
 
   /// Lets a caller keep the badge on screen without making it tappable — for
@@ -51,6 +57,7 @@ class RunnerProfileAvatarLink extends StatelessWidget {
         uid: uid,
         displayName: displayName,
         avatarInitials: avatarInitials,
+        avatarUrl: avatarUrl,
         levelBadgeLabel: levelBadgeLabel,
       );
     }

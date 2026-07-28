@@ -47,6 +47,15 @@ export function planMonthlyLeaderboards(input: {
    * this field existed) always passes the gate.
    */
   readonly minRunsToQualify?: number;
+  /**
+   * Per-owner avatar URL, already resolved through `resolveProfileAvatarUrl`
+   * by the caller (`monthlyLeaderboardWriter.ts`, from the same `ownerFacts`
+   * it loads for the premium re-check — zero extra reads). Optional so every
+   * existing planner test keeps compiling unchanged; an owner absent from
+   * the map, or an omitted map entirely, resolves to `avatarUrl: ""` on
+   * their row, same as "no avatar set".
+   */
+  readonly avatarUrlByOwner?: ReadonlyMap<string, string>;
 }): MonthlyLeaderboardPlan {
   const premiumUids = input.currentPremiumUids ?? emptyUidSet;
   const excludePremium = input.excludePremium ?? false;
@@ -127,7 +136,13 @@ export function planMonthlyLeaderboards(input: {
       divisionKey: league.key,
     });
     const publicEntries = ranked.map((contribution, index) =>
-      publicEntry(contribution, area, league, index + 1),
+      publicEntry(
+        contribution,
+        area,
+        league,
+        index + 1,
+        input.avatarUrlByOwner,
+      ),
     );
     snapshots.push({
       snapshotId,
@@ -262,6 +277,7 @@ function publicEntry(
   area: SingaporePlanningArea,
   league: LeaderboardLeagueDefinition,
   rank: number,
+  avatarUrlByOwner: ReadonlyMap<string, string> | undefined,
 ): LeaderboardPublicEntry {
   return {
     publicAlias: contribution.publicAlias,
@@ -271,6 +287,7 @@ function publicEntry(
     divisionLabel: league.label,
     regionLabel: area.regionName,
     score: contribution.scoreXp,
+    avatarUrl: avatarUrlByOwner?.get(contribution.ownerUid) ?? "",
   };
 }
 

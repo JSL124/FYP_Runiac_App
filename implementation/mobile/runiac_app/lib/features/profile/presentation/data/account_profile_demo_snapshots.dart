@@ -114,6 +114,7 @@ class AccountProfileDemoSnapshot {
   const AccountProfileDemoSnapshot({
     required this.displayName,
     required this.avatarInitials,
+    this.avatarUrl = '',
     this.subscriptionStatusLabel = '',
     required this.regionLabel,
     required this.previewLevelBadge,
@@ -137,6 +138,10 @@ class AccountProfileDemoSnapshot {
 
   final String displayName;
   final String avatarInitials;
+
+  /// Raw, not-yet-sanitised avatar photo URL for the current runner. Empty
+  /// when no photo is set.
+  final String avatarUrl;
 
   /// Backend-provided Basic/Premium subscription tier label for the current
   /// runner; empty hides the badge. The client only relays this trusted

@@ -269,6 +269,7 @@ class _RunnerAchievementProfileScreenState
         public?.avatarInitials,
         widget.profile.initial,
       ]),
+      avatarUrl: _firstNonEmpty([public?.avatarUrl, widget.profile.photoUrl]),
       subscriptionStatusLabel: public?.subscriptionStatusLabel ?? '',
       regionLabel: _firstNonEmpty([
         public?.regionLabel,

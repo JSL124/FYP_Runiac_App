@@ -254,6 +254,36 @@ describe("monthly leaderboard aggregation", () => {
     );
   });
 
+  it("assigns avatarUrl from avatarUrlByOwner, defaulting an absent owner or an omitted map to an empty string", () => {
+    const withMap = planMonthlyLeaderboards({
+      periodKey: "2026-07",
+      avatarUrlByOwner: new Map([["je-iron-1", "https://firebasestorage.googleapis.com/v0/b/x/o/avatars%2Fabc.png?alt=media&token=t"]]),
+      contributions: [
+        contribution({ ownerUid: "je-iron-1", scoreXp: 130 }),
+        contribution({ ownerUid: "je-iron-2", scoreXp: 90 }),
+      ],
+    });
+    const jurongIron = withMap.snapshots[0];
+    assert.deepEqual(
+      jurongIron?.topEntries.map((entry) => [entry.publicAlias, entry.avatarUrl]),
+      [
+        ["Runner je-iron-1", "https://firebasestorage.googleapis.com/v0/b/x/o/avatars%2Fabc.png?alt=media&token=t"],
+        ["Runner je-iron-2", ""],
+      ],
+    );
+    const rank = withMap.ranks.find((item) => item.ownerUid === "je-iron-1");
+    assert.equal(rank?.currentEntry.avatarUrl, "https://firebasestorage.googleapis.com/v0/b/x/o/avatars%2Fabc.png?alt=media&token=t");
+
+    // Existing callers that omit avatarUrlByOwner entirely (every planner
+    // test above this one) must keep compiling and resolving to "" — the
+    // whole point of making the input optional.
+    const withoutMap = planMonthlyLeaderboards({
+      periodKey: "2026-07",
+      contributions: [contribution({ ownerUid: "je-iron-1", scoreXp: 130 })],
+    });
+    assert.equal(withoutMap.snapshots[0]?.topEntries[0]?.avatarUrl, "");
+  });
+
   it("uses Asia Singapore month boundaries and labels", () => {
     assert.equal(
       currentSingaporeMonthKey(new Date("2026-06-30T15:59:59.000Z")),

@@ -6,6 +6,22 @@ import {
   refreshMonthlyLeaderboardSnapshots,
   writeLeaderboardContribution,
 } from "../src/leaderboard/monthlyLeaderboard.js";
+import { buildAvatarDownloadUrl } from "../src/profile/avatar/avatarPaths.js";
+
+// A fabricated bucket name for the avatar-resolution tests below. These
+// tests never touch the Storage emulator: `refreshMonthlyLeaderboardSnapshots`
+// is given an explicit `AvatarUrlContext` carrying this bucket, and
+// `testAvatarUrl` mints a URL against the same bucket, so `resolveProfileAvatarUrl`
+// can be exercised end-to-end with nothing but the Firestore emulator.
+const AVATAR_TEST_BUCKET = "monthly-leaderboard-writer-test.appspot.com";
+
+function testAvatarUrl(objectId: string): string {
+  return buildAvatarDownloadUrl({
+    bucket: AVATAR_TEST_BUCKET,
+    objectPath: `avatars/${objectId}.png`,
+    token: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  });
+}
 
 describe(
   "monthly leaderboard Firestore writer",
@@ -455,6 +471,172 @@ describe(
       });
       const afterWrite = await contributionRef.get();
       assert.equal(afterWrite.get("qualifyingRunCount"), undefined);
+    });
+
+    it("resolves each contributor's avatarUrl onto their topEntries row and their currentEntry/nearbyEntries rows, with zero extra reads beyond the existing ownerFacts load", async () => {
+      const withAvatarUid = "avatar-writer-with-avatar";
+      const withoutAvatarUid = "avatar-writer-without-avatar";
+      const avatarUrl = testAvatarUrl("0123456789abcdef0123456789abcdef");
+      await Promise.all([
+        firestore.doc(`users/${withAvatarUid}`).set({ subscriptionStatus: "basic" }),
+        firestore.doc(`userProfiles/${withAvatarUid}`).set({
+          nickname: "Has Avatar",
+          locationLabel: "Jurong East, Singapore",
+          divisionKey: "tier_01",
+          level: 1,
+          avatarUrl,
+        }),
+        firestore
+          .doc(`leaderboardContributions/${withAvatarUid}_monthly_2026-07`)
+          .set(contribution({ ownerUid: withAvatarUid, scoreXp: 200 })),
+        firestore.doc(`users/${withoutAvatarUid}`).set({ subscriptionStatus: "basic" }),
+        firestore.doc(`userProfiles/${withoutAvatarUid}`).set({
+          nickname: "No Avatar",
+          locationLabel: "Jurong East, Singapore",
+          divisionKey: "tier_01",
+          level: 1,
+        }),
+        firestore
+          .doc(`leaderboardContributions/${withoutAvatarUid}_monthly_2026-07`)
+          .set(contribution({ ownerUid: withoutAvatarUid, scoreXp: 100 })),
+      ]);
+
+      await refreshMonthlyLeaderboardSnapshots(
+        firestore,
+        "2026-07",
+        { now: new Date("2026-07-10T00:00:00.000Z"), buildId: "avatar-resolve-build" },
+        { bucket: AVATAR_TEST_BUCKET },
+      );
+
+      const snapshot = await firestore
+        .doc("leaderboardSnapshots/monthly_jurong-east_tier_01_2026-07")
+        .get();
+      const topEntries = snapshot.get("topEntries") as readonly Record<string, unknown>[];
+      const withAvatarEntry = topEntries.find((entryItem) => entryItem["publicAlias"] === "Runner avatar-writer-with-avatar");
+      const withoutAvatarEntry = topEntries.find((entryItem) => entryItem["publicAlias"] === "Runner avatar-writer-without-avatar");
+      assert.equal(withAvatarEntry?.["avatarUrl"], avatarUrl);
+      assert.equal(withoutAvatarEntry?.["avatarUrl"], "");
+
+      const rank = await firestore
+        .doc(`leaderboardUserRanks/${withAvatarUid}_monthly_2026-07`)
+        .get();
+      const currentEntry = rank.get("currentEntry") as Record<string, unknown>;
+      assert.equal(currentEntry["avatarUrl"], avatarUrl);
+      const nearbyEntries = rank.get("nearbyEntries") as readonly Record<string, unknown>[];
+      const nearbySelf = nearbyEntries.find((entryItem) => entryItem["publicAlias"] === "Runner avatar-writer-with-avatar");
+      assert.equal(nearbySelf?.["avatarUrl"], avatarUrl);
+    });
+
+    it("resolves a foreign-bucket avatarUrl to empty string, proving the sanitiser is live on the leaderboard read path and not vacuous", async () => {
+      const uid = "avatar-writer-foreign-bucket";
+      const foreignUrl = buildAvatarDownloadUrl({
+        bucket: "some-other-bucket.appspot.com",
+        objectPath: "avatars/fedcba9876543210fedcba9876543210.png",
+        token: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      });
+      await Promise.all([
+        firestore.doc(`users/${uid}`).set({ subscriptionStatus: "basic" }),
+        firestore.doc(`userProfiles/${uid}`).set({
+          nickname: "Foreign Bucket",
+          locationLabel: "Jurong East, Singapore",
+          divisionKey: "tier_01",
+          level: 1,
+          avatarUrl: foreignUrl,
+        }),
+        firestore
+          .doc(`leaderboardContributions/${uid}_monthly_2026-07`)
+          .set(contribution({ ownerUid: uid })),
+      ]);
+
+      await refreshMonthlyLeaderboardSnapshots(
+        firestore,
+        "2026-07",
+        { now: new Date("2026-07-10T00:00:00.000Z"), buildId: "avatar-foreign-bucket-build" },
+        { bucket: AVATAR_TEST_BUCKET },
+      );
+
+      const rank = await firestore
+        .doc(`leaderboardUserRanks/${uid}_monthly_2026-07`)
+        .get();
+      const currentEntry = rank.get("currentEntry") as Record<string, unknown>;
+      assert.equal(currentEntry["avatarUrl"], "");
+    });
+
+    // The entire opaque-object-path avatar design exists so that a
+    // world-readable row (`leaderboardSnapshots`: `allow read: if
+    // isSignedIn()`) never leaks WHO a ranked runner is via their avatar URL.
+    // This asserts that property directly against every row this run wrote,
+    // rather than trusting the design intent alone.
+    it("never writes an avatarUrl containing any contributor's uid as a substring", async () => {
+      const uids = [
+        "avatar-security-alpha-uid",
+        "avatar-security-bravo-uid",
+        "avatar-security-charlie-uid",
+      ];
+      // Distinct, valid 32-character-lowercase-hex object ids — never derived
+      // from the uid strings above, matching real ids minted by
+      // newAvatarObjectPath (a server-generated random id).
+      const objectIds = [
+        "11111111111111111111111111111111".slice(0, 32),
+        "22222222222222222222222222222222".slice(0, 32),
+        "33333333333333333333333333333333".slice(0, 32),
+      ];
+      await Promise.all(
+        uids.flatMap((uid, index) => [
+          firestore.doc(`users/${uid}`).set({ subscriptionStatus: "basic" }),
+          firestore.doc(`userProfiles/${uid}`).set({
+            nickname: `Security ${index}`,
+            locationLabel: "Jurong East, Singapore",
+            divisionKey: "tier_01",
+            level: 1,
+            avatarUrl: testAvatarUrl(objectIds[index] ?? "00000000000000000000000000000000".slice(0, 32)),
+          }),
+          firestore
+            .doc(`leaderboardContributions/${uid}_monthly_2026-07`)
+            .set(contribution({ ownerUid: uid, scoreXp: 300 - index })),
+        ]),
+      );
+
+      await refreshMonthlyLeaderboardSnapshots(
+        firestore,
+        "2026-07",
+        { now: new Date("2026-07-10T00:00:00.000Z"), buildId: "avatar-security-build" },
+        { bucket: AVATAR_TEST_BUCKET },
+      );
+
+      const snapshot = await firestore
+        .doc("leaderboardSnapshots/monthly_jurong-east_tier_01_2026-07")
+        .get();
+      const topEntries = snapshot.get("topEntries") as readonly Record<string, unknown>[];
+      const rankSnapshots = await Promise.all(
+        uids.map((uid) =>
+          firestore.doc(`leaderboardUserRanks/${uid}_monthly_2026-07`).get(),
+        ),
+      );
+      const avatarUrls: string[] = [];
+      for (const entryItem of topEntries) {
+        avatarUrls.push(String(entryItem["avatarUrl"] ?? ""));
+      }
+      for (const rankSnapshot of rankSnapshots) {
+        const currentEntry = rankSnapshot.get("currentEntry") as Record<string, unknown> | undefined;
+        if (currentEntry !== undefined) {
+          avatarUrls.push(String(currentEntry["avatarUrl"] ?? ""));
+        }
+        const nearbyEntries = (rankSnapshot.get("nearbyEntries") as readonly Record<string, unknown>[] | undefined) ?? [];
+        for (const entryItem of nearbyEntries) {
+          avatarUrls.push(String(entryItem["avatarUrl"] ?? ""));
+        }
+      }
+      assert.ok(avatarUrls.length > 0, "expected at least one written avatarUrl to inspect");
+      for (const url of avatarUrls) {
+        for (const uid of uids) {
+          assert.equal(
+            url.includes(uid),
+            false,
+            `avatarUrl ${url} must never contain contributor uid ${uid}`,
+          );
+        }
+      }
     });
   },
 );

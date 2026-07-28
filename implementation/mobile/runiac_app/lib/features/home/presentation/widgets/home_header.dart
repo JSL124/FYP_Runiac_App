@@ -12,6 +12,7 @@ class HomeHeader extends StatelessWidget {
     required this.onProfile,
     this.unreadNotificationCount = 0,
     this.profileInitials = 'R',
+    this.profilePhotoUrl = '',
     this.levelBadgeLabel = 'Lv.0',
     this.levelProgressFraction = 0,
     super.key,
@@ -21,6 +22,9 @@ class HomeHeader extends StatelessWidget {
   final VoidCallback onProfile;
   final int unreadNotificationCount;
   final String profileInitials;
+
+  /// Raw, not-yet-sanitised avatar photo URL. Empty renders the initials disc.
+  final String profilePhotoUrl;
   final String levelBadgeLabel;
   final double levelProgressFraction;
 
@@ -62,6 +66,7 @@ class HomeHeader extends StatelessWidget {
           onProfile: onProfile,
           unreadNotificationCount: unreadNotificationCount,
           profileInitials: profileInitials,
+          profilePhotoUrl: profilePhotoUrl,
           levelBadgeLabel: levelBadgeLabel,
           levelProgressFraction: levelProgressFraction,
         ),
@@ -76,6 +81,7 @@ class _HomeProfilePlaceholder extends StatelessWidget {
     required this.onProfile,
     required this.unreadNotificationCount,
     required this.profileInitials,
+    this.profilePhotoUrl = '',
     required this.levelBadgeLabel,
     required this.levelProgressFraction,
   });
@@ -84,6 +90,7 @@ class _HomeProfilePlaceholder extends StatelessWidget {
   final VoidCallback onProfile;
   final int unreadNotificationCount;
   final String profileInitials;
+  final String profilePhotoUrl;
   final String levelBadgeLabel;
   final double levelProgressFraction;
 
@@ -146,6 +153,7 @@ class _HomeProfilePlaceholder extends StatelessWidget {
                       initials: profileInitials,
                       levelLabel: levelBadgeLabel,
                       progressFraction: levelProgressFraction,
+                      photoUrl: profilePhotoUrl,
                       size: 62,
                       badgeHeight: 21,
                       badgeMinWidth: 54,

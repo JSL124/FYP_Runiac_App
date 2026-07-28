@@ -5,6 +5,7 @@ import { getRunnerPublicProfile as getRunnerPublicProfileCore, type RunnerPublic
 import { withCallableErrorReporting } from "../../errors/withErrorReporting.js";
 import { friendRef, requestRef } from "../../friends/friendsPaths.js";
 import { instanceRef, readRoster, slotRef } from "../../challenge/challengeLobbySupport.js";
+import { avatarUrlContextFromEnvironment } from "../avatar/context.js";
 
 if (getApps().length === 0) initializeApp();
 
@@ -21,7 +22,7 @@ export const getRunnerPublicProfile = onCall(
   { region: "asia-southeast1" },
   withCallableErrorReporting("getRunnerPublicProfile", async (request: GetRunnerPublicProfileRequest) => {
     const callableRequest = request.auth === undefined ? { data: request.data } : { auth: { uid: request.auth.uid }, data: request.data };
-    return getRunnerPublicProfileCore(callableRequest, createRunnerPublicProfilePorts(getFirestore()));
+    return getRunnerPublicProfileCore(callableRequest, createRunnerPublicProfilePorts(getFirestore()), avatarUrlContextFromEnvironment());
   }),
 );
 

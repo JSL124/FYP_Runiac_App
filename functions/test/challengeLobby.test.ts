@@ -18,6 +18,8 @@ import {
 } from "../src/challenge/challengeLobbyCore.js";
 import { readChallengeReason, type ChallengeReason } from "../src/challenge/challengeErrors.js";
 import { CHALLENGE_CATALOG } from "../src/challenge/challengeCatalog.js";
+import { buildAvatarDownloadUrl, type AvatarUrlContext } from "../src/profile/avatar/avatarPaths.js";
+import { asRecord, callEmulatorCallable, stringAt } from "./helpers/avatarEmulatorHelpers.js";
 
 const PROJECT_ID = "demo-runiac-challenge";
 const OWNER = "ch-owner";
@@ -26,6 +28,40 @@ const B = "ch-friend-b";
 const C = "ch-friend-c";
 const STRANGER = "ch-stranger";
 const ALL_UIDS = [OWNER, A, B, C, STRANGER] as const;
+
+const BUCKET = "runiac-fypp.appspot.com";
+const AVATAR_CONTEXT: AvatarUrlContext = { bucket: BUCKET };
+const AVATAR_TOKEN = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
+const VALID_AVATAR_URL = buildAvatarDownloadUrl({
+  bucket: BUCKET,
+  objectPath: "avatars/0123456789abcdef0123456789abcdef.png",
+  token: AVATAR_TOKEN,
+});
+const FOREIGN_AVATAR_URL = buildAvatarDownloadUrl({
+  bucket: "some-other-bucket.appspot.com",
+  objectPath: "avatars/0123456789abcdef0123456789abcdef.png",
+  token: AVATAR_TOKEN,
+});
+
+// The bucket name a real `getActiveChallenge` callable, running inside this
+// project's Functions emulator, actually resolves via
+// `getStorage().bucket().name` — the Admin SDK's `${projectId}.appspot.com`
+// default convention. No Storage emulator is running for this group (the
+// URLs below are never fetched, only round-tripped as strings), so this
+// exercises the production (non-emulator-host) branch of
+// resolveProfileAvatarUrl/buildAvatarDownloadUrl.
+const REAL_BUCKET = `${PROJECT_ID}.appspot.com`;
+const REAL_AVATAR_URL = buildAvatarDownloadUrl({
+  bucket: REAL_BUCKET,
+  objectPath: "avatars/0123456789abcdef0123456789abcdef.png",
+  token: AVATAR_TOKEN,
+});
+const REAL_FOREIGN_AVATAR_URL = buildAvatarDownloadUrl({
+  bucket: "some-other-bucket.appspot.com",
+  objectPath: "avatars/0123456789abcdef0123456789abcdef.png",
+  token: AVATAR_TOKEN,
+});
+const FUNCTIONS_ORIGIN = "http://127.0.0.1:5001";
 
 let firestore: Firestore;
 
@@ -478,6 +514,7 @@ describe("challenge read models", () => {
       keys,
       [
         "avatarInitialsSnapshot",
+        "avatarUrlSnapshot",
         "creditedMeters",
         "displayNameSnapshot",
         "levelLabelSnapshot",
@@ -509,6 +546,97 @@ describe("challenge read models", () => {
     const { challengeId } = await createChallengeLobbyForCallable(req(OWNER, { tierId: "42K" }), firestore);
     const active = await getActiveChallengeForCallable(req(OWNER, {}), firestore);
     assert.equal(active.challenge?.participants[0]?.levelLabelSnapshot, "");
+  });
+
+  describe("getActiveChallenge avatarUrlSnapshot", () => {
+    it("surfaces a valid stored avatarUrl for a roster member", async () => {
+      const { challengeId } = await createChallengeLobbyForCallable(req(OWNER, { tierId: "42K" }), firestore);
+      await firestore.doc(`userProfiles/${OWNER}`).set({ avatarUrl: VALID_AVATAR_URL }, { merge: true });
+      const active = await getActiveChallengeForCallable(req(OWNER, {}), firestore, AVATAR_CONTEXT);
+      assert.equal(active.challenge?.participants[0]?.avatarUrlSnapshot, VALID_AVATAR_URL);
+    });
+
+    it("resolves a foreign-bucket avatarUrl to empty rather than relaying it", async () => {
+      const { challengeId } = await createChallengeLobbyForCallable(req(OWNER, { tierId: "42K" }), firestore);
+      await firestore.doc(`userProfiles/${OWNER}`).set({ avatarUrl: FOREIGN_AVATAR_URL }, { merge: true });
+      const active = await getActiveChallengeForCallable(req(OWNER, {}), firestore, AVATAR_CONTEXT);
+      assert.equal(active.challenge?.participants[0]?.avatarUrlSnapshot, "");
+    });
+
+    it("resolves a malformed avatarUrl string to empty", async () => {
+      const { challengeId } = await createChallengeLobbyForCallable(req(OWNER, { tierId: "42K" }), firestore);
+      await firestore.doc(`userProfiles/${OWNER}`).set({ avatarUrl: "not a url at all" }, { merge: true });
+      const active = await getActiveChallengeForCallable(req(OWNER, {}), firestore, AVATAR_CONTEXT);
+      assert.equal(active.challenge?.participants[0]?.avatarUrlSnapshot, "");
+    });
+
+    it("resolves a profile with no avatar fields to empty, never undefined", async () => {
+      const { challengeId } = await createChallengeLobbyForCallable(req(OWNER, { tierId: "42K" }), firestore);
+      const active = await getActiveChallengeForCallable(req(OWNER, {}), firestore, AVATAR_CONTEXT);
+      assert.equal(active.challenge?.participants[0]?.avatarUrlSnapshot, "");
+      assert.equal("avatarUrlSnapshot" in (active.challenge?.participants[0] ?? {}), true);
+    });
+  });
+
+  /**
+   * The tests above call `getActiveChallengeForCallable` — the CORE function
+   * — with an explicitly hand-assembled `AVATAR_CONTEXT`, so none of them
+   * prove that the deployed `getActiveChallenge` Cloud Function (in
+   * challenge/callable.ts) actually injects a real AvatarUrlContext via
+   * `avatarUrlContextFromEnvironment()`, or that the bucket name it resolves
+   * via `getStorage().bucket().name` at read time agrees with the bucket a
+   * stored avatarUrl was built against. This describe block closes that gap
+   * by invoking the REAL deployed `getActiveChallenge` callable over HTTP
+   * through the Functions emulator (the same real-callable-HTTP pattern
+   * challengeCallableSurface.test.ts already uses for this project), with no
+   * explicitly-passed avatar context at all.
+   *
+   * No Storage emulator runs for this project group, so the fixture
+   * avatarUrl below is never fetched — only round-tripped as a string — and
+   * is built against the bucket name the Admin SDK's default convention
+   * (`${projectId}.appspot.com`) resolves to inside the real emulator-hosted
+   * function, exercising the production HTTPS branch of
+   * resolveProfileAvatarUrl rather than the emulator-host branch.
+   */
+  describe("getActiveChallenge avatarUrlSnapshot — real callable, no explicit context", () => {
+    it("surfaces a real-bucket-shaped avatarUrl through the real getActiveChallenge callable", async () => {
+      await createChallengeLobbyForCallable(req(OWNER, { tierId: "42K" }), firestore);
+      await firestore.doc(`userProfiles/${OWNER}`).set({ avatarUrl: REAL_AVATAR_URL }, { merge: true });
+
+      const response = await callEmulatorCallable(
+        { functionsOrigin: FUNCTIONS_ORIGIN, projectId: PROJECT_ID, region: "asia-southeast1" },
+        "getActiveChallenge",
+        { uid: OWNER, token: unsignedEmulatorJwt(OWNER) },
+        {},
+      );
+      assert.equal(response.ok, true);
+      if (!response.ok) return;
+      const challenge = asRecord(response.data["challenge"]);
+      const participants = challenge["participants"] as readonly Readonly<Record<string, unknown>>[];
+      const ownerParticipant = participants.find((participant) => participant["uid"] === OWNER);
+      assert.ok(ownerParticipant !== undefined);
+      assert.notEqual(stringAt(ownerParticipant, "avatarUrlSnapshot"), "");
+      assert.equal(stringAt(ownerParticipant, "avatarUrlSnapshot"), REAL_AVATAR_URL);
+    });
+
+    it("resolves a foreign-bucket avatarUrl to empty through the real callable, proving the bucket check is live", async () => {
+      await createChallengeLobbyForCallable(req(OWNER, { tierId: "42K" }), firestore);
+      await firestore.doc(`userProfiles/${OWNER}`).set({ avatarUrl: REAL_FOREIGN_AVATAR_URL }, { merge: true });
+
+      const response = await callEmulatorCallable(
+        { functionsOrigin: FUNCTIONS_ORIGIN, projectId: PROJECT_ID, region: "asia-southeast1" },
+        "getActiveChallenge",
+        { uid: OWNER, token: unsignedEmulatorJwt(OWNER) },
+        {},
+      );
+      assert.equal(response.ok, true);
+      if (!response.ok) return;
+      const challenge = asRecord(response.data["challenge"]);
+      const participants = challenge["participants"] as readonly Readonly<Record<string, unknown>>[];
+      const ownerParticipant = participants.find((participant) => participant["uid"] === OWNER);
+      assert.ok(ownerParticipant !== undefined);
+      assert.equal(stringAt(ownerParticipant, "avatarUrlSnapshot"), "");
+    });
   });
 
   it("getActiveChallenge returns null when the caller holds no slot", async () => {
@@ -613,6 +741,21 @@ describe("challenge concurrency", () => {
 
 function req(uid: string, data: unknown): CallableRequest {
   return { auth: { uid }, data };
+}
+
+// The Functions emulator decodes an unsigned "alg: none" token's payload for
+// `request.auth` without a real Auth emulator running — the same technique
+// completeRunCallableSurface.test.ts and challengeCallableSurface.test.ts use
+// to authenticate a real HTTP callable request in a group with no Auth
+// emulator.
+function unsignedEmulatorJwt(uid: string): string {
+  const header = base64UrlEncode(JSON.stringify({ alg: "none", typ: "JWT" }));
+  const payload = base64UrlEncode(JSON.stringify({ sub: uid, uid }));
+  return `${header}.${payload}.signature`;
+}
+
+function base64UrlEncode(value: string): string {
+  return Buffer.from(value).toString("base64").replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
 }
 
 function inviteId(challengeId: string, recipientUid: string): string {

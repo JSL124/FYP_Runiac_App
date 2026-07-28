@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../core/haptics/runiac_haptics_scope.dart';
 import '../../../core/theme/runiac_colors.dart';
+import '../../../core/widgets/runiac_avatar_photo.dart';
 import '../../../core/widgets/runiac_back_header.dart';
 import '../../../core/widgets/runiac_buttons.dart';
 import '../../auth/domain/runiac_auth_service.dart';
@@ -13,9 +16,94 @@ import '../../plan/domain/models/beginner_adaptive_plan_snapshot.dart';
 import '../../plan/domain/repositories/generated_plan_persistence_repository.dart';
 import '../../plan/domain/services/beginner_adaptive_plan_generator.dart';
 import '../../plan/presentation/current_session_generated_plan.dart';
+import '../data/avatar/avatar_image_encoder.dart';
+import '../data/avatar/firebase_avatar_upload_gateway.dart';
 import '../domain/models/user_profile_read_model.dart';
 import '../domain/repositories/user_profile_persistence_repository.dart';
+import 'widgets/avatar_action_sheet.dart';
 import 'widgets/profile_form_controls.dart';
+
+/// Result popped by [AccountEditProfileScreen], replacing a plain `bool` so
+/// the Account screen can tell apart three distinct outcomes: nothing
+/// changed, a photo-only change made via the header Back button, and an
+/// explicit Save. See [profileChanged]/[showSuccessOverlay] for why a bool
+/// alone could not express this.
+class AccountEditProfileResult {
+  const AccountEditProfileResult({
+    required this.profileChanged,
+    required this.showSuccessOverlay,
+  });
+
+  /// Nothing changed (Back with no edits). The Account screen must not
+  /// refetch its profile or show any confirmation.
+  static const unchanged = AccountEditProfileResult(
+    profileChanged: false,
+    showSuccessOverlay: false,
+  );
+
+  /// An explicit Save completed. The Account screen refetches its profile
+  /// and shows the "Profile updated." overlay, exactly as before this result
+  /// type existed.
+  static const saved = AccountEditProfileResult(
+    profileChanged: true,
+    showSuccessOverlay: true,
+  );
+
+  /// Back was pressed after a photo-only change (no explicit Save). The
+  /// Account screen must still refetch its profile — otherwise it renders
+  /// the stale pre-photo avatar — but does NOT show the Save-flow success
+  /// overlay: the runner never tapped Save, so a "Profile updated."
+  /// confirmation would misattribute an action they did not take.
+  static const photoOnly = AccountEditProfileResult(
+    profileChanged: true,
+    showSuccessOverlay: false,
+  );
+
+  /// Whether the Account screen should refetch `loadUserProfile()`.
+  final bool profileChanged;
+
+  /// Whether the Account screen should play the "Profile updated." overlay.
+  final bool showSuccessOverlay;
+}
+
+/// Pick-and-encode seam for the avatar flow. Kept as its own interface (not
+/// a bare function) so widget tests can hand-write an `implements` stub that
+/// returns fixed bytes, or null for "picker dismissed with no photo chosen",
+/// with no real `image_picker` platform channel and no mocking framework.
+abstract interface class AvatarPhotoPicker {
+  /// Returns already-encoded, upload-ready avatar PNG bytes, or null if the
+  /// caller dismissed the photo library without choosing a photo.
+  Future<Uint8List?> pickAndEncodeAvatarPhoto();
+}
+
+/// Production [AvatarPhotoPicker]. `maxWidth`/`maxHeight`/`imageQuality` are
+/// load-bearing, not an optimisation: iOS gallery photos are frequently
+/// HEIC, `ui.instantiateImageCodec` (used by [encodeAvatarPng]) cannot
+/// decode HEIC, and passing these resize parameters forces the iOS
+/// `image_picker` plugin to re-encode the asset (JPEG) via `UIImage` before
+/// Dart ever sees the bytes. `image_picker` has no crop UI of its own — the
+/// centre-crop to a square happens inside [encodeAvatarPng].
+class ImagePickerAvatarPhotoPicker implements AvatarPhotoPicker {
+  ImagePickerAvatarPhotoPicker({ImagePicker? picker})
+    : _picker = picker ?? ImagePicker();
+
+  final ImagePicker _picker;
+
+  @override
+  Future<Uint8List?> pickAndEncodeAvatarPhoto() async {
+    final file = await _picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      imageQuality: 90,
+    );
+    if (file == null) {
+      return null;
+    }
+    final rawBytes = await file.readAsBytes();
+    return encodeAvatarPng(rawBytes);
+  }
+}
 
 class AccountEditProfileScreen extends StatefulWidget {
   const AccountEditProfileScreen({
@@ -24,6 +112,8 @@ class AccountEditProfileScreen extends StatefulWidget {
     required this.generatedPlanPersistenceRepository,
     required this.profile,
     required this.onBack,
+    this.avatarUploadGateway,
+    this.avatarPhotoPicker,
     super.key,
   });
 
@@ -31,7 +121,19 @@ class AccountEditProfileScreen extends StatefulWidget {
   final UserProfilePersistenceRepository persistenceRepository;
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
   final UserProfileReadModel profile;
-  final VoidCallback onBack;
+
+  /// Called with the outcome the header Back button should pop with — see
+  /// [AccountEditProfileResult] for why this is no longer a plain
+  /// `VoidCallback`.
+  final ValueChanged<AccountEditProfileResult> onBack;
+
+  /// Defaults to [FirebaseAvatarUploadGateway] in production; tests inject a
+  /// hand-written stub.
+  final AvatarUploadGateway? avatarUploadGateway;
+
+  /// Defaults to [ImagePickerAvatarPhotoPicker] in production; tests inject
+  /// a hand-written stub.
+  final AvatarPhotoPicker? avatarPhotoPicker;
 
   @override
   State<AccountEditProfileScreen> createState() =>
@@ -53,6 +155,25 @@ class _AccountEditProfileScreenState extends State<AccountEditProfileScreen> {
   Timer? _nicknameCheckTimer;
   String? _error;
 
+  // Avatar flow state. Deliberately separate from `_saving`/`_error`: the
+  // photo flow is independent of `_save()` and must neither block, nor be
+  // blocked by, the nickname check or the Save button.
+  bool _uploadingAvatar = false;
+  String? _avatarError;
+  bool _avatarChanged = false;
+
+  /// The runner's current avatar photo URL: seeded from
+  /// `widget.profile.avatarUrl` on first build, then replaced by whatever a
+  /// photo change (upload or remove) produces during THIS visit.
+  /// `RuniacAvatarPhotoDisc` falls back to initials whenever this is null or
+  /// fails the sanitiser, which is exactly the right rendering for "no photo".
+  String? _avatarPhotoUrl;
+
+  late final AvatarUploadGateway _avatarUploadGateway =
+      widget.avatarUploadGateway ?? FirebaseAvatarUploadGateway();
+  late final AvatarPhotoPicker _avatarPhotoPicker =
+      widget.avatarPhotoPicker ?? ImagePickerAvatarPhotoPicker();
+
   @override
   void initState() {
     super.initState();
@@ -71,6 +192,9 @@ class _AccountEditProfileScreenState extends State<AccountEditProfileScreen> {
     );
     _dateOfBirthIso = widget.profile.dateOfBirthIso;
     _region = widget.profile.locationLabel;
+    _avatarPhotoUrl = widget.profile.avatarUrl.isEmpty
+        ? null
+        : widget.profile.avatarUrl;
   }
 
   @override
@@ -147,7 +271,7 @@ class _AccountEditProfileScreenState extends State<AccountEditProfileScreen> {
       if (!mounted) {
         return;
       }
-      Navigator.of(context).pop(true);
+      Navigator.of(context).pop(AccountEditProfileResult.saved);
     } on NicknameUnavailableException {
       if (!mounted) {
         return;
@@ -321,7 +445,131 @@ class _AccountEditProfileScreenState extends State<AccountEditProfileScreen> {
     if (!mounted || updated != true) {
       return;
     }
-    Navigator.of(context).pop(true);
+    Navigator.of(context).pop(AccountEditProfileResult.saved);
+  }
+
+  Future<void> _openAvatarActionSheet() async {
+    if (_uploadingAvatar) {
+      return;
+    }
+    final action = await showAvatarActionSheet(
+      context,
+      hasPhoto: _avatarPhotoUrl != null,
+    );
+    if (!mounted || action == null) {
+      return;
+    }
+    switch (action) {
+      case AvatarSheetAction.choosePhoto:
+        await _pickAndUploadAvatar();
+      case AvatarSheetAction.removePhoto:
+        await _removeAvatar();
+    }
+  }
+
+  Future<void> _pickAndUploadAvatar() async {
+    // The visibility gate is a real consent step: cancelling it must leave
+    // this method returning here, before the picker or the upload gateway
+    // are ever touched.
+    final confirmed = await showAvatarVisibilityConfirmation(context);
+    if (!mounted || !confirmed) {
+      return;
+    }
+    final Uint8List? encodedBytes;
+    try {
+      encodedBytes = await _avatarPhotoPicker.pickAndEncodeAvatarPhoto();
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      RuniacHapticsScope.maybeOf(context)?.error();
+      setState(() {
+        _avatarError = 'We could not open your photo library. Try again.';
+      });
+      return;
+    }
+    if (encodedBytes == null) {
+      // The caller dismissed the picker without choosing a photo.
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _uploadingAvatar = true;
+      _avatarError = null;
+    });
+    try {
+      final avatarUrl = await _avatarUploadGateway.upload(encodedBytes);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _avatarPhotoUrl = avatarUrl;
+        _avatarChanged = true;
+      });
+    } on AvatarUploadException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      RuniacHapticsScope.maybeOf(context)?.error();
+      setState(() {
+        _avatarError = error.message;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      RuniacHapticsScope.maybeOf(context)?.error();
+      setState(() {
+        _avatarError = 'We could not update your profile photo. Try again.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _uploadingAvatar = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _removeAvatar() async {
+    setState(() {
+      _uploadingAvatar = true;
+      _avatarError = null;
+    });
+    try {
+      await _avatarUploadGateway.clear();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _avatarPhotoUrl = null;
+        _avatarChanged = true;
+      });
+    } on AvatarUploadException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      RuniacHapticsScope.maybeOf(context)?.error();
+      setState(() {
+        _avatarError = error.message;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      RuniacHapticsScope.maybeOf(context)?.error();
+      setState(() {
+        _avatarError = 'We could not remove your profile photo. Try again.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _uploadingAvatar = false;
+        });
+      }
+    }
   }
 
   @override
@@ -338,7 +586,11 @@ class _AccountEditProfileScreenState extends State<AccountEditProfileScreen> {
             RuniacBackHeader(
               title: 'Edit profile',
               tooltip: 'Back to Account',
-              onBack: widget.onBack,
+              onBack: () => widget.onBack(
+                _avatarChanged
+                    ? AccountEditProfileResult.photoOnly
+                    : AccountEditProfileResult.unchanged,
+              ),
             ),
             Expanded(
               child: SingleChildScrollView(
@@ -348,6 +600,25 @@ class _AccountEditProfileScreenState extends State<AccountEditProfileScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      _AvatarSection(
+                        initials: widget.profile.avatarInitials,
+                        photoUrl: _avatarPhotoUrl,
+                        uploading: _uploadingAvatar,
+                        onTap: _openAvatarActionSheet,
+                      ),
+                      if (_avatarError != null) ...[
+                        const SizedBox(height: 10),
+                        Text(
+                          _avatarError!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: RuniacColors.errorRed,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 18),
                       _Section(
                         title: 'Personal details',
                         children: [
@@ -622,6 +893,90 @@ class _RetakeOnboardingScreenState extends State<_RetakeOnboardingScreen> {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// Tappable circular avatar at the top of Edit Profile: renders [photoUrl]
+/// (via [RuniacAvatarPhotoDisc], falling back to [initials]) with a small
+/// camera badge, and a spinner overlay while [uploading]. Tapping opens the
+/// avatar action sheet unless an upload/remove is already in flight.
+class _AvatarSection extends StatelessWidget {
+  const _AvatarSection({
+    required this.initials,
+    required this.photoUrl,
+    required this.uploading,
+    required this.onTap,
+  });
+
+  final String initials;
+  final String? photoUrl;
+  final bool uploading;
+  final VoidCallback onTap;
+
+  static const _diameter = 88.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: GestureDetector(
+        key: const ValueKey('account-edit-avatar-tap'),
+        onTap: uploading ? null : onTap,
+        child: SizedBox(
+          width: _diameter,
+          height: _diameter,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                width: _diameter,
+                height: _diameter,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: RuniacColors.sectionSurfaceStrong,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: RuniacColors.border),
+                ),
+                child: RuniacAvatarPhotoDisc(
+                  photoUrl: photoUrl,
+                  fallback: Text(
+                    initials,
+                    style: const TextStyle(
+                      color: RuniacColors.primaryBlue,
+                      fontSize: 30,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ),
+              if (uploading)
+                const SizedBox.square(
+                  dimension: _diameter,
+                  child: CircularProgressIndicator(strokeWidth: 3),
+                ),
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  width: 28,
+                  height: 28,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: RuniacColors.primaryBlue,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: RuniacColors.white, width: 2),
+                  ),
+                  child: const Icon(
+                    Icons.camera_alt_rounded,
+                    color: RuniacColors.white,
+                    size: 14,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

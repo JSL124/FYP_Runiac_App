@@ -21,6 +21,7 @@ import '../../settings/data/shared_preferences_app_settings_repository.dart';
 import '../../settings/domain/repositories/app_settings_repository.dart';
 import '../../you/domain/models/user_progress_read_model.dart';
 import '../../you/domain/repositories/user_progress_repository.dart';
+import '../data/avatar/firebase_avatar_upload_gateway.dart';
 import '../domain/models/user_profile_read_model.dart';
 import '../domain/repositories/user_profile_persistence_repository.dart';
 import '../domain/repositories/user_profile_repository.dart';
@@ -47,6 +48,8 @@ class AccountProfileScreen extends StatefulWidget {
     this.homeGuideConsentRepository =
         const AlwaysGrantedHomeGuideConsentRepository(),
     this.appSettingsRepository = const SharedPreferencesAppSettingsRepository(),
+    this.avatarUploadGateway,
+    this.avatarPhotoPicker,
     super.key,
   });
 
@@ -75,6 +78,16 @@ class AccountProfileScreen extends StatefulWidget {
   /// Defaults to the on-device shared-preferences repository; this is local
   /// device state, not backend-owned data.
   final AppSettingsRepository appSettingsRepository;
+
+  /// Threaded straight through to the pushed [AccountEditProfileScreen];
+  /// defaults to null there (which resolves to the production Firebase
+  /// gateway). Exposed here only so tests can inject a stub through the full
+  /// Account → Edit Profile navigation, exercising the real
+  /// `_openEditProfile` refresh contract end-to-end.
+  final AvatarUploadGateway? avatarUploadGateway;
+
+  /// See [avatarUploadGateway].
+  final AvatarPhotoPicker? avatarPhotoPicker;
 
   @override
   State<AccountProfileScreen> createState() => _AccountProfileScreenState();
@@ -452,6 +465,7 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
           ? profile.displayName
           : profile.nickname,
       avatarInitials: profile.avatarInitials,
+      avatarUrl: profile.avatarUrl,
       subscriptionStatusLabel: subscriptionStatusLabel,
       regionLabel: profile.locationLabel,
       regionalRankLabel: _accountRegionalRankLabel(leaderboard),
@@ -505,6 +519,7 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
     return AccountProfileDemoSnapshot(
       displayName: fallback.displayName,
       avatarInitials: fallback.avatarInitials,
+      avatarUrl: fallback.avatarUrl,
       subscriptionStatusLabel: subscriptionStatusLabel,
       regionLabel: fallback.regionLabel,
       regionalRankLabel: _accountRegionalRankLabel(leaderboard),
@@ -647,25 +662,29 @@ class _AccountProfileScreenState extends State<AccountProfileScreen> {
   }
 
   Future<void> _openEditProfile(UserProfileReadModel profile) async {
-    final updated = await Navigator.of(context).push<bool>(
-      MaterialPageRoute<bool>(
+    final result = await Navigator.of(context).push<AccountEditProfileResult>(
+      MaterialPageRoute<AccountEditProfileResult>(
         builder: (context) => AccountEditProfileScreen(
           authRepository: widget.authRepository,
           persistenceRepository: widget.profilePersistenceRepository,
           generatedPlanPersistenceRepository:
               widget.generatedPlanPersistenceRepository,
           profile: profile,
-          onBack: () => Navigator.of(context).pop(false),
+          onBack: (result) => Navigator.of(context).pop(result),
+          avatarUploadGateway: widget.avatarUploadGateway,
+          avatarPhotoPicker: widget.avatarPhotoPicker,
         ),
       ),
     );
-    if (!mounted || updated != true) {
+    if (!mounted || result == null || !result.profileChanged) {
       return;
     }
     setState(() {
       _profileFuture = widget.profileRepository.loadUserProfile();
     });
-    await showRuniacSuccessCheckOverlay(context, message: 'Profile updated.');
+    if (result.showSuccessOverlay) {
+      await showRuniacSuccessCheckOverlay(context, message: 'Profile updated.');
+    }
   }
 
   IconData _matchingSetupIcon(

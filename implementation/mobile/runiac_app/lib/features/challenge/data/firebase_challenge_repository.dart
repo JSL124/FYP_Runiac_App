@@ -22,15 +22,24 @@ import '../domain/repositories/challenge_repository.dart';
 /// so a blank-after-trim string reads identically either way.
 const String _unseededLevelLabel = ' ';
 
-/// Pure: applies the hybrid level-label seed to a store view and parses it.
+/// Pure: applies the hybrid level-label and avatar seeds to a store view and
+/// parses it.
 ///
 /// [levelLabelSeed] maps participant uid to the level label last read from a
 /// full `activeChallenge()` callable response; a uid the seed never saw
 /// renders [_unseededLevelLabel] (surfaces trim it and fall back to `Lv.0`).
+///
+/// [avatarUrlSeed] does the same for the participant's avatar photo URL. It
+/// accepts the same documented limitation as the level label: a
+/// stream-only update (no fresh `activeChallenge()` call) shows no avatar for
+/// a uid the seed never saw, rather than growing new machinery to close that
+/// gap. Unlike the level label, an unseeded avatar simply renders `''` — a
+/// blank avatar is the same as "no photo", so no space-placeholder is needed.
 ActiveChallenge? mapActiveChallengeView(
   Map<String, Object?>? view, {
   required Map<String, String> levelLabelSeed,
   required String? currentUid,
+  Map<String, String> avatarUrlSeed = const <String, String>{},
 }) {
   if (view == null) {
     return null;
@@ -45,6 +54,7 @@ ActiveChallenge? mapActiveChallengeView(
       return <String, Object?>{
         ...participant,
         'levelLabelSnapshot': levelLabelSeed[uid] ?? _unseededLevelLabel,
+        'avatarUrlSnapshot': avatarUrlSeed[uid] ?? '',
       };
     }).toList(growable: false);
     final seededView = <String, Object?>{
@@ -252,12 +262,18 @@ class FirebaseChallengeRepository implements ChallengeRepository {
     String uid,
   ) async* {
     var levelLabelSeed = const <String, String>{};
+    var avatarUrlSeed = const <String, String>{};
     try {
       final seeded = await activeChallenge();
       levelLabelSeed = <String, String>{
         for (final row
             in seeded?.participants ?? const <ChallengeParticipantRow>[])
           row.uid: row.levelLabelSnapshot,
+      };
+      avatarUrlSeed = <String, String>{
+        for (final row
+            in seeded?.participants ?? const <ChallengeParticipantRow>[])
+          row.uid: row.avatarUrlSnapshot,
       };
       yield seeded;
     } on ChallengeFailure {
@@ -269,6 +285,7 @@ class FirebaseChallengeRepository implements ChallengeRepository {
           (view) => mapActiveChallengeView(
             view,
             levelLabelSeed: levelLabelSeed,
+            avatarUrlSeed: avatarUrlSeed,
             currentUid: currentUid(),
           ),
         );

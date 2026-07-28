@@ -17,6 +17,7 @@ checks=(
   "tools/governance-ci/measure-context-overhead.sh"
   "tests/governance/backend_functions_scope_test.sh"
   "tests/governance/config_contract_drift_test.sh"
+  "tests/governance/avatar_path_contract_drift_test.sh"
 )
 
 failures=0

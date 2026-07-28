@@ -292,11 +292,12 @@ class FirebaseFeedDataPort implements FeedDataPort {
       if (uid is! String || value is! Map<Object?, Object?>) continue;
       final label = value['levelLabel'];
       final percent = value['levelProgressPercent'];
-      // displayName/avatarInitials arrived with a later backend revision, so
-      // an older deployment simply omits them and every caller keeps the
-      // identity stored on the post or comment.
+      // displayName/avatarInitials/avatarUrl arrived with a later backend
+      // revision, so an older deployment simply omits them and every caller
+      // keeps the identity stored on the post or comment.
       final displayName = value['displayName'];
       final avatarInitials = value['avatarInitials'];
+      final avatarUrl = value['avatarUrl'];
       result[uid] = FeedAuthorLevel(
         levelLabel: label is String ? label : '',
         levelProgressFraction: percent is num
@@ -304,6 +305,7 @@ class FirebaseFeedDataPort implements FeedDataPort {
             : 0.0,
         displayName: displayName is String ? displayName : '',
         avatarInitials: avatarInitials is String ? avatarInitials : '',
+        avatarUrl: avatarUrl is String ? avatarUrl : '',
       );
     }
     return result;

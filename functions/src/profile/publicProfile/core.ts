@@ -2,6 +2,8 @@ import { HttpsError } from "firebase-functions/v2/https";
 import { isSuspendedAccount } from "../../security/accountStatus.js";
 import { socialProfile } from "../../friends/friendsProfiles.js";
 import { resolveProfileIdentityDisplay } from "../profileIdentityDisplay.js";
+import type { AvatarUrlContext } from "../avatar/avatarPaths.js";
+import { NULL_AVATAR_URL_CONTEXT } from "../avatar/avatarUrlContextDefaults.js";
 
 /**
  * The public running-achievement projection of one runner, as shown on the
@@ -21,6 +23,11 @@ import { resolveProfileIdentityDisplay } from "../profileIdentityDisplay.js";
 export type RunnerPublicProfile = {
   readonly displayName: string;
   readonly avatarInitials: string;
+  // Relayed exactly like every other field here: a value a Cloud Function
+  // already wrote to `userProfiles/{uid}` (via setProfileAvatar), passed
+  // through resolveProfileAvatarUrl so a foreign, malformed, or missing
+  // stored value always serves as "" rather than being relayed as-is.
+  readonly avatarUrl: string;
   readonly regionLabel: string;
   readonly levelLabel: string;
   readonly level: number;
@@ -94,6 +101,12 @@ const UNAVAILABLE_MESSAGE = "This runner profile is not available.";
 export async function getRunnerPublicProfile(
   request: RunnerPublicProfileRequest,
   ports: RunnerPublicProfilePorts,
+  // Injected by the callable layer (see profile/avatar/context.ts) rather than
+  // read from firebase-admin here — this file, like every other core.ts, stays
+  // free of firebase-admin imports and process.env reads. Defaults to a
+  // context that can never match a real avatar URL, so a caller that omits it
+  // still fails closed to avatarUrl: "".
+  avatarContext: AvatarUrlContext = NULL_AVATAR_URL_CONTEXT,
 ): Promise<RunnerPublicProfile> {
   const callerUid = request.auth?.uid;
   if (callerUid === undefined || callerUid.length === 0) throw new HttpsError("unauthenticated", "Authentication is required.");
@@ -171,14 +184,16 @@ export async function getRunnerPublicProfile(
 
   const ownedBadgeTierIds = await ports.readOwnedBadgeTierIds(targetUid);
   // Resolved through the shared reader so this projection and the Feed author
-  // overlay apply the identical nickname-wins rule to the same stored fields.
-  const identity = resolveProfileIdentityDisplay(profile);
+  // overlay apply the identical nickname-wins rule and avatarUrl sanitisation
+  // to the same stored fields.
+  const identity = resolveProfileIdentityDisplay(profile, avatarContext);
   // The resolved uid stays here. Echoing it back would let any signed-in
   // caller walk every rank of every public snapshot and rebuild the uid
   // directory this whole design exists to avoid.
   return {
     displayName: identity.displayName,
     avatarInitials: identity.avatarInitials,
+    avatarUrl: identity.avatarUrl,
     regionLabel: trimmedString(profile["locationLabel"]),
     levelLabel: trimmedString(profile["levelLabel"]),
     level: nonNegativeInteger(profile["level"]),

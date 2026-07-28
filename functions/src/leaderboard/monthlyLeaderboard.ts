@@ -24,6 +24,7 @@ import {
 } from "./monthlyLeaderboardWriter.js";
 import { withScheduledErrorReporting } from "../errors/withErrorReporting.js";
 import { scheduledAutomationEnabled } from "../config/automationGate.js";
+import { avatarUrlContextFromEnvironment } from "../profile/avatar/context.js";
 
 if (getApps().length === 0) {
   initializeApp();
@@ -78,6 +79,8 @@ export const refreshLeaderboardSnapshots = onSchedule(
     await refreshMonthlyLeaderboardSnapshots(
       firestore,
       currentSingaporeMonthKey(new Date()),
+      {},
+      avatarUrlContextFromEnvironment(),
     );
   }),
 );

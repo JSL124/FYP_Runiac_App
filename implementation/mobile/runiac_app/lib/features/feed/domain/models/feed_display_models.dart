@@ -32,11 +32,15 @@ class FeedAuthorProfileSnapshot {
     required this.avatarInitials,
     required this.levelLabel,
     required this.levelProgressFraction,
+    this.avatarUrl = '',
   });
 
   final String userId;
   final String displayName;
   final String avatarInitials;
+
+  /// Raw, not-yet-sanitised avatar photo URL. Empty when no photo is set.
+  final String avatarUrl;
   final String levelLabel;
   final double levelProgressFraction;
 
@@ -58,6 +62,7 @@ class FeedAuthorProfileSnapshot {
           other.userId == userId &&
           other.displayName == displayName &&
           other.avatarInitials == avatarInitials &&
+          other.avatarUrl == avatarUrl &&
           other.levelLabel == levelLabel &&
           other.levelProgressFraction == levelProgressFraction;
 
@@ -66,6 +71,7 @@ class FeedAuthorProfileSnapshot {
     userId,
     displayName,
     avatarInitials,
+    avatarUrl,
     levelLabel,
     levelProgressFraction,
   );
@@ -123,6 +129,7 @@ class FeedPostReadModel {
     required this.showsOwnerMenu,
     required this.routeThumbnail,
     this.authorLevelProgressFraction,
+    this.authorAvatarUrl = '',
     this.activityTitle,
     this.routeName,
   });
@@ -131,6 +138,12 @@ class FeedPostReadModel {
   final String authorUserId;
   final String authorDisplayName;
   final String authorAvatarInitials;
+
+  /// Raw, not-yet-sanitised avatar photo URL. `feedPosts` never stores this
+  /// at write time (only `authorAvatarInitials` is frozen there), so this is
+  /// always populated by the live author-level overlay, never by a stored
+  /// document field.
+  final String authorAvatarUrl;
   final String authorLevelLabel;
 
   /// A live, backend-owned 0.0..1.0 progress fraction resolved at display
@@ -185,6 +198,7 @@ class FeedPostReadModel {
       userId: authorUserId,
       displayName: authorDisplayName,
       avatarInitials: authorAvatarInitials,
+      avatarUrl: authorAvatarUrl,
       levelLabel: hasOwnLabel || !isCurrentViewer
           ? authorLevelLabel
           : currentViewer!.levelLabel,
@@ -204,6 +218,7 @@ class FeedPostReadModel {
   FeedPostReadModel copyWith({
     String? authorDisplayName,
     String? authorAvatarInitials,
+    String? authorAvatarUrl,
     String? authorLevelLabel,
     double? authorLevelProgressFraction,
     int? likeCount,
@@ -217,6 +232,7 @@ class FeedPostReadModel {
       authorUserId: authorUserId,
       authorDisplayName: authorDisplayName ?? this.authorDisplayName,
       authorAvatarInitials: authorAvatarInitials ?? this.authorAvatarInitials,
+      authorAvatarUrl: authorAvatarUrl ?? this.authorAvatarUrl,
       authorLevelLabel: authorLevelLabel ?? this.authorLevelLabel,
       authorLevelProgressFraction:
           authorLevelProgressFraction ?? this.authorLevelProgressFraction,
@@ -269,12 +285,19 @@ class FeedCommentReadModel {
     required this.body,
     required this.createdAt,
     this.authorLevelProgressFraction,
+    this.authorAvatarUrl = '',
   });
 
   final String commentId;
   final String authorUserId;
   final String authorDisplayName;
   final String authorAvatarInitials;
+
+  /// Raw, not-yet-sanitised avatar photo URL. Comments never store this at
+  /// write time (`firestore.rules` only allows `authorAvatarInitials` on a
+  /// comment doc), so this is always populated by the live author-level
+  /// overlay, never by a stored document field.
+  final String authorAvatarUrl;
   final String authorLevelLabel;
 
   /// A live, backend-owned 0.0..1.0 progress fraction resolved at display
@@ -304,6 +327,7 @@ class FeedCommentReadModel {
       userId: authorUserId,
       displayName: authorDisplayName,
       avatarInitials: authorAvatarInitials,
+      avatarUrl: authorAvatarUrl,
       levelLabel: hasOwnLabel || !isCurrentViewer
           ? authorLevelLabel
           : currentViewer!.levelLabel,
@@ -317,11 +341,13 @@ class FeedCommentReadModel {
     String? body,
     String? authorLevelLabel,
     double? authorLevelProgressFraction,
+    String? authorAvatarUrl,
   }) => FeedCommentReadModel(
     commentId: commentId,
     authorUserId: authorUserId,
     authorDisplayName: authorDisplayName,
     authorAvatarInitials: authorAvatarInitials,
+    authorAvatarUrl: authorAvatarUrl ?? this.authorAvatarUrl,
     authorLevelLabel: authorLevelLabel ?? this.authorLevelLabel,
     authorLevelProgressFraction:
         authorLevelProgressFraction ?? this.authorLevelProgressFraction,

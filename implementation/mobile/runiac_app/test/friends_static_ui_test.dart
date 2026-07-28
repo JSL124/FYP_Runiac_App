@@ -38,6 +38,17 @@ const _emptyLevelUser = FriendUserReadModel(
   avatarInitials: 'RU',
 );
 
+const _photoUrl =
+    'https://firebasestorage.googleapis.com/v0/b/bucket/o/avatars%2Fabc.png?alt=media&token=tok';
+
+const _photoUser = FriendUserReadModel(
+  userId: 'photo-user',
+  displayName: 'Photo Runner',
+  avatarInitials: 'PR',
+  levelLabel: 'Lv.4',
+  avatarUrl: _photoUrl,
+);
+
 Widget _rowHarness({required bool isPending}) {
   return MaterialApp(
     home: Scaffold(
@@ -103,6 +114,22 @@ void main() {
     expect(badge.discBorderColor, RuniacColors.white);
     expect(badge.initialsColor, RuniacColors.white);
     expect(badge.levelLabel, _longNameUser.levelLabel);
+  });
+
+  testWidgets('FriendRowBadge passes the avatarUrl to the level profile badge', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(body: FriendRowBadge(user: _photoUser)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final badge = tester.widget<RuniacLevelProfileBadge>(
+      find.byType(RuniacLevelProfileBadge),
+    );
+    expect(badge.photoUrl, _photoUrl);
   });
 
   testWidgets('Friends rows show no pill when the level is unresolved', (

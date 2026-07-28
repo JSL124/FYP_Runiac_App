@@ -984,6 +984,50 @@ void main() {
   });
 
   testWidgets(
+    'Account profile passes the stored avatarUrl to the level profile badge',
+    (tester) async {
+      final profile = UserProfileReadModel(
+        userId: 'test-auth-user-1',
+        displayName: 'Maya Tan',
+        fullName: 'Maya Tan',
+        nickname: 'Maya',
+        avatarInitials: 'MT',
+        avatarUrl:
+            'https://firebasestorage.googleapis.com/v0/b/bucket/o/avatars%2Fabc.png?alt=media&token=tok',
+        ageYears: 24,
+        weightKg: 58.5,
+        locationLabel: 'Queenstown, Singapore',
+        previewNote: '',
+        setupSectionLabel: 'RUNNING SETUP',
+        manageSectionLabel: 'MANAGE',
+        footerCaption: 'Runiac · Preview build · Built for new runners',
+        setupItems: const <UserProfileInfoItemReadModel>[],
+        manageRows: const <UserProfileManageRowReadModel>[],
+      );
+
+      await tester.pumpWidget(
+        RuniacApp(
+          showSplash: false,
+          enableForegroundGps: false,
+          profileRepository: _SingleProfileRepository(profile),
+        ),
+      );
+
+      await tester.tap(find.bySemanticsLabel('Profile'));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .widget<RuniacLevelProfileBadge>(
+              find.byKey(const ValueKey('account-profile-level-badge')),
+            )
+            .photoUrl,
+        'https://firebasestorage.googleapis.com/v0/b/bucket/o/avatars%2Fabc.png?alt=media&token=tok',
+      );
+    },
+  );
+
+  testWidgets(
     'Account profile shows em-dash lifetime stats for a real runner with no runs',
     (tester) async {
       await tester.pumpWidget(

@@ -13,6 +13,7 @@ import 'package:runiac_app/features/leaderboard/presentation/data/leaderboard_de
 import 'package:runiac_app/features/leaderboard/presentation/leaderboard_tab.dart';
 import 'package:runiac_app/features/leaderboard/presentation/models/leaderboard_display_models.dart';
 import 'package:runiac_app/features/leaderboard/presentation/widgets/leaderboard_map_background.dart';
+import 'package:runiac_app/features/leaderboard/presentation/widgets/leaderboard_rank_row_helpers.dart';
 import 'package:runiac_app/features/profile/presentation/widgets/account_challenge_badge_case.dart';
 
 void _useCompactShareSheetSurface(WidgetTester tester) {
@@ -46,6 +47,8 @@ void main() {
                   levelLabel: 'Level 19',
                   divisionLabel: 'Bronze',
                   regionLabel: 'Jurong East',
+                  avatarUrl:
+                      'https://firebasestorage.googleapis.com/v0/b/bucket/o/avatars%2Fari.png?alt=media&token=tok',
                 ),
                 LeaderboardRowReadModel(
                   userId: 'runner-1',
@@ -81,6 +84,17 @@ void main() {
     expect(find.text('Jinseo (You)'), findsWidgets);
     expect(find.text('1,320 XP'), findsWidgets);
     expect(find.text('Alex T.'), findsNothing);
+    // Ari S. is the only seeded row with an avatarUrl; every other row in
+    // the tree keeps the default empty photoUrl.
+    expect(
+      tester
+          .widgetList<LeaderboardInitialBadge>(
+            find.byType(LeaderboardInitialBadge),
+          )
+          .singleWhere((badge) => badge.photoUrl.isNotEmpty)
+          .photoUrl,
+      'https://firebasestorage.googleapis.com/v0/b/bucket/o/avatars%2Fari.png?alt=media&token=tok',
+    );
   });
 
   testWidgets('Leaderboard tab refreshes reads when countdown has ended', (

@@ -8,6 +8,7 @@ import 'package:runiac_app/features/challenge/domain/models/challenge_rules_snap
 import 'package:runiac_app/features/challenge/domain/repositories/challenge_repository.dart';
 import 'package:runiac_app/features/challenge/presentation/challenge_progress_screen.dart';
 import 'package:runiac_app/features/challenge/presentation/widgets/challenge_badge_image.dart';
+import 'package:runiac_app/features/challenge/presentation/widgets/challenge_widgets.dart';
 
 import 'support/fake_challenge_repository.dart';
 
@@ -53,6 +54,7 @@ ChallengeParticipantRow _row({
   required ChallengeParticipantStatus status,
   required int meters,
   required bool isCurrentUser,
+  String avatarUrlSnapshot = '',
 }) {
   return ChallengeParticipantRow(
     uid: uid,
@@ -64,6 +66,7 @@ ChallengeParticipantRow _row({
     creditedMeters: meters,
     reward: ChallengeRewardStatus.notEligible,
     isCurrentUser: isCurrentUser,
+    avatarUrlSnapshot: avatarUrlSnapshot,
   );
 }
 
@@ -256,6 +259,59 @@ void main() {
     expect(find.text('6.0 / 10.0 km'), findsOneWidget);
     expect(find.byType(ChallengeBadgeImage), findsWidgets);
   });
+
+  testWidgets(
+    'participant tile passes the resolved avatarUrlSnapshot to ChallengeInitialsAvatar',
+    (tester) async {
+      // Roster tiles (and their avatars) only render for a group challenge:
+      // a solo challenge shows the "Solo challenge" text instead.
+      const photoUrl =
+          'https://firebasestorage.googleapis.com/v0/b/bucket/o/avatars%2Fabc.png?alt=media&token=tok';
+      final withPhoto = _challenge(
+        mode: ChallengeMode.group,
+        rules: _rulesGroup,
+        teamMeters: 4000,
+        rosterUids: const <String>['me', 'friend'],
+        ownerUid: 'me',
+        isCurrentUserOwner: true,
+        participants: <ChallengeParticipantRow>[
+          _row(
+            uid: 'me',
+            name: 'Runner Me',
+            initials: 'ME',
+            role: ChallengeParticipantRole.owner,
+            status: ChallengeParticipantStatus.active,
+            meters: 4000,
+            isCurrentUser: true,
+            avatarUrlSnapshot: photoUrl,
+          ),
+          _row(
+            uid: 'friend',
+            name: 'Sam Runner',
+            initials: 'SR',
+            role: ChallengeParticipantRole.member,
+            status: ChallengeParticipantStatus.active,
+            meters: 0,
+            isCurrentUser: false,
+          ),
+        ],
+      );
+      final repository = FakeChallengeRepository(
+        activeOverride: () => withPhoto,
+      );
+      await _pump(tester, repository);
+
+      final badges = tester.widgetList<ChallengeInitialsAvatar>(
+        find.byType(ChallengeInitialsAvatar),
+      );
+      // Only the current user's row was seeded with a photo.
+      expect(
+        badges.where((b) => (b.photoUrl ?? '').isNotEmpty).single.photoUrl,
+        photoUrl,
+      );
+      expect(badges.where((b) => (b.photoUrl ?? '').isEmpty).length, 1);
+    },
+  );
 
   testWidgets('group: You first, active by km desc, muted Left group, km sums', (
     tester,

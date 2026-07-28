@@ -16,6 +16,8 @@ import {
   leaderboardTimezone,
   type MonthlyLeaderboardCurrentViewPlan,
 } from "./leaderboardTypes.js";
+import { resolveProfileAvatarUrl, type AvatarUrlContext } from "../profile/avatar/avatarPaths.js";
+import { NULL_AVATAR_URL_CONTEXT } from "../profile/avatar/avatarUrlContextDefaults.js";
 
 import {
   mergeRolloverViews,
@@ -60,6 +62,13 @@ export async function refreshMonthlyLeaderboardSnapshots(
     readonly now?: Date;
     readonly buildId?: string;
   } = {},
+  // Injected by the adapter layer (`monthlyLeaderboard.ts`'s scheduled
+  // `refreshLeaderboardSnapshots`, `leaderboardAdminCommand.ts`'s
+  // recalculation trigger) via `avatarUrlContextFromEnvironment()`. Defaults
+  // to a context that can never match a real avatar URL, so an omitted
+  // context still fails closed to avatarUrl: "" on every row — same
+  // convention as `getFriendLevels`/`getActiveChallengeForCallable`.
+  avatarContext: AvatarUrlContext = NULL_AVATAR_URL_CONTEXT,
 ): Promise<RefreshMonthlyLeaderboardResult> {
   const now = options.now ?? new Date();
   const generatedAt = now.toISOString();
@@ -140,6 +149,17 @@ export async function refreshMonthlyLeaderboardSnapshots(
         .filter(([, facts]) => facts.isPremium)
         .map(([uid]) => uid),
     );
+    // Derived from `ownerFacts.profile` — already loaded above by
+    // `readOwnerFacts` for the premium re-check — so this adds zero new
+    // Firestore reads. Every value passes through `resolveProfileAvatarUrl`,
+    // so a foreign host, a different bucket, or a malformed stored value
+    // resolves to "" rather than being relayed onto a world-readable row.
+    const avatarUrlByOwner = new Map<string, string>(
+      [...ownerFacts.entries()].map(([uid, facts]) => [
+        uid,
+        resolveProfileAvatarUrl(facts.profile, avatarContext),
+      ]),
+    );
     const plan = planMonthlyLeaderboards({
       periodKey,
       contributions: contributionSnapshot.docs.map((document) =>
@@ -148,6 +168,7 @@ export async function refreshMonthlyLeaderboardSnapshots(
       currentPremiumUids: premiumUids,
       excludePremium: leaderboardConfig.excludePremium,
       minRunsToQualify: leaderboardConfig.minRunsToQualify,
+      avatarUrlByOwner,
     });
     const currentViews = mergeRolloverViews({
       periodKey,

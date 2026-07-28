@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/runiac_colors.dart';
+import '../../../../core/widgets/runiac_avatar_photo.dart';
 import '../../domain/challenge_copy.dart';
 import '../../domain/models/challenge_distance_format.dart';
 
@@ -159,12 +160,18 @@ class ChallengeInitialsAvatar extends StatelessWidget {
     required this.initials,
     this.size = 42,
     this.highlighted = false,
+    this.photoUrl,
     super.key,
   });
 
   final String initials;
   final double size;
   final bool highlighted;
+
+  /// Raw, not-yet-sanitised avatar photo URL. Renders the initials when
+  /// absent, when it fails the client-side sanitiser in
+  /// `runiac_avatar_photo.dart`, or if the image fails to load.
+  final String? photoUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -181,12 +188,17 @@ class ChallengeInitialsAvatar extends StatelessWidget {
           shape: BoxShape.circle,
           border: Border.all(color: RuniacColors.cardBorder),
         ),
-        child: Text(
-          initials,
-          style: TextStyle(
-            color: highlighted ? RuniacColors.white : RuniacColors.primaryBlue,
-            fontSize: size * 0.34,
-            fontWeight: FontWeight.w900,
+        child: RuniacAvatarPhotoDisc(
+          photoUrl: photoUrl,
+          fallback: Text(
+            initials,
+            style: TextStyle(
+              color: highlighted
+                  ? RuniacColors.white
+                  : RuniacColors.primaryBlue,
+              fontSize: size * 0.34,
+              fontWeight: FontWeight.w900,
+            ),
           ),
         ),
       ),

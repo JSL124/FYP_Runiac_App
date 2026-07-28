@@ -10,6 +10,7 @@ import {
   refreshMonthlyLeaderboardSnapshots,
 } from "./monthlyLeaderboard.js";
 import { withTriggerErrorReporting } from "../errors/withErrorReporting.js";
+import { avatarUrlContextFromEnvironment } from "../profile/avatar/context.js";
 
 // The admin console (Next.js server, Admin SDK only) cannot invoke Cloud
 // Functions callables directly, so "request a recalculation" has to be a
@@ -80,6 +81,8 @@ export function createLeaderboardAdminCommandHandlers(dependencies: {
         const result = await refreshMonthlyLeaderboardSnapshots(
           dependencies.firestore,
           periodKey,
+          {},
+          avatarUrlContextFromEnvironment(),
         );
         await ref.set(
           {
