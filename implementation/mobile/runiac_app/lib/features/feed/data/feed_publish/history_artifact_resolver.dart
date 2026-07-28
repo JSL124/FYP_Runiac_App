@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 
+import '../../../../core/imaging/eight_bit_png.dart';
 import '../../../run/domain/models/run_location_sample.dart';
 import '../../../run/domain/models/run_summary_snapshot.dart';
 import '../../../you/presentation/widgets/activity_route_preview.dart';
@@ -98,13 +99,13 @@ class MetricHistoryThumbnailGenerator {
     );
     final image = await recorder.endRecording().toImage(pixels, pixels);
     try {
-      final data = await image.toByteData(format: ui.ImageByteFormat.png);
+      final data = await encodeEightBitPng(image);
       if (data == null) {
         throw const FeedThumbnailCaptureException(
           'This route preview cannot be posted. Please try again.',
         );
       }
-      return FeedThumbnailArtifact(data.buffer.asUint8List());
+      return FeedThumbnailArtifact(data);
     } finally {
       image.dispose();
     }
@@ -189,13 +190,13 @@ class RouteHistoryThumbnailGenerator {
     }
     final image = await recorder.endRecording().toImage(width, height);
     try {
-      final data = await image.toByteData(format: ui.ImageByteFormat.png);
+      final data = await encodeEightBitPng(image);
       if (data == null) {
         throw const FeedThumbnailCaptureException(
           'This route preview cannot be posted. Please try again.',
         );
       }
-      return FeedThumbnailArtifact(data.buffer.asUint8List());
+      return FeedThumbnailArtifact(data);
     } finally {
       image.dispose();
     }

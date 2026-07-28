@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart' as widgets;
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 
+import '../../../../core/imaging/eight_bit_png.dart';
 import '../../../run/domain/models/run_location_sample.dart';
 import 'activity_route_preview.dart';
 import 'activity_route_snapshot_thumbnail_cache.dart';
@@ -213,9 +214,9 @@ Future<Uint8List> encodePrivacyMaskedPng(
     _paintRouteOverlay(canvas, request);
     final output = await recorder.endRecording().toImage(width, height);
     try {
-      final data = await output.toByteData(format: ui.ImageByteFormat.png);
+      final data = await encodeEightBitPng(output);
       if (data == null) throw StateError('PNG encoding was unavailable.');
-      return data.buffer.asUint8List();
+      return data;
     } finally {
       output.dispose();
     }

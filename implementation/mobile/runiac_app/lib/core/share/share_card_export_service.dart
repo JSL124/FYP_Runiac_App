@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:ui' as ui;
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -9,6 +8,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:gal/gal.dart';
 import 'package:share_plus/share_plus.dart';
+
+import '../imaging/eight_bit_png.dart';
 
 /// Display-only export of a rendered share card (leaderboard rank, run
 /// activity, etc.). Rasterizes the card widget and hands the PNG to the
@@ -34,8 +35,7 @@ class ShareCardExportService {
     }
     final image = await renderObject.toImage(pixelRatio: pixelRatio);
     try {
-      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-      return byteData?.buffer.asUint8List();
+      return encodeEightBitPng(image);
     } finally {
       image.dispose();
     }
