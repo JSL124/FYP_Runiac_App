@@ -60,6 +60,7 @@ import 'features/run/presentation/active_run_session_coordinator.dart';
 import 'features/run/presentation/run_open_intent.dart';
 import 'features/run/presentation/run_repository_scope.dart';
 import 'features/settings/data/shared_preferences_app_settings_repository.dart';
+import 'features/tutorial/domain/app_tour_seen_store.dart';
 import 'features/you/data/local_user_progress_cache_store.dart';
 import 'features/you/data/static_activity_history_repository.dart';
 import 'features/you/data/local_pending_run_activity_store.dart';
@@ -105,6 +106,7 @@ class RuniacApp extends StatefulWidget {
         const NoopGeneratedPlanPersistenceRepository(),
     this.planProgressRepository = const NoopPlanProgressRepository(),
     this.planCompletionSeenStore,
+    this.appTourSeenStore,
     this.adaptivePlanEstimateRepository =
         const NoopAdaptivePlanEstimateRepository(),
     this.notificationInboxRepository =
@@ -173,6 +175,11 @@ class RuniacApp extends StatefulWidget {
   /// Local one-shot marker for the plan-completion ceremony, forwarded to the
   /// shell. `null` (previews/tests) disables the celebration.
   final PlanCompletionSeenStore? planCompletionSeenStore;
+
+  /// Local, device-only record of whether the one-time app tour is armed and
+  /// completed, forwarded to the shell. `null` (previews/tests) disables the
+  /// tour entirely.
+  final AppTourSeenStore? appTourSeenStore;
   final AdaptivePlanEstimateRepository adaptivePlanEstimateRepository;
   final NotificationInboxRepository notificationInboxRepository;
   final NotificationRegistrationService? notificationRegistrationService;
@@ -217,6 +224,14 @@ class _RuniacAppState extends State<RuniacApp> {
   var _planProgressLoadSerial = 0;
   AdaptivePlanEstimateReadModel? _adaptivePlanEstimate;
   var _adaptivePlanEstimateLoadSerial = 0;
+
+  /// Whether onboarding has just finished this session and the app tour is
+  /// therefore owed to this user. Forwarded to `RuniacShell` as
+  /// `appTourAutoStartArmed`; auto-start additionally requires the durable
+  /// per-uid "armed" marker to be `true` and "completed" to be `false`, so an
+  /// existing runner who reinstalls the app (skipping onboarding, with wiped
+  /// preferences) is never ambushed by the tour.
+  bool _appTourArmed = false;
   String? _authStateError;
   bool _showMissingProfileSignupPrompt = false;
   StreamSubscription<PushNotificationMessage>? _pushNotificationSubscription;
@@ -793,6 +808,8 @@ class _RuniacAppState extends State<RuniacApp> {
           notificationInboxRepository: widget.notificationInboxRepository,
           planProgress: _planProgress,
           planCompletionSeenStore: widget.planCompletionSeenStore,
+          appTourSeenStore: widget.appTourSeenStore,
+          appTourAutoStartArmed: _appTourArmed,
           adaptivePlanEstimate: _adaptivePlanEstimate,
           homeGuideAgent: widget.homeGuideAgent,
           homeGuideConsentRepository: widget.homeGuideConsentRepository,
@@ -870,6 +887,17 @@ class _RuniacAppState extends State<RuniacApp> {
     }
     _setActiveGeneratedPlan(snapshot, ownerUid: currentUser?.uid);
     widget.onOnboardingCompleted?.call(draft);
+    // `armed` is the durable "onboarding just finished, tour still owed"
+    // marker. This is fire-and-forget: a missing store or a write failure
+    // must never block, delay, or fail onboarding completion.
+    unawaited(
+      widget.appTourSeenStore
+          ?.setArmed(uid: currentUser?.uid, armed: true)
+          .catchError((_) {}),
+    );
+    if (mounted) {
+      setState(() => _appTourArmed = true);
+    }
     return true;
   }
 

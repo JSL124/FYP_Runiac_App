@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/runiac_colors.dart';
+import '../../tutorial/domain/models/tutorial_step.dart';
+import '../../tutorial/presentation/tutorial_anchor_registry.dart';
 import '../data/static_feed_repository.dart';
 import '../domain/models/feed_display_models.dart';
 import '../domain/repositories/feed_repository.dart';
@@ -146,10 +148,13 @@ class _CurrentSessionFeedState extends State<CurrentSessionFeed> {
             child: FeedHeader(),
           ),
           Expanded(
-            child: RefreshIndicator(
-              semanticsLabel: 'Pull to refresh feed',
-              onRefresh: _controller.refresh,
-              child: FeedPostList(controller: _controller),
+            child: TutorialAnchor(
+              id: TutorialAnchorId.feedPostList,
+              child: RefreshIndicator(
+                semanticsLabel: 'Pull to refresh feed',
+                onRefresh: _controller.refresh,
+                child: FeedPostList(controller: _controller),
+              ),
             ),
           ),
         ],

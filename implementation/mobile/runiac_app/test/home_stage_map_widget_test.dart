@@ -14,6 +14,8 @@ import 'package:runiac_app/features/home/presentation/stage_map/home_stage_map_m
 import 'package:runiac_app/features/plan/domain/models/beginner_adaptive_plan_snapshot.dart';
 import 'package:runiac_app/features/plan/domain/services/beginner_adaptive_plan_generator.dart';
 import 'package:runiac_app/features/plan/presentation/current_session_generated_plan.dart';
+import 'package:runiac_app/features/tutorial/domain/models/tutorial_step.dart';
+import 'package:runiac_app/features/tutorial/presentation/tutorial_anchor_registry.dart';
 import 'package:runiac_app/features/you/presentation/adapters/generated_plan_you_display_adapter.dart';
 
 import 'support/plan_family_test_drafts.dart';
@@ -610,6 +612,148 @@ void main() {
       // The character remains feet-anchored to that stone.
       expect(characterRect.bottom, greaterThan(stoneRect.top));
       expect(characterRect.bottom, lessThan(stoneRect.bottom));
+    },
+  );
+
+  testWidgets(
+    'homeStoneCluster anchor tightly bounds today\'s stone and its '
+    'immediate neighbours (widened to the nearest day of the missing kind '
+    'when the ±1 window is all-run or all-rest), clamped to the current '
+    'week section',
+    (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final registry = TutorialAnchorRegistry();
+      final plan = _plan();
+      final model = _model(plan);
+      final weekIndex = model.currentWeekIndex!;
+      final weekNumber = model.sections[weekIndex].weekNumber;
+      final stones = model.sections[weekIndex].stones;
+      final todayIndex = stones.indexWhere((stone) => stone.isCurrent);
+      expect(todayIndex, greaterThanOrEqualTo(0));
+      var firstIndex = (todayIndex - 1).clamp(0, kHomeStageDaysPerWeek - 1);
+      var lastIndex = (todayIndex + 1).clamp(0, kHomeStageDaysPerWeek - 1);
+
+      // Mirrors `_buildStoneClusterAnchor`'s run/rest-mix widening: this
+      // plan's four consecutive run days (Mon-Thu) put today (Monday) in an
+      // all-run ±1 window, so the anchor is expected to widen to the
+      // nearest rest day (Friday, index 4) rather than staying at ±1.
+      final hasRun = stones
+          .sublist(firstIndex, lastIndex + 1)
+          .any((s) => s.isRun);
+      final hasRest = stones
+          .sublist(firstIndex, lastIndex + 1)
+          .any((s) => !s.isRun);
+      if (!hasRun || !hasRest) {
+        final needRun = !hasRun;
+        int? nearestIndex;
+        var nearestDistance = stones.length;
+        for (var d = 0; d < stones.length; d++) {
+          if (stones[d].isRun != needRun) {
+            continue;
+          }
+          final distance = (d - todayIndex).abs();
+          if (distance < nearestDistance) {
+            nearestDistance = distance;
+            nearestIndex = d;
+          }
+        }
+        if (nearestIndex != null) {
+          firstIndex = firstIndex < nearestIndex ? firstIndex : nearestIndex;
+          lastIndex = lastIndex > nearestIndex ? lastIndex : nearestIndex;
+        }
+      }
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TutorialAnchorScope(
+            registry: registry,
+            child: Scaffold(
+              body: HomeStageMap(
+                model: model,
+                onNotifications: () {},
+                onProfile: () {},
+                onTapTodayStage: () {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump();
+
+      final clusterRect = registry.rectFor(TutorialAnchorId.homeStoneCluster);
+      expect(clusterRect, isNotNull);
+
+      final stoneRects = [
+        for (var d = firstIndex; d <= lastIndex; d++)
+          tester.getRect(
+            find.byKey(ValueKey<String>('homeStageStone-$weekNumber-$d')),
+          ),
+      ];
+      double minOf(Iterable<double> values) =>
+          values.reduce((a, b) => a < b ? a : b);
+      double maxOf(Iterable<double> values) =>
+          values.reduce((a, b) => a > b ? a : b);
+      const clusterPadding = 6.0;
+      final expectedLeft = minOf(stoneRects.map((r) => r.left)) - clusterPadding;
+      final expectedTop = minOf(stoneRects.map((r) => r.top)) - clusterPadding;
+      final expectedRight =
+          maxOf(stoneRects.map((r) => r.right)) + clusterPadding;
+      final expectedBottom =
+          maxOf(stoneRects.map((r) => r.bottom)) + clusterPadding;
+
+      expect(clusterRect!.left, closeTo(expectedLeft, 1.0));
+      expect(clusterRect.top, closeTo(expectedTop, 1.0));
+      expect(clusterRect.right, closeTo(expectedRight, 1.0));
+      expect(clusterRect.bottom, closeTo(expectedBottom, 1.0));
+    },
+  );
+
+  testWidgets(
+    'homeStoneCluster anchor stays well under half the screen area on a '
+    'standard phone viewport, so the tour cuts a real spotlight hole '
+    'instead of degrading to a full-screen dim',
+    (WidgetTester tester) async {
+      const size = Size(402, 874);
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final registry = TutorialAnchorRegistry();
+      final plan = _plan();
+      final model = _model(plan);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TutorialAnchorScope(
+            registry: registry,
+            child: Scaffold(
+              body: HomeStageMap(
+                model: model,
+                onNotifications: () {},
+                onProfile: () {},
+                onTapTodayStage: () {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump();
+
+      final clusterRect = registry.rectFor(TutorialAnchorId.homeStoneCluster);
+      expect(clusterRect, isNotNull);
+
+      final screenArea = size.width * size.height;
+      final clusterArea = clusterRect!.width * clusterRect.height;
+      expect(clusterArea, lessThan(screenArea * 0.5));
     },
   );
 

@@ -14,6 +14,7 @@ import 'features/leaderboard/presentation/qa/leaderboard_ranking_qa_launcher.dar
 import 'features/run/data/run_repository_factory.dart';
 import 'features/paywall/presentation/qa/premium_paywall_qa_launcher.dart';
 import 'features/run/presentation/qa/xp_update_qa_launcher.dart';
+import 'features/tutorial/presentation/qa/app_tour_qa_launcher.dart';
 
 Future<void> main() async {
   // `WidgetsFlutterBinding.ensureInitialized()` and the final `runApp` call
@@ -51,6 +52,12 @@ Future<void> main() async {
       final planCompletionQaApp = buildPlanCompletionQaAppFromEnvironment();
       if (planCompletionQaApp != null) {
         runApp(planCompletionQaApp);
+        return;
+      }
+
+      final appTourQaApp = buildAppTourQaAppFromEnvironment();
+      if (appTourQaApp != null) {
+        runApp(appTourQaApp);
         return;
       }
 
@@ -110,6 +117,7 @@ Future<void> main() async {
               bootstrap.generatedPlanPersistenceRepository,
           planProgressRepository: bootstrap.planProgressRepository,
           planCompletionSeenStore: bootstrap.planCompletionSeenStore,
+          appTourSeenStore: bootstrap.appTourSeenStore,
           adaptivePlanEstimateRepository:
               bootstrap.adaptivePlanEstimateRepository,
           feedRepository: bootstrap.feedRepository,

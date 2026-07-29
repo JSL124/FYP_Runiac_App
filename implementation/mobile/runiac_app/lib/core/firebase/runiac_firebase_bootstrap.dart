@@ -57,6 +57,8 @@ import '../../features/plan/domain/repositories/generated_plan_persistence_repos
 import '../../features/plan/domain/repositories/plan_progress_repository.dart';
 import '../../features/run/data/run_repository_factory.dart';
 import '../../features/run/domain/repositories/run_repository.dart';
+import '../../features/tutorial/data/shared_preferences_app_tour_seen_store.dart';
+import '../../features/tutorial/domain/app_tour_seen_store.dart';
 import '../../features/you/data/firestore_activity_history_repository.dart';
 import '../../features/you/data/firestore_user_progress_repository.dart';
 import '../../features/you/data/user_streak_refresh_service.dart';
@@ -109,6 +111,7 @@ class RuniacFirebaseBootstrap {
               const NoopGeneratedPlanPersistenceRepository(),
           planProgressRepository: const NoopPlanProgressRepository(),
           planCompletionSeenStore: null,
+          appTourSeenStore: null,
           adaptivePlanEstimateRepository:
               const NoopAdaptivePlanEstimateRepository(),
           feedRepository: const StaticFeedRepository(),
@@ -179,6 +182,7 @@ class RuniacFirebaseBootstrap {
         planCompletionSeenStore: SharedPreferencesPlanCompletionSeenStore(
           uidProvider: () => authRepository.currentUser?.uid,
         ),
+        appTourSeenStore: const SharedPreferencesAppTourSeenStore(),
         adaptivePlanEstimateRepository:
             FirestoreAdaptivePlanEstimateRepository(),
         feedRepository: FirebaseFeedRepository(port: FirebaseFeedDataPort()),
@@ -268,6 +272,7 @@ class RuniacFirebaseBootstrap {
       planCompletionSeenStore: SharedPreferencesPlanCompletionSeenStore(
         uidProvider: () => authRepository.currentUser?.uid,
       ),
+      appTourSeenStore: const SharedPreferencesAppTourSeenStore(),
       adaptivePlanEstimateRepository: FirestoreAdaptivePlanEstimateRepository(),
       feedRepository: FirebaseFeedRepository(port: FirebaseFeedDataPort()),
       notificationInboxRepository: FirestoreNotificationInboxRepository(
@@ -383,6 +388,7 @@ class RuniacFirebaseBootstrapResult {
     required this.generatedPlanPersistenceRepository,
     required this.planProgressRepository,
     required this.planCompletionSeenStore,
+    required this.appTourSeenStore,
     required this.adaptivePlanEstimateRepository,
     required this.feedRepository,
     required this.notificationInboxRepository,
@@ -427,6 +433,11 @@ class RuniacFirebaseBootstrapResult {
   /// Durable one-shot marker for the plan-completion ceremony; non-null only
   /// on Firebase-active paths, null for the static/no-config path.
   final PlanCompletionSeenStore? planCompletionSeenStore;
+
+  /// Local, device-only record of whether the one-time app tour is armed and
+  /// completed; non-null only on Firebase-active paths, null for the
+  /// static/no-config path (keeps the tour inert there).
+  final AppTourSeenStore? appTourSeenStore;
   final AdaptivePlanEstimateRepository adaptivePlanEstimateRepository;
   final FeedRepository feedRepository;
   final NotificationInboxRepository notificationInboxRepository;

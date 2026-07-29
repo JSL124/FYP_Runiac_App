@@ -10,6 +10,9 @@ import '../../../challenge/domain/challenge_copy.dart';
 import '../../../challenge/domain/challenge_countdown.dart';
 import '../../../challenge/presentation/home_active_challenge_display.dart';
 import '../../../challenge/presentation/widgets/challenge_badge_image.dart';
+import '../../../tutorial/domain/models/tutorial_step.dart';
+import '../../../tutorial/presentation/app_tour_controller.dart';
+import '../../../tutorial/presentation/tutorial_anchor_registry.dart';
 import '../../domain/guide/home_guide_agent.dart';
 import '../../domain/guide/home_guide_consent.dart';
 import 'home_stage_background_sequence.dart';
@@ -716,21 +719,28 @@ class _HomeStageMapState extends State<HomeStageMap>
         final stone = section.stones[d];
         final center = _stoneCenter(w, n, anchors, d);
         final size = _stageStoneSize;
+        final stageStoneWidget = _StageStoneWidget(
+          key: ValueKey<String>('homeStageStone-${section.weekNumber}-$d'),
+          stone: stone,
+          size: size,
+          pulse: stone.isCurrent ? _pulseController : null,
+          onTap: stone.isCurrent && stone.isRun ? widget.onTapTodayStage : null,
+        );
         children.add(
           Positioned(
             left: center.dx - size / 2,
             top: center.dy - size / 2,
             width: size,
             height: size,
-            child: _StageStoneWidget(
-              key: ValueKey<String>('homeStageStone-${section.weekNumber}-$d'),
-              stone: stone,
-              size: size,
-              pulse: stone.isCurrent ? _pulseController : null,
-              onTap: stone.isCurrent && stone.isRun
-                  ? widget.onTapTodayStage
-                  : null,
-            ),
+            // `stone.isCurrent` is true for at most one stone across the whole
+            // model (see HomeStageMapModel), so this conditional wrap can
+            // never attach the homeTodayStone anchor key more than once.
+            child: stone.isCurrent
+                ? TutorialAnchor(
+                    id: TutorialAnchorId.homeTodayStone,
+                    child: stageStoneWidget,
+                  )
+                : stageStoneWidget,
           ),
         );
         if (stone.dayLabel != null) {
@@ -754,6 +764,15 @@ class _HomeStageMapState extends State<HomeStageMap>
       }
     }
 
+    // Invisible tour-only anchor covering today's stone and its immediate
+    // neighbours, so a single tour step can spotlight a run stone next to a
+    // rest stone. Purely a measurement target: never painted, never
+    // hit-tested.
+    final stoneCluster = _buildStoneClusterAnchor(model, n);
+    if (stoneCluster != null) {
+      children.add(stoneCluster);
+    }
+
     // Guide character on top of everything.
     final character = _buildCharacter(model, n);
     if (character != null) {
@@ -772,6 +791,168 @@ class _HomeStageMapState extends State<HomeStageMap>
         width: _sectionWidth,
         height: totalHeight,
         child: Stack(clipBehavior: Clip.none, children: children),
+      ),
+    );
+  }
+
+  /// Extra padding, in logical pixels, added around the bounding box of the
+  /// today-stone cluster so the tour's spotlight ring does not clip the
+  /// stones it covers.
+  static const double _kStoneClusterPadding = 6;
+
+  /// Builds the invisible [TutorialAnchorId.homeStoneCluster] overlay target:
+  /// a tight rect covering today's stone plus up to one stone before and one
+  /// after it, clamped within the current week section, and widened (still
+  /// within the same week) when needed so a run and a rest stone are both
+  /// included whenever the week actually has both.
+  ///
+  /// Reuses the exact same layout math as the real stones (`_stoneCenter`,
+  /// `_stageStoneSize`) so the rect always matches what is actually on
+  /// screen. Returns null when there is no current week or no stone in it is
+  /// marked current, matching when the real `homeTodayStone` anchor is also
+  /// absent.
+  ///
+  /// A whole week section (or even the full 3-stone cluster on some layouts)
+  /// can approach the overlay's oversized-hole threshold, so this stays
+  /// intentionally narrow — see the class doc on `AppTourOverlay` for that
+  /// 70%-of-screen rule.
+  Widget? _buildStoneClusterAnchor(HomeStageMapModel model, int n) {
+    final weekIndex = model.currentWeekIndex;
+    if (weekIndex == null) {
+      return null;
+    }
+    final section = model.sections[weekIndex];
+    final todayIndex = section.stones.indexWhere((stone) => stone.isCurrent);
+    if (todayIndex < 0) {
+      return null;
+    }
+
+    final anchors = homeStageAnchorsForSection(weekIndex);
+    var firstIndex = (todayIndex - 1).clamp(0, section.stones.length - 1);
+    var lastIndex = (todayIndex + 1).clamp(0, section.stones.length - 1);
+    final half = _stageStoneSize / 2;
+
+    Rect boundsFor(int first, int last) {
+      var left = double.infinity;
+      var top = double.infinity;
+      var right = double.negativeInfinity;
+      var bottom = double.negativeInfinity;
+      for (var d = first; d <= last; d++) {
+        final center = _stoneCenter(weekIndex, n, anchors, d);
+        left = math.min(left, center.dx - half);
+        top = math.min(top, center.dy - half);
+        right = math.max(right, center.dx + half);
+        bottom = math.max(bottom, center.dy + half);
+      }
+      return Rect.fromLTRB(left, top, right, bottom);
+    }
+
+    // The "running days and rest days" tour copy describes a mix, so widen
+    // past the default ±1 neighbours — still confined to this week — when
+    // they are all one kind, extending to the nearest day of the missing
+    // kind. Only applied while the resulting rect stays comfortably under
+    // the overlay's oversized-hole area threshold (`AppTourOverlay`'s
+    // `_oversizedHoleAreaFraction` is 0.7 of the real viewport); if a mix
+    // isn't reachable within that budget (e.g. a week of entirely
+    // consecutive run days far from today), the original ±1 window is kept
+    // and may legitimately show one kind only for that day.
+    final hasRunInWindow = section.stones
+        .sublist(firstIndex, lastIndex + 1)
+        .any((stone) => stone.isRun);
+    final hasRestInWindow = section.stones
+        .sublist(firstIndex, lastIndex + 1)
+        .any((stone) => !stone.isRun);
+    if (!hasRunInWindow || !hasRestInWindow) {
+      final neededRun = !hasRunInWindow;
+      int? nearestIndex;
+      var nearestDistance = section.stones.length;
+      for (var d = 0; d < section.stones.length; d++) {
+        if (section.stones[d].isRun != neededRun) {
+          continue;
+        }
+        final distance = (d - todayIndex).abs();
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          nearestIndex = d;
+        }
+      }
+      if (nearestIndex != null) {
+        final candidateFirst = math.min(firstIndex, nearestIndex);
+        final candidateLast = math.max(lastIndex, nearestIndex);
+        final candidateArea =
+            boundsFor(candidateFirst, candidateLast).inflate(_kStoneClusterPadding);
+        final areaCap = _viewportHeight > 0
+            ? _sectionWidth * _viewportHeight * 0.45
+            : double.infinity;
+        if (candidateArea.width * candidateArea.height <= areaCap) {
+          firstIndex = candidateFirst;
+          lastIndex = candidateLast;
+        }
+      }
+    }
+
+    var rect = boundsFor(firstIndex, lastIndex).inflate(_kStoneClusterPadding);
+
+    // Adjacent week sections overlap slightly on screen (see `_overlap` /
+    // `kHomeStageBackgroundAspect`), so a week's last day and the following
+    // week's first day — or a week's first day and the previous week's last
+    // day — can sit close enough that this cluster's inflated rect would
+    // bleed into a neighbouring week's own stone. Clamp the rect to stop
+    // just short of whichever neighbour it would otherwise touch, so the
+    // spotlight never visually overlaps a *neighbour* stone pulled in only
+    // because it is within one day of today.
+    //
+    // The clamp is itself bounded by today's own stone edge so it can never
+    // cut into the one stone this anchor must always fully contain: if today
+    // is itself the boundary stone (e.g. the plan's last Sunday before the
+    // final week), today's bare stone can, by a sub-visual sliver, already
+    // sit this close to the next week's own first stone purely from the
+    // connected-path background art — moving stones to close that gap is
+    // out of scope here, so the clamp simply becomes a no-op in that case
+    // rather than mis-targeting today.
+    final todayCenter = _stoneCenter(weekIndex, n, anchors, todayIndex);
+    final todayTop = todayCenter.dy - half - _kStoneClusterPadding;
+    final todayBottom = todayCenter.dy + half + _kStoneClusterPadding;
+    if (weekIndex + 1 < n) {
+      final nextFirstBottom =
+          _stoneCenter(
+            weekIndex + 1,
+            n,
+            homeStageAnchorsForSection(weekIndex + 1),
+            0,
+          ).dy +
+          half;
+      final clampedTop = math.min(nextFirstBottom, todayTop);
+      if (clampedTop > rect.top && clampedTop < rect.bottom) {
+        rect = Rect.fromLTRB(rect.left, clampedTop, rect.right, rect.bottom);
+      }
+    }
+    if (weekIndex - 1 >= 0) {
+      final previousSection = model.sections[weekIndex - 1];
+      final previousLastTop =
+          _stoneCenter(
+            weekIndex - 1,
+            n,
+            homeStageAnchorsForSection(weekIndex - 1),
+            previousSection.stones.length - 1,
+          ).dy -
+          half;
+      final clampedBottom = math.max(previousLastTop, todayBottom);
+      if (clampedBottom < rect.bottom && clampedBottom > rect.top) {
+        rect = Rect.fromLTRB(rect.left, rect.top, rect.right, clampedBottom);
+      }
+    }
+
+    return Positioned(
+      left: rect.left,
+      top: rect.top,
+      width: rect.width,
+      height: rect.height,
+      child: const IgnorePointer(
+        child: TutorialAnchor(
+          id: TutorialAnchorId.homeStoneCluster,
+          child: SizedBox.expand(),
+        ),
       ),
     );
   }

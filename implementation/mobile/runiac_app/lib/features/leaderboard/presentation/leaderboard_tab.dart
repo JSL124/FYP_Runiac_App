@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../../paywall/presentation/premium_gate.dart';
 import '../../profile/presentation/runner_public_profile_scope.dart';
+import '../../tutorial/domain/models/tutorial_step.dart';
+import '../../tutorial/presentation/tutorial_anchor_registry.dart';
 import '../data/static_leaderboard_repository.dart';
 import '../domain/models/leaderboard_league_catalog.dart';
 import '../domain/models/leaderboard_read_model.dart';
@@ -314,24 +316,33 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
     }
     final snapshot = _selectedRegion;
     final readModel = _readModel;
+    // Mutually exclusive early returns: only one of the two branches below can
+    // ever execute per build, so wrapping both with the same
+    // leaderboardStateMessage anchor id can never mount it twice at once.
     if (readModel?.status == LeaderboardReadStatus.regionRequired) {
-      return _LeaderboardStateMessage(
-        key: const Key('leaderboard_region_required_state'),
-        message:
-            'Choose your planning area in Profile to join the monthly leaderboard.',
-        actionLabel: 'Retry',
-        onAction: _loadLeaderboard,
+      return TutorialAnchor(
+        id: TutorialAnchorId.leaderboardStateMessage,
+        child: _LeaderboardStateMessage(
+          key: const Key('leaderboard_region_required_state'),
+          message:
+              'Choose your planning area in Profile to join the monthly leaderboard.',
+          actionLabel: 'Retry',
+          onAction: _loadLeaderboard,
+        ),
       );
     }
     if (snapshot == null) {
-      return _LeaderboardStateMessage(
-        key: const Key('leaderboard_initial_state'),
-        message: _loadError == null
-            ? 'Loading monthly leaderboard…'
-            : 'Leaderboard could not be loaded.',
-        actionLabel: _loadError == null ? null : 'Retry',
-        onAction: _loadError == null ? null : _loadLeaderboard,
-        loading: _loading && _loadError == null,
+      return TutorialAnchor(
+        id: TutorialAnchorId.leaderboardStateMessage,
+        child: _LeaderboardStateMessage(
+          key: const Key('leaderboard_initial_state'),
+          message: _loadError == null
+              ? 'Loading monthly leaderboard…'
+              : 'Leaderboard could not be loaded.',
+          actionLabel: _loadError == null ? null : 'Retry',
+          onAction: _loadError == null ? null : _loadLeaderboard,
+          loading: _loading && _loadError == null,
+        ),
       );
     }
     final expandedSheetHeight = _expandedSheetHeight;
@@ -349,10 +360,13 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
       child: Stack(
         children: [
           Positioned.fill(
-            child: LeaderboardMapBackground(
-              regions: mapRegions,
-              selectedRegionId: snapshot.regionId,
-              onRegionSelected: _selectRegion,
+            child: TutorialAnchor(
+              id: TutorialAnchorId.leaderboardMap,
+              child: LeaderboardMapBackground(
+                regions: mapRegions,
+                selectedRegionId: snapshot.regionId,
+                onRegionSelected: _selectRegion,
+              ),
             ),
           ),
           Positioned(

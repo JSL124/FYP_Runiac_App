@@ -51,56 +51,59 @@ class _HomeMenuTriggerState extends State<_HomeMenuTrigger> {
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      container: true,
-      label: 'Menu',
-      button: true,
-      expanded: widget.open,
-      child: ExcludeSemantics(
-        child: GestureDetector(
-          key: const ValueKey<String>('homeMenuTrigger'),
-          behavior: HitTestBehavior.opaque,
-          onTapDown: (_) => _setPressed(true),
-          onTapUp: (_) => _setPressed(false),
-          onTapCancel: () => _setPressed(false),
-          onTap: _handleTap,
-          child: AnimatedScale(
-            scale: _pressed ? 0.96 : 1,
-            duration: Duration(milliseconds: _pressed ? 90 : 140),
-            curve: Curves.easeOut,
-            child: AnimatedContainer(
+    return TutorialAnchor(
+      id: TutorialAnchorId.homeMenuTrigger,
+      child: Semantics(
+        container: true,
+        label: 'Menu',
+        button: true,
+        expanded: widget.open,
+        child: ExcludeSemantics(
+          child: GestureDetector(
+            key: const ValueKey<String>('homeMenuTrigger'),
+            behavior: HitTestBehavior.opaque,
+            onTapDown: (_) => _setPressed(true),
+            onTapUp: (_) => _setPressed(false),
+            onTapCancel: () => _setPressed(false),
+            onTap: _handleTap,
+            child: AnimatedScale(
+              scale: _pressed ? 0.96 : 1,
               duration: Duration(milliseconds: _pressed ? 90 : 140),
               curve: Curves.easeOut,
-              padding: const EdgeInsets.fromLTRB(14, 7, 10, 7),
-              decoration: _homeStageControlDecoration(
-                borderRadius: BorderRadius.circular(999),
-                fillAlpha: _pressed ? 1 : 0.92,
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'Menu',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                      height: 1,
+              child: AnimatedContainer(
+                duration: Duration(milliseconds: _pressed ? 90 : 140),
+                curve: Curves.easeOut,
+                padding: const EdgeInsets.fromLTRB(14, 7, 10, 7),
+                decoration: _homeStageControlDecoration(
+                  borderRadius: BorderRadius.circular(999),
+                  fillAlpha: _pressed ? 1 : 0.92,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Menu',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        height: 1,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 4),
-                  RotationTransition(
-                    turns: Tween<double>(
-                      begin: 0,
-                      end: 0.5,
-                    ).animate(widget.animation),
-                    child: const Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      color: Colors.white,
-                      size: 20,
+                    const SizedBox(width: 4),
+                    RotationTransition(
+                      turns: Tween<double>(
+                        begin: 0,
+                        end: 0.5,
+                      ).animate(widget.animation),
+                      child: const Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -152,12 +155,13 @@ class _HomeMenuPanel extends StatelessWidget {
           if (closing) {
             return shell;
           }
-          final start = index * _kHomeMenuRowStagger;
-          return Interval(
-            start,
-            start + _kHomeMenuRowSpan,
-            curve: Curves.easeOutCubic,
-          ).transform(t);
+          // Clamped so a row appended after the original five (e.g. the
+          // conditional "App tour" replay row at index 5) never pushes the
+          // interval's end past 1.0, which `Interval` asserts against — rows
+          // 0-4 are unaffected since their start/end already sit in [0, 1].
+          final start = (index * _kHomeMenuRowStagger).clamp(0.0, 1.0);
+          final end = (start + _kHomeMenuRowSpan).clamp(0.0, 1.0);
+          return Interval(start, end, curve: Curves.easeOutCubic).transform(t);
         }
 
         Widget row(int index, Widget child) {
@@ -249,6 +253,34 @@ class _HomeMenuPanel extends StatelessWidget {
                           onTap: onSettings,
                         ),
                       ),
+                      // Only rendered once an `AppTourHost` is actually
+                      // mounted above this tree (`RuniacAppTourScope` is
+                      // non-null): previews and every pre-existing
+                      // `HomeStageMap`-only widget test compose no such
+                      // ancestor, so this row is additive and invisible to
+                      // them.
+                      if (RuniacAppTourScope.maybeOf(context) != null) ...[
+                        const _HomeMenuDivider(indent: 44),
+                        row(
+                          5,
+                          _HomeMenuItem(
+                            key: const Key('home_menu_app_tour'),
+                            icon: Icons.map_outlined,
+                            label: 'App tour',
+                            onTap: () {
+                              // Same close behaviour every sibling row uses
+                              // (`_HomeStageMapState._closeMenu`), reached via
+                              // the ambient state rather than a threaded
+                              // callback, since this part file owns no
+                              // constructor parameter for it.
+                              context
+                                  .findAncestorStateOfType<_HomeStageMapState>()
+                                  ?._closeMenu();
+                              RuniacAppTourScope.maybeOf(context)?.restart();
+                            },
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),

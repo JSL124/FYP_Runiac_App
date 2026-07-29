@@ -20,6 +20,7 @@ import '../home/domain/guide/home_guide_agent.dart';
 import '../home/domain/guide/home_guide_consent.dart';
 import '../home/domain/guide/rule_based_home_guide_agent.dart';
 import '../home/presentation/home_tab.dart';
+import '../home/presentation/stage_map/home_stage_map_model.dart';
 import '../leaderboard/data/static_leaderboard_repository.dart';
 import '../leaderboard/domain/repositories/leaderboard_repository.dart';
 import '../leaderboard/presentation/leaderboard_tab.dart';
@@ -43,6 +44,11 @@ import '../run/presentation/active_run_session_coordinator.dart';
 import '../run/presentation/models/planned_run_context.dart';
 import '../run/presentation/run_launch_screen.dart';
 import '../run/presentation/run_open_intent.dart';
+import '../tutorial/domain/app_tour_seen_store.dart';
+import '../tutorial/domain/models/tutorial_step.dart';
+import '../tutorial/presentation/app_tour_controller.dart';
+import '../tutorial/presentation/app_tour_host.dart';
+import '../tutorial/presentation/tutorial_anchor_registry.dart';
 import '../you/data/static_activity_history_repository.dart';
 import '../you/domain/models/user_progress_read_model.dart';
 import '../you/domain/repositories/activity_history_repository.dart';
@@ -71,6 +77,8 @@ class RuniacShell extends StatefulWidget {
         const StaticNotificationInboxRepository(),
     this.planProgress,
     this.planCompletionSeenStore,
+    this.appTourSeenStore,
+    this.appTourAutoStartArmed = false,
     this.adaptivePlanEstimate,
     this.homeGuideAgent = const RuleBasedHomeGuideAgent(),
     this.homeGuideConsentRepository =
@@ -107,6 +115,15 @@ class RuniacShell extends StatefulWidget {
   /// One-shot marker forwarded to [HomeTab] for the plan-completion ceremony.
   /// `null` (previews/tests) disables the celebration.
   final PlanCompletionSeenStore? planCompletionSeenStore;
+
+  /// Local, device-only record of whether the one-time app tour is armed and
+  /// completed. `null` (previews/tests, and the default) disables the tour
+  /// entirely: the overlay never builds and no store call is ever made.
+  final AppTourSeenStore? appTourSeenStore;
+
+  /// Whether the app tour is eligible to auto-start once armed and not yet
+  /// completed. Has no effect when [appTourSeenStore] is `null`.
+  final bool appTourAutoStartArmed;
   final AdaptivePlanEstimateReadModel? adaptivePlanEstimate;
 
   /// Guide seam forwarded to [HomeTab]'s stage-map speech bubble. See
@@ -152,6 +169,9 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
   late final CurrentDayRolloverController _currentDayController;
   late final bool _ownsCurrentDayController =
       widget.currentDayRolloverController == null;
+  late final AppTourController _appTourController = AppTourController(
+    onRequestTab: _selectTab,
+  );
   BeginnerAdaptivePlanSnapshot? _pendingPlanNotificationPlan;
   GeneratedPlanProgressDisplay? _pendingPlanNotificationProgress;
   late Future<FeedAuthorProfileSnapshot> _feedAuthorProfileFuture;
@@ -383,6 +403,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
     if (_ownsActiveRunSessionCoordinator) {
       _activeRunSessionCoordinator.dispose();
     }
+    _appTourController.dispose();
     super.dispose();
   }
 
@@ -458,6 +479,12 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
       return;
     }
 
+    _selectTab(index);
+  }
+
+  void _selectTab(int index) {
+    assert(index != 2, 'Run is a route, not a tab');
+    if (!mounted) return;
     setState(() {
       _selectedIndex = index;
       _visitedTabIndexes.add(index);
@@ -548,6 +575,11 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
         ? null
         : scopedUserProgressStore;
     final generatedPlanProgress = _generatedPlanProgress(activeGeneratedPlan);
+    final homeRestDaySignal = _homeTodayIsRestDay(
+      activeGeneratedPlan,
+      currentDate,
+      generatedPlanProgress,
+    );
     final todayWorkoutDetail = todayGeneratedWorkoutDetailFromSnapshot(
       activeGeneratedPlan,
       currentDate: currentDate,
@@ -650,70 +682,80 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
             if (mounted) setState(() {});
           });
         }
-        return Scaffold(
-          appBar:
-              _selectedIndex == 0 ||
-                  _selectedIndex == 1 ||
-                  _selectedIndex == 3 ||
-                  _selectedIndex == 4
-              ? null
-              : AppBar(title: const Text('Runiac')),
-          body: Stack(
-            fit: StackFit.expand,
-            children: [
-              for (final entry in tabs.entries)
-                Offstage(
-                  key: ValueKey<String>('runiac-shell-slot-${entry.key}'),
-                  offstage: entry.key != _selectedIndex,
-                  child: TickerMode(
-                    enabled: entry.key == _selectedIndex,
-                    child: entry.value,
+        return AppTourHost(
+          controller: _appTourController,
+          seenStore: widget.appTourSeenStore,
+          autoStartArmed: widget.appTourAutoStartArmed,
+          ownerUid: widget.authRepository.currentUser?.uid,
+          homeRestDaySignal: homeRestDaySignal,
+          child: Scaffold(
+            appBar:
+                _selectedIndex == 0 ||
+                    _selectedIndex == 1 ||
+                    _selectedIndex == 3 ||
+                    _selectedIndex == 4
+                ? null
+                : AppBar(title: const Text('Runiac')),
+            body: Stack(
+              fit: StackFit.expand,
+              children: [
+                for (final entry in tabs.entries)
+                  Offstage(
+                    key: ValueKey<String>('runiac-shell-slot-${entry.key}'),
+                    offstage: entry.key != _selectedIndex,
+                    child: TickerMode(
+                      enabled: entry.key == _selectedIndex,
+                      child: entry.value,
+                    ),
                   ),
-                ),
-            ],
-          ),
-          bottomNavigationBar: BottomNavigationBar(
-            currentIndex: _selectedIndex,
-            type: BottomNavigationBarType.fixed,
-            onTap: _handleNavigationTap,
-            backgroundColor: RuniacColors.white,
-            selectedItemColor: RuniacColors.primaryBlue,
-            unselectedItemColor: RuniacColors.textSecondary,
-            showSelectedLabels: false,
-            showUnselectedLabels: false,
-            selectedFontSize: 0,
-            unselectedFontSize: 0,
-            selectedIconTheme: const IconThemeData(size: 32),
-            unselectedIconTheme: const IconThemeData(size: 30),
-            selectedLabelStyle: const TextStyle(fontSize: 0, height: 0),
-            unselectedLabelStyle: const TextStyle(fontSize: 0, height: 0),
-            items: const [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.home),
-                label: '',
-                tooltip: 'Home',
+              ],
+            ),
+            bottomNavigationBar: TutorialAnchor(
+              id: TutorialAnchorId.bottomNavBar,
+              child: BottomNavigationBar(
+                currentIndex: _selectedIndex,
+                type: BottomNavigationBarType.fixed,
+                onTap: _handleNavigationTap,
+                backgroundColor: RuniacColors.white,
+                selectedItemColor: RuniacColors.primaryBlue,
+                unselectedItemColor: RuniacColors.textSecondary,
+                showSelectedLabels: false,
+                showUnselectedLabels: false,
+                selectedFontSize: 0,
+                unselectedFontSize: 0,
+                selectedIconTheme: const IconThemeData(size: 32),
+                unselectedIconTheme: const IconThemeData(size: 30),
+                selectedLabelStyle: const TextStyle(fontSize: 0, height: 0),
+                unselectedLabelStyle: const TextStyle(fontSize: 0, height: 0),
+                items: const [
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.home),
+                    label: '',
+                    tooltip: 'Home',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.dynamic_feed),
+                    label: '',
+                    tooltip: 'Feed',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.directions_run),
+                    label: '',
+                    tooltip: 'Run',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.leaderboard),
+                    label: '',
+                    tooltip: 'Leaderboard',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.person),
+                    label: '',
+                    tooltip: 'You',
+                  ),
+                ],
               ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.dynamic_feed),
-                label: '',
-                tooltip: 'Feed',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.directions_run),
-                label: '',
-                tooltip: 'Run',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.leaderboard),
-                label: '',
-                tooltip: 'Leaderboard',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.person),
-                label: '',
-                tooltip: 'You',
-              ),
-            ],
+            ),
           ),
         );
       },
@@ -758,6 +800,60 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
     return GeneratedPlanProgressDisplay(
       completedScheduledWorkoutIds: completedIds,
     );
+  }
+
+  /// Whether today is a scheduled rest day on [activePlan], for the app tour
+  /// only (see `AppTourHost.homeRestDaySignal`).
+  ///
+  /// Deliberately calls the exact same production derivation `home_tab.dart`
+  /// uses for its own guide bubble — `buildHomeStageMapModel`'s
+  /// `todayDayIndex` stone, checked for `HomeStageStoneKind.rest` — rather
+  /// than re-deriving rest-day-ness independently, so the tour can never
+  /// disagree with what the Home guide bubble is showing. `backgroundSequence`
+  /// is passed empty because it only selects cosmetic per-week art, never the
+  /// stone kind at `todayDayIndex`. Returns null (unknown) whenever
+  /// `home_tab.dart` itself would have no stage-map model to show: no plan,
+  /// an ineligible plan, or no resolvable "today" stone.
+  bool? _homeTodayIsRestDay(
+    BeginnerAdaptivePlanSnapshot? activePlan,
+    DateTime currentDate,
+    GeneratedPlanProgressDisplay? generatedPlanProgress,
+  ) {
+    if (activePlan == null ||
+        !isEligibleCurrentSessionGeneratedPlan(activePlan)) {
+      return null;
+    }
+    final activeWeek = activeGeneratedPlanWeekFor(
+      activePlan,
+      currentDate: currentDate,
+    );
+    final activeWeekNumber =
+        activeWeek?.weekNumber ?? activePlan.weeks.first.weekNumber;
+    final activeWeekdayIndex = activeGeneratedPlanWeekdayFor(
+      activePlan,
+      currentDate: currentDate,
+    );
+    final model = buildHomeStageMapModel(
+      plan: activePlan,
+      completedScheduledWorkoutIds:
+          generatedPlanProgress?.completedScheduledWorkoutIds ??
+          const <String>{},
+      activeWeekNumber: activeWeekNumber,
+      currentWeekdayIndex: activeWeekdayIndex,
+      backgroundSequence: const <String>[],
+    );
+    final weekIndex = model.currentWeekIndex;
+    final dayIndex = model.todayDayIndex;
+    if (weekIndex == null ||
+        dayIndex == null ||
+        weekIndex >= model.sections.length) {
+      return null;
+    }
+    final stones = model.sections[weekIndex].stones;
+    if (dayIndex >= stones.length) {
+      return null;
+    }
+    return !stones[dayIndex].isRun;
   }
 
   void _syncGeneratedPlanNotifications(

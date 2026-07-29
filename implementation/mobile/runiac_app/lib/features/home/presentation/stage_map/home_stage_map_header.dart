@@ -69,47 +69,50 @@ class _HomeStageHeader extends StatelessWidget {
             Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Semantics(
-                  container: true,
-                  label: 'Profile',
-                  button: true,
-                  child: ExcludeSemantics(
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: onProfile,
-                      child: SizedBox(
-                        width: 60,
-                        height: 62,
-                        child: Stack(
-                          clipBehavior: Clip.none,
-                          alignment: Alignment.topCenter,
-                          children: [
-                            Container(
-                              width: 54,
-                              height: 54,
-                              decoration: _homeStageControlDecoration(
-                                shape: BoxShape.circle,
+                TutorialAnchor(
+                  id: TutorialAnchorId.homeLevelAvatar,
+                  child: Semantics(
+                    container: true,
+                    label: 'Profile',
+                    button: true,
+                    child: ExcludeSemantics(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: onProfile,
+                        child: SizedBox(
+                          width: 60,
+                          height: 62,
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            alignment: Alignment.topCenter,
+                            children: [
+                              Container(
+                                width: 54,
+                                height: 54,
+                                decoration: _homeStageControlDecoration(
+                                  shape: BoxShape.circle,
+                                ),
                               ),
-                            ),
-                            if (progressLoading || profileLoading)
-                              const _LoadingProfileBadge()
-                            else
-                              RuniacLevelProfileBadge(
-                                initials: profileInitials,
-                                levelLabel: levelBadgeLabel,
-                                progressFraction: levelProgressFraction,
-                                photoUrl: profilePhotoUrl,
-                                size: 54,
-                                badgeHeight: 17,
-                                badgeMinWidth: 44,
-                                badgeHorizontalPadding: 7,
-                                badgeFontSize: 10,
-                                ringStrokeWidth: 4.5,
-                                discColor: RuniacColors.primaryBlue,
-                                discBorderColor: RuniacColors.white,
-                                initialsColor: RuniacColors.white,
-                              ),
-                          ],
+                              if (progressLoading || profileLoading)
+                                const _LoadingProfileBadge()
+                              else
+                                RuniacLevelProfileBadge(
+                                  initials: profileInitials,
+                                  levelLabel: levelBadgeLabel,
+                                  progressFraction: levelProgressFraction,
+                                  photoUrl: profilePhotoUrl,
+                                  size: 54,
+                                  badgeHeight: 17,
+                                  badgeMinWidth: 44,
+                                  badgeHorizontalPadding: 7,
+                                  badgeFontSize: 10,
+                                  ringStrokeWidth: 4.5,
+                                  discColor: RuniacColors.primaryBlue,
+                                  discBorderColor: RuniacColors.white,
+                                  initialsColor: RuniacColors.white,
+                                ),
+                            ],
+                          ),
                         ),
                       ),
                     ),

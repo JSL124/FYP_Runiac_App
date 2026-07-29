@@ -693,6 +693,24 @@ is_profile_stats_visibility_path() {
   esac
 }
 
+is_first_run_app_tour_capsule_active() {
+  grep -Eq '^- Newly routed first-run app tour on 2026-07-29 Asia/Singapore: `implementation/roadmap/capsules/first-run-app-tour\.md`' implementation/roadmap/CURRENT.md
+}
+
+# Client-only capsule: its only allowlisted path is its own capsule markdown.
+# implementation/mobile/runiac_app/* is already unconditionally allowed below
+# and is deliberately not repeated here.
+is_first_run_app_tour_path() {
+  case "$1" in
+    implementation/roadmap/capsules/first-run-app-tour.md)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 # Scoped to the canonical Platform Administrator role predicate and the premium
 # expiry sweep. The progression/leaderboard/run entries are signature-only
 # `nowMs` threading required by the expiry-aware premium check; they are
@@ -1014,6 +1032,10 @@ is_allowed_path() {
   fi
 
   if is_profile_stats_visibility_path "$1" && is_profile_stats_visibility_capsule_active; then
+    return 0
+  fi
+
+  if is_first_run_app_tour_path "$1" && is_first_run_app_tour_capsule_active; then
     return 0
   fi
 
