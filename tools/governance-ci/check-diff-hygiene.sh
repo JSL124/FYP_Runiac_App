@@ -695,6 +695,45 @@ is_home_guide_plan_brief_path() {
   esac
 }
 
+is_workout_detail_briefing_agent_capsule_active() {
+  grep -Eq '^- Newly routed workout detail briefing agent on 2026-07-29 Asia/Singapore: `implementation/roadmap/capsules/workout-detail-briefing-agent\.md`' implementation/roadmap/CURRENT.md
+}
+
+# Scoped to the new premium-gated `workoutBriefingAgent` callable that replaces
+# the static Coach note card on the planned-workout detail screen. The Flutter
+# side of this capsule needs no entry here because `is_forbidden_path` already
+# falls through for `implementation/mobile/**`; only the backend surface, the
+# feature-key catalog it registers into, and this capsule's own routing files
+# are gated. `feedCallableSurface.test.ts` is listed because a new export must
+# be added to its expected-export list or the suite fails by design.
+is_workout_detail_briefing_agent_path() {
+  case "$1" in
+    implementation/roadmap/capsules/workout-detail-briefing-agent.md|\
+    implementation/roadmap/snapshots/latest.md|\
+    functions/package.json|\
+    functions/src/index.ts|\
+    functions/src/config/configLoader.ts|\
+    functions/src/agent/workoutBriefingAgent.ts|\
+    functions/src/agent/workoutBriefingAgentHandler.ts|\
+    functions/src/agent/workoutBriefingContractFields.ts|\
+    functions/src/agent/workoutBriefingContracts.ts|\
+    functions/src/agent/workoutBriefingModel.ts|\
+    functions/src/agent/workoutBriefingModelOutput.ts|\
+    functions/src/agent/workoutBriefingQuota.ts|\
+    functions/src/agent/workoutBriefingTypes.ts|\
+    functions/test/workoutBriefingAgentCallableSurface.test.ts|\
+    functions/test/workoutBriefingContracts.test.ts|\
+    functions/test/workoutBriefingModel.test.ts|\
+    functions/test/feedCallableSurface.test.ts|\
+    functions/test/configLoader.test.ts)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 # Scoped to the server-side enforcement of the owner's `publicStatsHidden`
 # preference. `firestore.rules` is listed only for the writable-key entry that
 # lets the owner store the preference; the projection gate itself lives in
@@ -1043,6 +1082,10 @@ is_allowed_path() {
     return 0
   fi
 
+  if is_workout_detail_briefing_agent_path "$1" && is_workout_detail_briefing_agent_capsule_active; then
+    return 0
+  fi
+
   if is_share_rank_export_capsule_active && is_share_rank_export_backend_path "$1"; then
     return 0
   fi
@@ -1328,6 +1371,10 @@ is_forbidden_path() {
   fi
 
   if is_home_guide_plan_brief_path "$1" && is_home_guide_plan_brief_capsule_active; then
+    return 1
+  fi
+
+  if is_workout_detail_briefing_agent_path "$1" && is_workout_detail_briefing_agent_capsule_active; then
     return 1
   fi
 

@@ -125,6 +125,7 @@ class _QaFeatureAccessRepository implements FeatureAccessRepository {
       premiumFeatureKeys: [
         'advancedAnalysis',
         'activityFeedback',
+        'workoutBriefing',
         'shareCards',
         'healthWorkoutImport',
       ],

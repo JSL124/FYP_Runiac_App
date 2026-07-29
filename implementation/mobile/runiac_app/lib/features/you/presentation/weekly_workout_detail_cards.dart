@@ -94,50 +94,106 @@ class _EffortGuideCard extends StatelessWidget {
   }
 }
 
-class _CoachNoteCard extends StatelessWidget {
-  const _CoachNoteCard(this.notes);
+// The static Coach note card used to live here. Its `snapshot.coachNotes` copy
+// is now prompt context for the AI briefing behind the header's sparkle button
+// instead of on-screen text, so the notes still steer what the runner is told —
+// they are just explained rather than recited.
 
-  final List<String> notes;
+/// Header action that opens the AI briefing for this planned workout.
+///
+/// Mirrors the Activity Summary sparkle button: paywall-gate first, then a
+/// blocking overlay whose character runs in while the request is already in
+/// flight.
+class _WorkoutBriefingActionButton extends StatelessWidget {
+  const _WorkoutBriefingActionButton({required this.snapshot, this.agent});
+
+  final WeeklyWorkoutDetailSnapshot snapshot;
+  final WorkoutBriefingAgent? agent;
 
   @override
   Widget build(BuildContext context) {
-    return DashboardCard(
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF7FAFF),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              alignment: Alignment.center,
-              decoration: const BoxDecoration(
-                color: RuniacColors.primaryBlue,
-                shape: BoxShape.circle,
-              ),
-              child: const Text('R', style: _coachInitialStyle),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Coach note', style: _sectionTitleStyle),
-                  const SizedBox(height: 8),
-                  for (final note in notes) ...[
-                    Text(note, style: _bodyStyle),
-                    if (note != notes.last) const SizedBox(height: 5),
-                  ],
-                ],
-              ),
-            ),
-          ],
-        ),
+    return IconButton(
+      key: const ValueKey('workout_briefing_icon_action'),
+      tooltip: "Explain today's workout",
+      onPressed: () => _open(context),
+      style: IconButton.styleFrom(
+        foregroundColor: RuniacColors.primaryBlue,
+        minimumSize: const Size(40, 40),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
+      icon: Image.asset(
+        RuniacAssets.activityFeedbackSparkle,
+        width: 22,
+        height: 22,
+        fit: BoxFit.contain,
+      ),
+    );
+  }
+
+  Future<void> _open(BuildContext context) async {
+    if (interceptWithPaywallIfGated(context, 'workoutBriefing')) {
+      return;
+    }
+    final character =
+        SelectedRunnerCharacterScope.maybeOf(context)?.selectedOrDefault ??
+        RunnerCharacter.blue;
+    final resolvedAgent = agent ?? _defaultAgent();
+    final request = _requestFor(snapshot);
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.transparent,
+      builder: (dialogContext) {
+        return CharacterGuidanceOverlay(
+          character: character,
+          keyPrefix: 'workout_briefing',
+          loadingCopy: 'Reading your plan...',
+          closeTooltip: 'Close workout briefing',
+          previousTooltip: 'Previous briefing step',
+          nextTooltip: 'Next briefing step',
+          loadSteps: () async {
+            final bundle = await resolvedAgent.explainPlannedWorkout(request);
+            return <CharacterGuidanceStep>[
+              for (final step in bundle.sections.steps)
+                CharacterGuidanceStep(title: step.title, body: step.body),
+            ];
+          },
+          onClose: () => Navigator.of(dialogContext, rootNavigator: true).pop(),
+        );
+      },
+    );
+  }
+
+  WorkoutBriefingAgent _defaultAgent() {
+    return CachingWorkoutBriefingAgent(
+      delegate: CloudFunctionWorkoutBriefingAgent(),
+    );
+  }
+
+  /// Only display copy the runner is already looking at. `planId` reaches the
+  /// request as cache-key material and is dropped by the payload builder.
+  WorkoutBriefingRequest _requestFor(WeeklyWorkoutDetailSnapshot snapshot) {
+    final briefingContext = snapshot.briefingContext;
+    return WorkoutBriefingRequest(
+      dayLabel: snapshot.dayLabel,
+      planTitle: snapshot.planTitle,
+      effortGuide: snapshot.effortGuide,
+      weekNumber: briefingContext?.weekNumber,
+      weekFocus: briefingContext?.weekFocus,
+      metrics: [
+        for (final metric in snapshot.metrics)
+          WorkoutBriefingMetric(label: metric.label, value: metric.value),
+      ],
+      steps: [
+        for (final step in snapshot.breakdown)
+          WorkoutBriefingStep(title: step.title, detail: step.copy),
+      ],
+      coachNotes: snapshot.coachNotes,
+      cacheIdentity: briefingContext == null
+          ? null
+          : '${briefingContext.planId}'
+                '|w${briefingContext.weekNumber}'
+                '|${snapshot.dayLabel}',
     );
   }
 }

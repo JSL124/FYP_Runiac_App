@@ -5,6 +5,7 @@ export { homeGuideConsent } from "./agent/homeGuideConsent.js";
 export { submitFeedback } from "./feedback/submitFeedback.js";
 export { reportAppError } from "./errors/reportAppError.js";
 export { activityFeedbackAgent } from "./agent/activityFeedbackAgent.js";
+export { workoutBriefingAgent } from "./agent/workoutBriefingAgent.js";
 export { registerNotificationDevice, unregisterNotificationDevice } from "./notifications/deviceRegistry.js";
 export { dispatchScheduledPushNotifications } from "./notifications/scheduledPushDispatch.js";
 export { refreshLeaderboardSnapshots } from "./leaderboard/monthlyLeaderboard.js";

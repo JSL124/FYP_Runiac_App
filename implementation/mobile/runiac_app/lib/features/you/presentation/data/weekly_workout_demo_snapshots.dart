@@ -102,6 +102,7 @@ class WeeklyWorkoutDetailSnapshot {
     this.scheduleDayLabel,
     this.scheduleTimeLabel,
     this.occupiedScheduleWeekdays = const <int>{},
+    this.briefingContext,
   }) : planTitle = planTitle ?? heroTitle ?? '';
 
   final String title;
@@ -120,6 +121,11 @@ class WeeklyWorkoutDetailSnapshot {
   final String? scheduleDayLabel;
   final String? scheduleTimeLabel;
   final Set<int> occupiedScheduleWeekdays;
+
+  /// Plan address for the AI briefing's local cache key, and the week context
+  /// the screen itself does not display. Null on the static demo snapshots,
+  /// which simply means the briefing is never cached for them.
+  final WorkoutBriefingContext? briefingContext;
 
   WeeklyWorkoutDetailSnapshot copyWith({
     String? dayLabel,
@@ -148,8 +154,25 @@ class WeeklyWorkoutDetailSnapshot {
       scheduleTimeLabel: scheduleTimeLabel ?? this.scheduleTimeLabel,
       occupiedScheduleWeekdays:
           occupiedScheduleWeekdays ?? this.occupiedScheduleWeekdays,
+      briefingContext: briefingContext,
     );
   }
+}
+
+/// Plan-side context carried alongside a workout detail snapshot for the AI
+/// briefing. `planId` is cache-key material only and is never sent to the
+/// callable — only `weekNumber` and `weekFocus` reach the prompt.
+@immutable
+class WorkoutBriefingContext {
+  const WorkoutBriefingContext({
+    required this.planId,
+    required this.weekNumber,
+    this.weekFocus,
+  });
+
+  final String planId;
+  final int weekNumber;
+  final String? weekFocus;
 }
 
 class WorkoutScheduleEditSelection {

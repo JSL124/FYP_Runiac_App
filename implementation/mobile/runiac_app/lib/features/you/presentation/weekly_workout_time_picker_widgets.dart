@@ -154,12 +154,6 @@ const _metricValue = TextStyle(
   fontWeight: FontWeight.w900,
 );
 
-const _coachInitialStyle = TextStyle(
-  color: RuniacColors.white,
-  fontSize: 15,
-  fontWeight: FontWeight.w900,
-);
-
 const _startActionStyle = TextStyle(
   color: RuniacColors.white,
   fontSize: 16,

@@ -1,14 +1,20 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/assets/runiac_assets.dart';
+import '../../../core/characters/runner_character.dart';
 import '../../../core/theme/runiac_colors.dart';
+import '../../../core/widgets/character_guidance_overlay.dart';
 import '../../../core/widgets/dashboard_card.dart';
 import '../../../core/widgets/runiac_back_header.dart';
 import '../../../core/widgets/runiac_bottom_sheet_handle.dart';
 import '../../../core/widgets/runiac_buttons.dart';
 import '../../../core/widgets/runiac_success_check_overlay.dart';
+import '../../paywall/presentation/premium_gate.dart';
 import '../../run/presentation/active_run_session_coordinator.dart';
 import '../../run/presentation/run_launch_screen.dart';
+import '../data/cloud_function_workout_briefing_agent.dart';
+import '../domain/models/workout_briefing_agent.dart';
 import 'data/weekly_workout_demo_snapshots.dart';
 
 part 'weekly_workout_detail_action_icon.dart';
@@ -29,6 +35,7 @@ class WeeklyWorkoutDetailScreen extends StatelessWidget {
     this.onStartRun,
     this.onScheduleChanged,
     this.activeRunSessionCoordinator,
+    this.workoutBriefingAgent,
     super.key,
   });
 
@@ -39,6 +46,10 @@ class WeeklyWorkoutDetailScreen extends StatelessWidget {
   final VoidCallback? onStartRun;
   final ValueChanged<WorkoutScheduleEditSelection>? onScheduleChanged;
   final ActiveRunSessionCoordinator? activeRunSessionCoordinator;
+
+  /// Test seam. Left null in the app so the real agent is built at tap time,
+  /// which keeps this screen out of the app-wide scope wiring.
+  final WorkoutBriefingAgent? workoutBriefingAgent;
 
   Future<void> _openRunLaunch(BuildContext context) async {
     final initialPreviewCurrentPosition =
@@ -80,8 +91,15 @@ class WeeklyWorkoutDetailScreen extends StatelessWidget {
                 height: 64,
                 tooltip: 'Back to Plans',
                 onBack: onBack,
-                trailing: showEditScheduleAction && snapshot.canEditSchedule
-                    ? IconButton(
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _WorkoutBriefingActionButton(
+                      snapshot: snapshot,
+                      agent: workoutBriefingAgent,
+                    ),
+                    if (showEditScheduleAction && snapshot.canEditSchedule)
+                      IconButton(
                         key: const ValueKey('edit_schedule_icon_action'),
                         tooltip: 'Edit schedule',
                         onPressed: () => _showEditScheduleSheet(
@@ -95,9 +113,13 @@ class WeeklyWorkoutDetailScreen extends StatelessWidget {
                           height: 44,
                         ),
                         icon: const _EditScheduleActionIcon(),
-                      )
-                    : null,
-                trailingWidth: 48,
+                      ),
+                  ],
+                ),
+                trailingWidth:
+                    showEditScheduleAction && snapshot.canEditSchedule
+                    ? 88
+                    : 48,
               ),
             ),
             Expanded(
@@ -114,8 +136,6 @@ class WeeklyWorkoutDetailScreen extends StatelessWidget {
                     _WorkoutBreakdownCard(snapshot.breakdown),
                     const SizedBox(height: 12),
                     _EffortGuideCard(snapshot.effortGuide),
-                    const SizedBox(height: 12),
-                    _CoachNoteCard(snapshot.coachNotes),
                     if (startActionLabel != null) ...[
                       const SizedBox(height: 16),
                       _StartRunAction(
