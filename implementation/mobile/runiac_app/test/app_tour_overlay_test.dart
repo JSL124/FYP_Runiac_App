@@ -667,4 +667,104 @@ void main() {
       expect(skipCount, 1);
     },
   );
+
+  testWidgets(
+    'a hole leaving ~200-300px on the placed side does not clip the '
+    'Next/Skip buttons off-screen at a narrow viewport and 2x text scale',
+    (tester) async {
+      var nextCount = 0;
+      var skipCount = 0;
+      const size = Size(375, 812);
+      // Leaves ~238px above and ~250px below (safeTop/safeBottom are 12px
+      // each here) — both comfortably above the old 190px clearance
+      // heuristic (so the pre-fix code treated the gap as "usable" and
+      // placed the block there) but well under the bubble's real 340px
+      // maxHeight cap once the longest step copy is typed out at a 2x text
+      // scale, so the pre-fix block was placed but rendered taller than the
+      // gap, pushing its footer (Skip/Next) off the bottom of the screen.
+      const hole = Rect.fromLTWH(40, 250, 295, 300);
+      await _pumpAtPhysicalSize(
+        tester,
+        AppTourOverlay(
+          step: _longestCopyStep,
+          hole: hole,
+          useFallbackCopy: false,
+          character: RunnerCharacter.cap,
+          stepIndex: 8,
+          stepCount: 9,
+          onNext: () => nextCount++,
+          onSkip: () => skipCount++,
+        ),
+        size: size,
+        textScaler: const TextScaler.linear(2.0),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('appTourNextButton')));
+      await tester.pump();
+      expect(nextCount, 1);
+
+      await tester.tap(find.byKey(const ValueKey('appTourSkipButton')));
+      await tester.pump();
+      expect(skipCount, 1);
+    },
+  );
+
+  testWidgets(
+    'when neither side can fit the block, degrades to no-hole mode with '
+    'the block fully on screen and both buttons tappable',
+    (tester) async {
+      var nextCount = 0;
+      var skipCount = 0;
+      const size = Size(375, 812);
+      // Same geometry as the test above: ~238px above, ~250px below — too
+      // little room on either side for a block that can grow up to 340px,
+      // so this must degrade to the plain full-screen dim with the block
+      // pinned to the bottom safe area instead of being clipped in place.
+      const hole = Rect.fromLTWH(40, 250, 295, 300);
+      await _pumpAtPhysicalSize(
+        tester,
+        AppTourOverlay(
+          step: _longestCopyStep,
+          hole: hole,
+          useFallbackCopy: false,
+          character: RunnerCharacter.cap,
+          stepIndex: 8,
+          stepCount: 9,
+          onNext: () => nextCount++,
+          onSkip: () => skipCount++,
+        ),
+        size: size,
+        textScaler: const TextScaler.linear(2.0),
+      );
+
+      expect(_scrimPainter(tester).hole, isNull);
+
+      // Check the fixed footer controls, not the scrollable copy text: the
+      // typed text's own render size is its full (potentially very tall)
+      // intrinsic content height regardless of the scroll viewport clipping
+      // it — that is the pre-existing, intentional reason it scrolls at
+      // this copy length and text scale (see the "no RenderFlex overflow"
+      // tests above) — so it is not itself a signal of whether the block
+      // as a whole stayed on screen. The Skip/Next buttons are fixed
+      // siblings below that scrollable region, so their rects are what
+      // "fully on screen and tappable" actually means here.
+      final screenBounds = Offset.zero & size;
+      final nextRect = tester.getRect(
+        find.byKey(const ValueKey('appTourNextButton')),
+      );
+      final skipRect = tester.getRect(
+        find.byKey(const ValueKey('appTourSkipButton')),
+      );
+      expect(screenBounds.contains(nextRect.center), isTrue);
+      expect(screenBounds.contains(skipRect.center), isTrue);
+
+      await tester.tap(find.byKey(const ValueKey('appTourNextButton')));
+      await tester.pump();
+      expect(nextCount, 1);
+
+      await tester.tap(find.byKey(const ValueKey('appTourSkipButton')));
+      await tester.pump();
+      expect(skipCount, 1);
+    },
+  );
 }

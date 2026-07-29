@@ -86,11 +86,17 @@ class _AppTourOverlayState extends State<AppTourOverlay>
   static const double _oversizedHoleAreaFraction = 0.7;
 
   /// Minimum vertical clearance the block needs on one side of the hole to
-  /// render without being clipped. Mirrors the space the original
-  /// above/below heuristic required (`spaceBelow >= 190`). When neither the
+  /// render without being clipped. Derived from `_TourBubble.maxHeight`
+  /// (the same hard cap `_TourBubble` imposes on its own `ConstrainedBox`)
+  /// rather than an independent guess — the previous constant (190) could
+  /// disagree with that cap, so a gap this code judged "usable" could still
+  /// be shorter than what the bubble was actually allowed to render up to,
+  /// letting the `Stack` clip the footer (Skip tour / Next) out of reach.
+  /// Using the bubble's own ceiling means a gap is only ever treated as
+  /// usable when the block is guaranteed to fit inside it. When neither the
   /// space above nor below the hole reaches this, no side can fit the block,
   /// so the step also degrades to the no-hole presentation.
-  static const double _minBlockClearance = 190;
+  static const double _minBlockClearance = _TourBubble.maxHeight;
 
   late final AnimationController _type;
   late Animation<int> _typedLength;
@@ -329,11 +335,18 @@ class _AppTourOverlayState extends State<AppTourOverlay>
 
     Widget positioned;
     if (effectiveHole == null) {
+      // Even in no-hole mode, cap the block to the actual room between the
+      // safe-area edges rather than leaving it unbounded — on a very short
+      // screen a maxed-out bubble could otherwise still grow past the top.
+      final maxHeight = math.max(0.0, size.height - safeTop - safeBottom);
       positioned = Positioned(
         left: 16,
         right: 16,
         bottom: safeBottom,
-        child: block,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: maxHeight),
+          child: block,
+        ),
       );
     } else {
       final spaceAbove = effectiveHole.top - safeTop;
@@ -343,25 +356,44 @@ class _AppTourOverlayState extends State<AppTourOverlay>
       // Clamp defensively: whatever the hole geometry, the block's anchor
       // must always land within the safe area rather than being pushed
       // beyond either edge.
-      positioned = placeBelow
-          ? Positioned(
-              left: 16,
-              right: 16,
-              top: (effectiveHole.bottom + 12).clamp(
-                safeTop,
-                size.height - safeBottom,
-              ),
-              child: block,
-            )
-          : Positioned(
-              left: 16,
-              right: 16,
-              bottom: (size.height - effectiveHole.top + 12).clamp(
-                safeBottom,
-                size.height - safeTop,
-              ),
-              child: block,
-            );
+      //
+      // The block is also hard-capped to the room actually left between its
+      // anchor and the opposite safe-area edge (`maxHeight` below). Picking
+      // a side via `_minBlockClearance` already guarantees that room is
+      // enough for the block, but this cap is what makes the `Stack`
+      // physically unable to clip it, rather than relying solely on the two
+      // thresholds continuing to agree.
+      if (placeBelow) {
+        final top = (effectiveHole.bottom + 12).clamp(
+          safeTop,
+          size.height - safeBottom,
+        );
+        final maxHeight = math.max(0.0, (size.height - safeBottom) - top);
+        positioned = Positioned(
+          left: 16,
+          right: 16,
+          top: top,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxHeight),
+            child: block,
+          ),
+        );
+      } else {
+        final bottom = (size.height - effectiveHole.top + 12).clamp(
+          safeBottom,
+          size.height - safeTop,
+        );
+        final maxHeight = math.max(0.0, (size.height - bottom) - safeTop);
+        positioned = Positioned(
+          left: 16,
+          right: 16,
+          bottom: bottom,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxHeight),
+            child: block,
+          ),
+        );
+      }
     }
 
     return SizedBox.expand(
@@ -561,10 +593,17 @@ class _TourBubble extends StatelessWidget {
   final VoidCallback onNext;
   final VoidCallback onSkip;
 
+  /// Hard cap on the bubble's own height, regardless of copy length or text
+  /// scale. `_AppTourOverlayState` reads this same constant (as
+  /// `_minBlockClearance`) to decide whether a gap beside the spotlight hole
+  /// is tall enough to hold the block, so the two can never disagree about
+  /// how tall the block is allowed to grow.
+  static const double maxHeight = 340;
+
   @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
-      constraints: const BoxConstraints(maxHeight: 340),
+      constraints: const BoxConstraints(maxHeight: maxHeight),
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
         decoration: BoxDecoration(

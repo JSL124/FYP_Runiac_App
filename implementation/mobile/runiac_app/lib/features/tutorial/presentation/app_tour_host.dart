@@ -289,29 +289,45 @@ class _AppTourHostState extends State<AppTourHost> with WidgetsBindingObserver {
         children: [
           widget.child,
           if (showOverlay)
-            PopScope(
-              // Android back must map to skip rather than popping the shell
-              // out from under a live overlay.
-              canPop: false,
-              onPopInvokedWithResult: (didPop, result) {
-                if (!didPop) {
-                  controller.skip();
-                }
-              },
-              child: AppTourOverlay(
-                step: controller.currentStep,
-                hole: controller.hole,
-                useFallbackCopy: controller.useFallbackCopy,
-                isRestDay: widget.homeRestDaySignal,
-                character:
-                    SelectedRunnerCharacterScope.maybeOf(
-                      context,
-                    )?.selectedOrDefault ??
-                    RunnerCharacter.blue,
-                stepIndex: controller.stepIndex,
-                stepCount: controller.stepCount,
-                onNext: () => unawaited(controller.next()),
-                onSkip: () => controller.skip(),
+            // The scrim already blocks pointer input from reaching the shell
+            // behind it, but nothing about that stops assistive tech from
+            // still reaching the obscured shell's semantics nodes (bottom
+            // nav, Home menu trigger, stage stones, feed actions, …) — a
+            // screen-reader user could navigate or activate them mid-tour,
+            // including opening the Run route this tour is explicitly
+            // designed never to open. BlockSemantics drops the semantics of
+            // everything painted before it in this same Stack (i.e.
+            // `widget.child`) for as long as it stays mounted, which is
+            // exactly while `showOverlay` is true; when the tour stops or
+            // pauses, this subtree is removed and the shell's semantics are
+            // fully restored on the next frame. The overlay's own semantics
+            // (its `App tour` container label and Skip/Next controls) are
+            // unaffected since they live inside, not before, this widget.
+            BlockSemantics(
+              child: PopScope(
+                // Android back must map to skip rather than popping the shell
+                // out from under a live overlay.
+                canPop: false,
+                onPopInvokedWithResult: (didPop, result) {
+                  if (!didPop) {
+                    controller.skip();
+                  }
+                },
+                child: AppTourOverlay(
+                  step: controller.currentStep,
+                  hole: controller.hole,
+                  useFallbackCopy: controller.useFallbackCopy,
+                  isRestDay: widget.homeRestDaySignal,
+                  character:
+                      SelectedRunnerCharacterScope.maybeOf(
+                        context,
+                      )?.selectedOrDefault ??
+                      RunnerCharacter.blue,
+                  stepIndex: controller.stepIndex,
+                  stepCount: controller.stepCount,
+                  onNext: () => unawaited(controller.next()),
+                  onSkip: () => controller.skip(),
+                ),
               ),
             ),
         ],

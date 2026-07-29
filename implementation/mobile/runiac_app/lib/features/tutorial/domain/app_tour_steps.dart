@@ -120,11 +120,11 @@ const List<TutorialStep> runiacAppTourSteps = [
       TutorialAnchorId.leaderboardStateMessage,
     ],
     message:
-        'Every month, runners near you are ranked here by distance. Your '
-        'league badge sits at the top.',
+        'Every month, runners near you are ranked here by the XP you earn. '
+        'Your league badge sits at the top.',
     fallbackMessage:
         "Pick your planning area in your profile and you'll join your "
-        "city's monthly leaderboard.",
+        "city's monthly XP ranking.",
     preferredSide: TutorialCharacterSide.right,
   ),
   TutorialStep(

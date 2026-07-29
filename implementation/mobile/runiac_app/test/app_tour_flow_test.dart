@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/features/feed/data/static_feed_repository.dart';
@@ -15,6 +17,7 @@ import 'package:runiac_app/features/run/presentation/run_launch_screen.dart';
 import 'package:runiac_app/features/shell/runiac_shell.dart';
 import 'package:runiac_app/features/tutorial/domain/app_tour_seen_store.dart';
 import 'package:runiac_app/features/tutorial/domain/models/tutorial_step.dart';
+import 'package:runiac_app/features/tutorial/presentation/app_tour_controller.dart';
 import 'package:runiac_app/features/tutorial/presentation/spotlight_scrim_painter.dart';
 import 'package:runiac_app/features/tutorial/presentation/tutorial_anchor_registry.dart';
 import 'package:runiac_app/features/you/presentation/current_session_activity_history.dart';
@@ -134,6 +137,26 @@ class _LateFirstPostFeedRepository implements FeedRepository {
 Future<void> _pumpTourSettle(WidgetTester tester, {int ticks = 50}) async {
   for (var i = 0; i < ticks; i++) {
     await tester.pump(const Duration(milliseconds: 100));
+  }
+}
+
+/// Pumps until [condition] holds, or gives up after [ticks] frames.
+///
+/// A fire-and-forget `next()` crosses `await WidgetsBinding.instance.endOfFrame`
+/// before it reaches any observable state, so the number of frames it needs is
+/// not fixed. Asserting after a single fixed-duration pump makes the
+/// expectation depend on scheduling order, which shifts under parallel suite
+/// load — the assertion then passes in isolation and fails in a full run.
+Future<void> _pumpUntil(
+  WidgetTester tester,
+  bool Function() condition, {
+  int ticks = 50,
+}) async {
+  for (var i = 0; i < ticks; i++) {
+    if (condition()) {
+      return;
+    }
+    await tester.pump(const Duration(milliseconds: 50));
   }
 }
 
@@ -580,4 +603,129 @@ void main() {
       expect(holeArea, lessThan(screenArea * 0.5));
     },
   );
+
+  group('AppTourController.next() concurrency guard', () {
+    // These tests exercise `AppTourController` directly rather than via the
+    // full `RuniacShell` harness above: reproducing a race that depends on
+    // precise anchor-resolution timing needs a script with a step whose
+    // anchor is deliberately never mounted, plus a non-default (larger, more
+    // measurable) poll interval/budget — not something the real screens
+    // wired into `_buildHarness` give us fine control over.
+    List<TutorialStep> raceSteps() => [
+      const TutorialStep(id: 'race-0', tabIndex: 0, message: 'Zero.'),
+      const TutorialStep(
+        id: 'race-1',
+        tabIndex: 0,
+        message: 'One.',
+        // Never registered in the anchor registry used below, so this
+        // step's resolve runs the *entire* `anchorPollBudget` before
+        // giving up and falling back — a deliberately slow, measurable
+        // transition to land a second `next()` call inside of.
+        anchorCandidates: [TutorialAnchorId.homeTodayStone],
+      ),
+      const TutorialStep(id: 'race-2', tabIndex: 0, message: 'Two.'),
+    ];
+
+    AppTourController buildRaceController() => AppTourController(
+      steps: raceSteps(),
+      onRequestTab: (_) {},
+      anchorPollInterval: const Duration(milliseconds: 300),
+      anchorPollBudget: const Duration(milliseconds: 1500),
+      preferredAnchorWindow: const Duration(milliseconds: 300),
+    );
+
+    testWidgets(
+      'a second next() landing while step 1 is still resolving does not '
+      'advance the step index a second time',
+      (tester) async {
+        // A minimal rendered tree only so
+        // `WidgetsBinding.instance.endOfFrame` (awaited inside the
+        // controller) has real frames to complete against.
+        await tester.pumpWidget(const SizedBox.shrink());
+
+        final controller = buildRaceController();
+        addTearDown(controller.dispose);
+
+        // Not awaited: `start()` itself awaits the controller's internal
+        // `WidgetsBinding.instance.endOfFrame`, which only resolves once
+        // this test pumps a frame — awaiting `start()` directly here, with
+        // nothing else pumping concurrently, would deadlock forever.
+        unawaited(controller.start());
+        await tester.pump(); // step 0 has no anchor candidates: same frame.
+        expect(controller.stepIndex, 0);
+
+        // First tap: begins advancing into step 1's slow, never-resolving
+        // anchor poll. Not awaited — it must still be in flight when the
+        // second tap below fires, exactly like two fast taps on a real
+        // device.
+        unawaited(controller.next());
+
+        // Let the first call get past the tab-switch/`endOfFrame` gate and
+        // into the anchor poll's still-pending wait — genuinely mid-
+        // transition, not the same microtask — before the second tap
+        // "lands".
+        await _pumpUntil(tester, () => controller.stepIndex == 1);
+        expect(
+          controller.stepIndex,
+          1,
+          reason: 'the first tap alone should already have advanced to step 1',
+        );
+
+        // Second tap, in quick succession, while step 1 is still resolving.
+        unawaited(controller.next());
+
+        // Run the poll well past `anchorPollBudget` so both fire-and-forget
+        // calls fully settle.
+        await _pumpTourSettle(tester);
+
+        // Fixed behaviour: the second, overlapping tap is absorbed, so the
+        // index has advanced by exactly one (to step 1, still on it because
+        // its anchor never resolved and step 2 was never reached). Before
+        // the fix, this asserted 2: the second call's own `_stepIndex += 1`
+        // landed on top of the first's before either resolve settled, so
+        // step 1 was skipped straight through to step 2 without ever being
+        // shown as resolved.
+        expect(controller.stepIndex, 1);
+        expect(controller.useFallbackCopy, isTrue);
+
+        // A tap after resolution has fully settled still advances normally
+        // — the guard only ever delays, it never traps.
+        unawaited(controller.next());
+        await _pumpTourSettle(tester);
+        expect(controller.stepIndex, 2);
+      },
+    );
+
+    testWidgets('skip() during an in-flight resolution still ends the tour', (
+      tester,
+    ) async {
+      await tester.pumpWidget(const SizedBox.shrink());
+
+      final controller = buildRaceController();
+      addTearDown(controller.dispose);
+
+      unawaited(controller.start());
+      await tester.pump();
+      expect(controller.stepIndex, 0);
+
+      // Begin advancing into step 1's slow resolve, then skip before it
+      // settles — skip must not be blocked by the same in-flight guard that
+      // absorbs a second `next()`.
+      unawaited(controller.next());
+      await _pumpUntil(tester, () => controller.stepIndex == 1);
+      expect(controller.stepIndex, 1);
+
+      controller.skip();
+      expect(controller.running, isFalse);
+      expect(controller.hole, isNull);
+
+      // Let the now-superseded in-flight resolve run its course. It must
+      // not resurrect any state (hole/fallback copy) on a controller that
+      // has already stopped.
+      await _pumpTourSettle(tester);
+      expect(controller.running, isFalse);
+      expect(controller.hole, isNull);
+      expect(controller.useFallbackCopy, isFalse);
+    });
+  });
 }

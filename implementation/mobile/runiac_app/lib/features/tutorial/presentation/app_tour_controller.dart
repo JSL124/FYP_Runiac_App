@@ -120,6 +120,16 @@ class AppTourController extends ChangeNotifier {
   bool _disposed = false;
   int _resolveSerial = 0;
 
+  /// True while [next] is advancing and its anchor resolution has not settled.
+  ///
+  /// Anchor resolution awaits a frame and can then poll for up to
+  /// [anchorPollBudget], so a second tap on Next arriving in that window would
+  /// otherwise pass the running check and increment the step a second time,
+  /// silently skipping a step. Extra taps are absorbed rather than queued —
+  /// queuing would just defer the same skip. [skip] is deliberately NOT gated
+  /// on this, so a user can always leave a slow-resolving step.
+  bool _advancing = false;
+
   /// Starts the tour from the first step.
   Future<void> start() async {
     if (_disposed || steps.isEmpty) {
@@ -130,6 +140,7 @@ class AppTourController extends ChangeNotifier {
     _paused = false;
     _hole = null;
     _useFallbackCopy = false;
+    _advancing = false;
     notifyListeners();
     await _resolveCurrentStep();
   }
@@ -148,6 +159,7 @@ class AppTourController extends ChangeNotifier {
     _paused = false;
     _hole = null;
     _useFallbackCopy = false;
+    _advancing = false;
     onRequestTab(0);
     _currentTab = 0;
     notifyListeners();
@@ -177,16 +189,21 @@ class AppTourController extends ChangeNotifier {
 
   /// Advances to the next step, or finishes the tour from the last step.
   Future<void> next() async {
-    if (_disposed || !_running) {
+    if (_disposed || !_running || _advancing) {
       return;
     }
     if (_stepIndex >= steps.length - 1) {
       _stop();
       return;
     }
+    _advancing = true;
     _stepIndex += 1;
     notifyListeners();
-    await _resolveCurrentStep();
+    try {
+      await _resolveCurrentStep();
+    } finally {
+      _advancing = false;
+    }
   }
 
   /// Ends the tour early. Produces the same terminal state as finishing the
@@ -211,6 +228,10 @@ class AppTourController extends ChangeNotifier {
 
   void _stop() {
     _cancelPendingWait();
+    // Abandon any in-flight resolution so a skip taken mid-advance cannot
+    // write a hole back onto a stopped tour.
+    _resolveSerial += 1;
+    _advancing = false;
     _running = false;
     _paused = false;
     _hole = null;

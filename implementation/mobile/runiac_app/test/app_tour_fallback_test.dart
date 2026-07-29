@@ -179,7 +179,7 @@ void main() {
       expect(
         _bubbleText(tester),
         "Pick your planning area in your profile and you'll join your "
-        "city's monthly leaderboard.",
+        "city's monthly XP ranking.",
       );
 
       // The step is not silently skipped: Next still advances to `you`. A

@@ -196,6 +196,23 @@ void main() {
         TutorialAnchorId.leaderboardStateMessage,
       ]);
     });
+
+    test(
+      'leaderboard step never describes ranking as distance-based — the '
+      'server ranks contributions by scoreXp, not distance run '
+      '(monthlyLeaderboardPlanner.ts compareContributions)',
+      () {
+        final leaderboard = runiacAppTourSteps.firstWhere(
+          (step) => step.id == 'leaderboard',
+        );
+        for (final copy in <String>[
+          leaderboard.message,
+          leaderboard.fallbackMessage,
+        ]) {
+          expect(copy.contains('by distance'), isFalse, reason: copy);
+        }
+      },
+    );
   });
 
   group('resolveTutorialCopy', () {
