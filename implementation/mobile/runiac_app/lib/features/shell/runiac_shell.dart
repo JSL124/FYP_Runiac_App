@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../core/haptics/runiac_haptics_scope.dart';
 import '../../core/theme/runiac_colors.dart';
 import '../profile/domain/models/user_profile_read_model.dart';
 import '../profile/domain/repositories/user_profile_repository.dart';
@@ -439,6 +440,9 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
   }
 
   Future<void> _handleNavigationTap(int index) async {
+    // Same weight as the Home stage-map menu trigger: a selection tick.
+    RuniacHapticsScope.maybeOf(context)?.selection();
+
     if (index == 2) {
       final initialPreviewCurrentPosition =
           await prewarmRunLaunchPreviewCurrentPosition(
