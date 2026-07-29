@@ -48,6 +48,7 @@ import '../../you/presentation/weekly_workout_detail_screen.dart';
 import '../data/local_home_guide_consent_prompt_store.dart';
 import '../domain/guide/home_guide_agent.dart';
 import '../domain/guide/home_guide_consent.dart';
+import '../domain/guide/plan_brief_home_guide_agent.dart';
 import '../domain/guide/rule_based_home_guide_agent.dart';
 import 'guide/home_guide_consent_sheet.dart';
 import 'plan_completion_ceremony.dart';
@@ -1105,17 +1106,29 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
 
   /// The guide the home stage should ask for today's copy.
   ///
-  /// When the Platform Administrator sets `config/featureAccess.aiHomeCoach`
-  /// to Premium, a Basic runner keeps the built-in deterministic guide instead
-  /// of the AI one — a quiet downgrade rather than a paywall sheet, because
-  /// the bubble is ambient copy the runner never asked for. The
-  /// `homeGuideAgent` callable enforces the same tier server-side; skipping
-  /// the call here just avoids a round trip that would be denied anyway, and
-  /// an unresolved account or config still calls out (fail-open) because the
-  /// server decides.
+  /// Two conditions send the runner to the on-device plan read-out, which
+  /// makes no network call at all:
+  ///
+  ///  - `config/featureAccess.aiHomeCoach` puts the AI guide behind Premium
+  ///    and this account is Basic — a quiet downgrade rather than a paywall
+  ///    sheet, because the bubble is ambient copy the runner never asked for.
+  ///    The `homeGuideAgent` callable enforces the same tier server-side, so
+  ///    skipping the call here only avoids a round trip that would be denied;
+  ///    an unresolved account or config still calls out (fail-open) because
+  ///    the server decides.
+  ///  - The runner declined personalized-guide data use. That consent covers
+  ///    sending run totals to the AI provider, so declining it removes the AI
+  ///    guide, not the runner's own plan.
+  ///
+  /// An unresolved consent status keeps the AI agent here; the stage map
+  /// withholds the bubble until the status resolves, which preserves the
+  /// first-entry consent sheet.
   HomeGuideAgent _effectiveHomeGuideAgent(BuildContext context) {
     if (watchShouldShowPaywallForFeature(context, 'aiHomeCoach')) {
-      return const RuleBasedHomeGuideAgent();
+      return const PlanBriefHomeGuideAgent();
+    }
+    if (_homeGuideConsentStatus == HomeGuideConsentStatus.notGranted) {
+      return const PlanBriefHomeGuideAgent();
     }
     return widget.homeGuideAgent;
   }

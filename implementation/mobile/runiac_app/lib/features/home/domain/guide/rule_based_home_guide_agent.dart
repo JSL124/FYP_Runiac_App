@@ -11,6 +11,9 @@ class RuleBasedHomeGuideAgent implements HomeGuideAgent {
   const RuleBasedHomeGuideAgent();
 
   @override
+  bool get requiresDataConsent => false;
+
+  @override
   Future<HomeGuideBundle> explainTodayPlan(HomeGuideRequest request) async {
     if (request.isRestDay) {
       return _restBundle();

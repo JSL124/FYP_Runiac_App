@@ -235,7 +235,7 @@ describe("validateFeatureAccessConfig", () => {
       ),
       {
         advancedAnalysis: "premium",
-        aiHomeCoach: "basic",
+        aiHomeCoach: "premium",
         activityFeedback: "premium",
         shareRouteToFeed: "premium",
         shareCards: "basic",

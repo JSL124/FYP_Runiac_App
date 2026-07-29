@@ -144,8 +144,26 @@ class _PrivacySafetyScreenState extends State<PrivacySafetyScreen> {
                                       Text(
                                         granted
                                             ? 'On — your recent run totals personalize the guide.'
-                                            : 'Off — the guide stays hidden until you allow it.',
+                                            : 'Off — the guide shows your plan without personalizing it.',
                                         style: theme.textTheme.bodySmall,
+                                      ),
+                                      const SizedBox(height: 6),
+                                      // The consent covers the Premium AI
+                                      // coach only. Basic accounts read
+                                      // today's plan on-device, so nothing
+                                      // they see depends on this switch.
+                                      Text(
+                                        'This applies to the Premium AI coach only. On Basic, '
+                                        "today's plan is read out on your device and no run "
+                                        'data is sent.',
+                                        key: const ValueKey<String>(
+                                          'privacySafetyGuideConsentTierNote',
+                                        ),
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              color:
+                                                  RuniacColors.textSecondary,
+                                            ),
                                       ),
                                     ],
                                   ),

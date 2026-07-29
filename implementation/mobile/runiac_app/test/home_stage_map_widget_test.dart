@@ -7,6 +7,7 @@ import 'package:runiac_app/core/characters/runner_character.dart';
 import 'package:runiac_app/core/widgets/runiac_level_profile_badge.dart';
 import 'package:runiac_app/features/home/domain/guide/home_guide_agent.dart';
 import 'package:runiac_app/features/home/domain/guide/home_guide_consent.dart';
+import 'package:runiac_app/features/home/domain/guide/plan_brief_home_guide_agent.dart';
 import 'package:runiac_app/features/home/domain/guide/rule_based_home_guide_agent.dart';
 import 'package:runiac_app/features/home/presentation/stage_map/home_stage_background_sequence.dart';
 import 'package:runiac_app/features/home/presentation/stage_map/home_stage_map.dart';
@@ -27,6 +28,23 @@ const HomeGuideRequest _guideRequest = HomeGuideRequest(
   durationMinutes: 20,
   intensityLabel: 'Gentle',
   description: 'A relaxed run to build your habit.',
+  supportiveNote: 'Keep the pace conversational.',
+);
+
+const HomeGuideRequest _stepGuideRequest = HomeGuideRequest(
+  planTitle: 'First 10K Preparation',
+  weekNumber: 1,
+  weekFocus: 'Build a steady habit',
+  dayLabel: 'Mon',
+  workoutTitle: 'Easy Run',
+  durationMinutes: 20,
+  intensityLabel: 'Gentle',
+  description: 'A relaxed run to build your habit.',
+  steps: <String>[
+    'Warm up 5 minutes',
+    'Run 10 minutes easy',
+    'Cool down 5 minutes',
+  ],
   supportiveNote: 'Keep the pace conversational.',
 );
 
@@ -682,6 +700,79 @@ void main() {
     });
 
     testWidgets(
+      'shows the on-device plan brief even without data-use consent',
+      (WidgetTester tester) async {
+        // The consent covers sending run data to the AI provider. A guide that
+        // sends nothing is not gated by it, so a runner who declined still
+        // reads their own plan instead of losing the bubble entirely.
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: HomeStageMap(
+                model: _model(_plan()),
+                onNotifications: () {},
+                onProfile: () {},
+                onTapTodayStage: () {},
+                guideAgent: const PlanBriefHomeGuideAgent(),
+                guideRequest: _stepGuideRequest,
+                guideConsentStatus: HomeGuideConsentStatus.notGranted,
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+        await tester.pump();
+
+        expect(find.byKey(bubble), findsOneWidget);
+        expect(
+          find.textContaining(
+            "Today's Mon session is Easy Run for about 20 minutes.",
+          ),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'plan brief lists every step at once and does not advance on tap',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: HomeStageMap(
+                model: _model(_plan()),
+                onNotifications: () {},
+                onProfile: () {},
+                onTapTodayStage: () {},
+                guideAgent: const PlanBriefHomeGuideAgent(),
+                guideRequest: _stepGuideRequest,
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+        await tester.pump();
+
+        final body = tester.widget<Text>(
+          find.descendant(of: find.byKey(bubbleBody), matching: find.byType(Text)),
+        );
+        expect(body.data, contains('1. Warm up 5 minutes'));
+        expect(body.data, contains('2. Run 10 minutes easy'));
+        expect(body.data, contains('3. Cool down 5 minutes'));
+        expect(
+          find.bySemanticsLabel("Today's plan and its steps."),
+          findsOneWidget,
+        );
+
+        // A single message has nowhere to advance to: tapping leaves the same
+        // copy on screen rather than cycling to AI-only content.
+        await tester.tap(find.byKey(bubbleBody));
+        await tester.pump();
+        expect(find.textContaining('1. Warm up 5 minutes'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
       'shows the guide bubble without a data-use shield after consent',
       (WidgetTester tester) async {
         final agent = _ControlledGuideAgent();
@@ -1071,6 +1162,11 @@ class _ControlledGuideAgent implements HomeGuideAgent {
       <Completer<HomeGuideBundle>>[];
 
   int invocationCount = 0;
+
+  /// Stands in for the remote AI guide, which is the only guide the
+  /// personalized-data-use consent gates.
+  @override
+  bool get requiresDataConsent => true;
 
   @override
   Future<HomeGuideBundle> explainTodayPlan(HomeGuideRequest request) {

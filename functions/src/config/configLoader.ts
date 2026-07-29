@@ -174,7 +174,14 @@ export const DEFAULT_LEADERBOARD_CONFIG: LeaderboardConfig = deepFreeze({
 export const DEFAULT_FEATURE_ACCESS_CONFIG: FeatureAccessConfig = deepFreeze({
   features: {
     advancedAnalysis: { minimumTier: "premium", enabled: true },
-    aiHomeCoach: { minimumTier: "basic", enabled: true },
+    // "premium" as of 2026-07-29. The AI home coach is the second of the two
+    // OpenAI-backed features, and a "basic" default meant every consenting
+    // Basic runner spent model calls on the ambient Home bubble. Basic now
+    // gets the on-device plan read-out (PlanBriefHomeGuideAgent) instead,
+    // which composes the same plan copy with no network call. This remains a
+    // console-flippable tier by deliberate choice: setting it back to "basic"
+    // re-opens the AI guide — and the OpenAI spend — for Basic accounts.
+    aiHomeCoach: { minimumTier: "premium", enabled: true },
     // "premium" as of 2026-07-25: the callable used to hardcode a premium
     // check that overrode this catalog, so a "basic" default would have
     // handed every Basic runner a paid AI feature the moment the hardcode

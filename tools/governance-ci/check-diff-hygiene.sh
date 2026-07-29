@@ -673,6 +673,27 @@ is_profile_stats_visibility_capsule_active() {
   grep -Eq '^- Newly routed profile stats visibility on 2026-07-29 Asia/Singapore: `implementation/roadmap/capsules/profile-stats-visibility\.md`' implementation/roadmap/CURRENT.md
 }
 
+is_home_guide_plan_brief_capsule_active() {
+  grep -Eq '^- Newly routed Home guide plan brief for Basic on 2026-07-29 Asia/Singapore: `implementation/roadmap/capsules/home-guide-plan-brief-basic-tier\.md`' implementation/roadmap/CURRENT.md
+}
+
+# Scoped to the shipped default tier of the OpenAI-backed Home guide feature
+# key. No callable, handler, quota, or consent code is in scope: the server
+# entitlement check already read `config/featureAccess`, so only the default
+# the catalog ships with moved.
+is_home_guide_plan_brief_path() {
+  case "$1" in
+    implementation/roadmap/capsules/home-guide-plan-brief-basic-tier.md|\
+    functions/src/config/configLoader.ts|\
+    functions/test/configLoader.test.ts)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 # Scoped to the server-side enforcement of the owner's `publicStatsHidden`
 # preference. `firestore.rules` is listed only for the writable-key entry that
 # lets the owner store the preference; the projection gate itself lives in
@@ -1017,6 +1038,10 @@ is_allowed_path() {
     return 0
   fi
 
+  if is_home_guide_plan_brief_path "$1" && is_home_guide_plan_brief_capsule_active; then
+    return 0
+  fi
+
   if is_share_rank_export_capsule_active && is_share_rank_export_backend_path "$1"; then
     return 0
   fi
@@ -1298,6 +1323,10 @@ is_forbidden_path() {
   fi
 
   if is_profile_stats_visibility_path "$1" && is_profile_stats_visibility_capsule_active; then
+    return 1
+  fi
+
+  if is_home_guide_plan_brief_path "$1" && is_home_guide_plan_brief_capsule_active; then
     return 1
   fi
 

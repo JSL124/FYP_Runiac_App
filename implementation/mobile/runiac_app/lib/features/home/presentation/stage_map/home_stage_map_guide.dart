@@ -26,6 +26,7 @@ class _GuideSpeechBubble extends StatelessWidget {
       isLoading: state.isLoading,
       isUnavailable: !state.isLoading && message == null,
       isRestDay: isRestDay,
+      canAdvance: state.canAdvance,
       fallbackText: _fallbackErrorText,
       onAdvance: onAdvance,
       onDismiss: onDismiss,
@@ -39,6 +40,7 @@ class _GuideBubbleCard extends StatelessWidget {
     required this.isLoading,
     required this.isUnavailable,
     required this.isRestDay,
+    required this.canAdvance,
     required this.fallbackText,
     required this.onAdvance,
     required this.onDismiss,
@@ -49,6 +51,11 @@ class _GuideBubbleCard extends StatelessWidget {
   final bool isLoading;
   final bool isUnavailable;
   final bool isRestDay;
+
+  /// Whether the resolved content has another message to move to. Single
+  /// message content (the on-device plan read-out) shows everything at once,
+  /// so the bubble is not tappable and announces no advance hint.
+  final bool canAdvance;
   final String fallbackText;
   final VoidCallback onAdvance;
   final VoidCallback onDismiss;
@@ -75,6 +82,7 @@ class _GuideBubbleCard extends StatelessWidget {
           'Rest-day tip. Tap to hear why rest matters.',
         HomeGuideMessageKind.progressionCheckIn =>
           'Why rest matters. Tap to return to your rest-day cheer.',
+        HomeGuideMessageKind.planBrief => "Today's rest day.",
       };
     }
     return switch (message!.kind) {
@@ -84,10 +92,11 @@ class _GuideBubbleCard extends StatelessWidget {
         'Running tip. Tap to hear a progression check-in.',
       HomeGuideMessageKind.progressionCheckIn =>
         'Progression check-in. Tap to return to your plan summary.',
+      HomeGuideMessageKind.planBrief => "Today's plan and its steps.",
     };
   }
 
-  bool get _canAdvance => !isLoading && !isUnavailable;
+  bool get _canAdvance => !isLoading && !isUnavailable && canAdvance;
 
   @override
   Widget build(BuildContext context) {
@@ -118,15 +127,23 @@ class _GuideBubbleCard extends StatelessWidget {
                   key: const ValueKey<String>('homeGuideBubbleBody'),
                   behavior: HitTestBehavior.opaque,
                   onTap: _canAdvance ? onAdvance : null,
-                  child: Text(
-                    _bodyText,
-                    style: TextStyle(
-                      fontSize: isLoading ? 14 : 13,
-                      height: 1.35,
-                      fontWeight: isLoading ? FontWeight.w700 : FontWeight.w600,
-                      color: isLoading
-                          ? RuniacColors.textSecondary
-                          : RuniacColors.textPrimary,
+                  // The plan read-out is a multi-line message (summary line
+                  // plus numbered steps) and the bubble sits in the bounded
+                  // strip above the character, so the body scrolls rather
+                  // than overflowing when a long session is listed.
+                  child: SingleChildScrollView(
+                    child: Text(
+                      _bodyText,
+                      style: TextStyle(
+                        fontSize: isLoading ? 14 : 13,
+                        height: 1.35,
+                        fontWeight: isLoading
+                            ? FontWeight.w700
+                            : FontWeight.w600,
+                        color: isLoading
+                            ? RuniacColors.textSecondary
+                            : RuniacColors.textPrimary,
+                      ),
                     ),
                   ),
                 ),

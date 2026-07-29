@@ -64,12 +64,23 @@ class HomeGuideRequest {
   final bool isRestDay;
 }
 
-/// The three named messages the guide can present in its local cycle.
+/// The named messages the guide can present.
 ///
 /// These values deliberately describe presentation purpose, not progression
 /// state. The client receives already-rendered copy and never calculates any
 /// activity, XP, rank, streak, or other protected value.
-enum HomeGuideMessageKind { planSummary, runningTip, progressionCheckIn }
+///
+/// [planSummary], [runningTip], and [progressionCheckIn] are the three slots of
+/// the AI guide's tap-to-advance cycle. [planBrief] is the single, complete
+/// plan read-out composed on-device by [PlanBriefHomeGuideAgent]; it is one
+/// message rather than a slot in a cycle, so it carries newlines and is not
+/// advanced past.
+enum HomeGuideMessageKind {
+  planSummary,
+  runningTip,
+  progressionCheckIn,
+  planBrief,
+}
 
 /// A short, friendly guide message explaining one part of today's plan.
 @immutable
@@ -92,6 +103,18 @@ class HomeGuideMessage {
   final bool isFromRemoteAgent;
 }
 
+/// Everything the speech bubble needs to present one Home guide answer.
+///
+/// The bubble presents [messages] in order, one at a time, and only offers a
+/// tap-to-advance affordance when there is more than one. That is the whole
+/// contract: a three-slot AI cycle ([HomeGuideBundle]) and a single-message
+/// on-device plan read-out ([HomeGuidePlanBrief]) are both valid content, and
+/// the presentation layer does not care which it received.
+abstract interface class HomeGuideContent {
+  /// The ordered presentation sequence. Never empty, never mutable.
+  List<HomeGuideMessage> get messages;
+}
+
 /// Immutable, complete guide content for one Home request.
 ///
 /// [HomeGuideBundle] extends [HomeGuideMessage] temporarily so the existing
@@ -99,7 +122,7 @@ class HomeGuideMessage {
 /// consumes [messages]. The named fields remain the only source of content
 /// for new callers.
 @immutable
-class HomeGuideBundle extends HomeGuideMessage {
+class HomeGuideBundle extends HomeGuideMessage implements HomeGuideContent {
   HomeGuideBundle({
     required this.planSummary,
     required this.runningTip,
@@ -170,6 +193,7 @@ class HomeGuideBundle extends HomeGuideMessage {
   final HomeGuideMessage progressionCheckIn;
 
   /// The ordered presentation sequence. The returned list cannot be mutated.
+  @override
   List<HomeGuideMessage> get messages => List<HomeGuideMessage>.unmodifiable(
     <HomeGuideMessage>[planSummary, runningTip, progressionCheckIn],
   );
@@ -205,6 +229,34 @@ class HomeGuideBundle extends HomeGuideMessage {
       text.toLowerCase().replaceAll(_whitespacePattern, ' ');
 }
 
+/// A single message that reads today's plan back to the runner.
+///
+/// One message, not a cycle: the summary line and the plan's own steps are
+/// presented together, so the bubble shows everything at once and offers no
+/// tap-to-advance affordance. [text] therefore contains newlines, which the
+/// strict [HomeGuideBundle.tryCreate] contract forbids for cycle copy.
+///
+/// Every character is composed on-device from [HomeGuideRequest] display copy
+/// the client already rendered. Nothing is sent anywhere, so this content
+/// needs no data-use consent and no model call.
+@immutable
+class HomeGuidePlanBrief implements HomeGuideContent {
+  HomeGuidePlanBrief({required String text})
+    : _message = HomeGuideMessage(
+        kind: HomeGuideMessageKind.planBrief,
+        text: text,
+      );
+
+  final HomeGuideMessage _message;
+
+  /// The composed plan read-out, summary line first.
+  HomeGuideMessage get brief => _message;
+
+  @override
+  List<HomeGuideMessage> get messages =>
+      List<HomeGuideMessage>.unmodifiable(<HomeGuideMessage>[_message]);
+}
+
 /// Seam for the Home guide "brain" that explains today's plan.
 ///
 /// The API is [Future]-based so a remote implementation fits without
@@ -214,8 +266,20 @@ class HomeGuideBundle extends HomeGuideMessage {
 /// API key or call the OpenAI API directly. [RuleBasedHomeGuideAgent] is the
 /// offline, deterministic default and the fallback whenever the remote agent
 /// is unavailable, errors, or returns an unusable response.
+/// [PlanBriefHomeGuideAgent] is the on-device plan read-out shown to runners
+/// who are not entitled to the AI guide.
 abstract interface class HomeGuideAgent {
-  /// Produces a complete named guide bundle for the workout described by
+  /// Produces the complete guide content for the workout described by
   /// [request].
-  Future<HomeGuideBundle> explainTodayPlan(HomeGuideRequest request);
+  Future<HomeGuideContent> explainTodayPlan(HomeGuideRequest request);
+
+  /// Whether this guide sends run data to the AI provider and therefore needs
+  /// the runner's personalized-guide data-use consent before it may run.
+  ///
+  /// False for every on-device guide. The Home surface reads this instead of
+  /// gating the bubble on consent unconditionally, so a runner who never
+  /// granted consent still sees a locally composed plan read-out — the
+  /// consent decision governs the AI guide only, which is what its disclosure
+  /// describes.
+  bool get requiresDataConsent;
 }

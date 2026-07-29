@@ -13,6 +13,7 @@ void main() {
       // document gates exactly like a freshly provisioned environment.
       expect(FeatureAccessReadModel.defaults.premiumFeatureKeys, const [
         'advancedAnalysis',
+        'aiHomeCoach',
         'activityFeedback',
         'shareRouteToFeed',
       ]);

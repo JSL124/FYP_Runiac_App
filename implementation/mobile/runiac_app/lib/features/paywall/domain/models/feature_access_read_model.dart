@@ -28,6 +28,7 @@ class FeatureAccessReadModel {
   /// freshly provisioned environment rather than guessing.
   static const _defaultKeys = <String>[
     'advancedAnalysis',
+    'aiHomeCoach',
     'activityFeedback',
     'shareRouteToFeed',
   ];

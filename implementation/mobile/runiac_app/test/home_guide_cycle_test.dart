@@ -238,6 +238,9 @@ class _ControlledGuideAgent implements HomeGuideAgent {
   int invocationCount = 0;
 
   @override
+  bool get requiresDataConsent => false;
+
+  @override
   Future<HomeGuideBundle> explainTodayPlan(HomeGuideRequest request) {
     invocationCount += 1;
     final completer = Completer<HomeGuideBundle>();
