@@ -145,6 +145,7 @@ service cloud.firestore {
         'availability',
         'planCautiousness',
         'healthSafetyReadiness',
+        'publicStatsHidden',
         'updatedAt'
       ];
     }
@@ -314,6 +315,21 @@ service cloud.firestore {
         || validProfileHealthSafetyReadiness();
     }
 
+    // The owner's "keep my running record private" preference. It is a display
+    // preference, not a scoring value: no XP, level, rank, streak, leaderboard
+    // score, or entitlement is derived from it, so the owner may write it
+    // directly. What it actually suppresses is decided server-side, by the
+    // `getRunnerPublicProfile` projection — this rule only governs storage.
+    function validProfilePublicStatsHidden() {
+      return !hasProfileField('publicStatsHidden')
+        || request.resource.data.publicStatsHidden is bool;
+    }
+
+    function validChangedProfilePublicStatsHidden() {
+      return !changesProfileField('publicStatsHidden')
+        || validProfilePublicStatsHidden();
+    }
+
     function validProfileGoals() {
       return !hasProfileField('goals') || request.resource.data.goals is list;
     }
@@ -336,6 +352,7 @@ service cloud.firestore {
         && validProfileAvailability()
         && validProfileStringField('planCautiousness')
         && validProfileHealthSafetyReadiness()
+        && validProfilePublicStatsHidden()
         && validProfileUpdatedAt();
     }
 
@@ -353,6 +370,7 @@ service cloud.firestore {
         && validChangedProfileAvailability()
         && validChangedProfileStringField('planCautiousness')
         && validChangedProfileHealthSafetyReadiness()
+        && validChangedProfilePublicStatsHidden()
         && validChangedProfileUpdatedAt();
     }
 

@@ -123,6 +123,7 @@ class _HomeMenuPanel extends StatelessWidget {
     required this.onNotifications,
     required this.onFriends,
     required this.onChallenge,
+    required this.onSettings,
   });
 
   final Animation<double> animation;
@@ -132,6 +133,7 @@ class _HomeMenuPanel extends StatelessWidget {
   final VoidCallback onNotifications;
   final VoidCallback onFriends;
   final VoidCallback onChallenge;
+  final VoidCallback onSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -237,6 +239,16 @@ class _HomeMenuPanel extends StatelessWidget {
                           onTap: onChallenge,
                         ),
                       ),
+                      const _HomeMenuDivider(indent: 44),
+                      row(
+                        4,
+                        _HomeMenuItem(
+                          key: const Key('home_menu_settings'),
+                          icon: Icons.settings_outlined,
+                          label: 'Settings',
+                          onTap: onSettings,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -328,6 +340,7 @@ class _HomeMenuItem extends StatefulWidget {
     required this.label,
     required this.onTap,
     this.badgeCount = 0,
+    super.key,
   });
 
   final IconData icon;

@@ -152,12 +152,8 @@ class FirestoreUserProfileRepository implements UserProfileRepository {
           snackBarMessage: '',
           action: UserProfileManageAction.editProfile,
         ),
-        UserProfileManageRowReadModel(
-          title: 'Settings',
-          subtitle: 'Units, reminders, and app comfort',
-          snackBarMessage: '',
-          action: UserProfileManageAction.settings,
-        ),
+        // Settings is deliberately absent: it lives in the Profile header's
+        // overflow menu, not in this list.
         UserProfileManageRowReadModel(
           title: 'Privacy & Safety',
           subtitle: 'Personalized guide data use and sharing controls',

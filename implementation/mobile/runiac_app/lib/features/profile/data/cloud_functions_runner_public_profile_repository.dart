@@ -78,6 +78,7 @@ class CloudFunctionsRunnerPublicProfileRepository
       totalDistanceLabel: _string(data['totalDistanceLabel']),
       subscriptionStatusLabel: _string(data['subscriptionStatusLabel']),
       ownedTierIds: _ownedTierIds(data['ownedBadgeTierIds']),
+      statsHidden: data['statsHidden'] == true,
     );
   }
 

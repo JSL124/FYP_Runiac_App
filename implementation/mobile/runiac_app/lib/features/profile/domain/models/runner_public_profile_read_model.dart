@@ -28,6 +28,7 @@ class RunnerPublicProfileReadModel {
     this.totalDistanceLabel = '',
     this.subscriptionStatusLabel = '',
     this.ownedTierIds = const <ChallengeTierId>{},
+    this.statsHidden = false,
   });
 
   final String displayName;
@@ -55,6 +56,13 @@ class RunnerPublicProfileReadModel {
 
   /// Challenge tiers this runner has earned a badge for.
   final Set<ChallengeTierId> ownedTierIds;
+
+  /// True when this runner keeps their running record private. The record
+  /// fields above then hold their empty values because the backend withheld
+  /// them, not because this client chose not to ask: the viewer's device never
+  /// receives the hidden figures. This flag exists only so the screen can say
+  /// "kept private" instead of drawing a runner who appears to have never run.
+  final bool statsHidden;
 
   String get levelBadgeLabel => 'Lv.$level';
 }

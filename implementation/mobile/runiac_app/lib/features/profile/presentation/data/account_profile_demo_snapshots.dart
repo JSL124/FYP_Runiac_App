@@ -65,13 +65,8 @@ const accountProfileDemoSnapshot = AccountProfileDemoSnapshot(
       snackBarMessage: '',
       action: UserProfileManageAction.editProfile,
     ),
-    AccountProfileManageRow(
-      icon: Icons.settings_outlined,
-      title: 'Settings',
-      subtitle: 'Units, reminders, and app comfort',
-      snackBarMessage: '',
-      action: UserProfileManageAction.settings,
-    ),
+    // Settings is deliberately absent: it lives in the Profile header's
+    // overflow menu, not in this list.
     AccountProfileManageRow(
       icon: Icons.shield_outlined,
       title: 'Privacy & Safety',

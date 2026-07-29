@@ -552,6 +552,27 @@ is_admin_role_subscription_expiry_capsule_active() {
   grep -Eq '^- Newly routed admin role and subscription expiry on 2026-07-20 Asia/Singapore: `implementation/roadmap/capsules/admin-role-subscription-expiry\.md`' implementation/roadmap/CURRENT.md
 }
 
+is_profile_stats_visibility_capsule_active() {
+  grep -Eq '^- Newly routed profile stats visibility on 2026-07-29 Asia/Singapore: `implementation/roadmap/capsules/profile-stats-visibility\.md`' implementation/roadmap/CURRENT.md
+}
+
+# Backend paths the routed profile-stats-visibility capsule may touch. The
+# capsule adds no new Functions source file; it gates the existing public
+# profile projection on the owner's `publicStatsHidden` preference.
+is_profile_stats_visibility_path() {
+  case "$1" in
+    functions/src/profile/publicProfile/core.ts|\
+    functions/src/profile/publicProfile/callable.ts|\
+    functions/test/runnerPublicProfile.test.ts|\
+    functions/test/runnerPublicProfileEmulatorIntegration.test.ts)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 # New source files introduced by the routed admin role / premium expiry capsule.
 # Only the genuinely new paths need listing here; already-tracked files this
 # capsule modifies are handled by the diff-hygiene allowlist.
@@ -828,6 +849,10 @@ is_forbidden_config_or_secret() {
   fi
 
   if is_admin_role_subscription_expiry_path "$1" && is_admin_role_subscription_expiry_capsule_active; then
+    return 1
+  fi
+
+  if is_profile_stats_visibility_path "$1" && is_profile_stats_visibility_capsule_active; then
     return 1
   fi
 

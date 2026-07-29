@@ -168,6 +168,30 @@ describe("Runner public profile emulator integration", () => {
     assert.equal(profile.subscriptionStatusLabel, "Basic");
   });
 
+  it("withholds a private record from the real stored document", async () => {
+    // The runner is seeded with real figures AND two earned badge documents,
+    // so this proves the projection withholds values that genuinely exist in
+    // Firestore rather than merely passing through absent ones.
+    await db.doc(`userProfiles/${runner}`).set({ publicStatsHidden: true }, { merge: true });
+    try {
+      const profile = await getRunnerPublicProfile({ auth: { uid: viewer }, data: entry("#3") }, ports);
+      const serialized = JSON.stringify(profile);
+
+      assert.equal(profile.statsHidden, true);
+      for (const withheld of ["4 days", "69.8 km", "97.5", "250K", "10K"]) {
+        assert.equal(serialized.includes(withheld), false, `${withheld} must not be projected`);
+      }
+      assert.equal(profile.totalXp, null);
+      assert.deepEqual(profile.ownedBadgeTierIds, []);
+      // Identity is untouched — it is already on the public board.
+      assert.equal(profile.displayName, "Jinseo_main");
+      assert.equal(profile.regionLabel, "Jurong East, Singapore");
+      assert.equal(profile.subscriptionStatusLabel, "Premium");
+    } finally {
+      await db.doc(`userProfiles/${runner}`).set({ publicStatsHidden: false }, { merge: true });
+    }
+  });
+
   it("hides a runner who blocked the viewer", async () => {
     await assertRejects(() => getRunnerPublicProfile({ auth: { uid: viewer }, data: entry("#4") }, ports), "permission-denied");
   });

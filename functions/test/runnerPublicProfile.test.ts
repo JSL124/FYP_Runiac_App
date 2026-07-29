@@ -84,7 +84,107 @@ describe("Runner public profile core", () => {
       totalDistanceLabel: "69.8 km",
       subscriptionStatusLabel: "Premium",
       ownedBadgeTierIds: ["250K"],
+      statsHidden: false,
     });
+  });
+
+  it("withholds the running record of a runner who keeps it private", async () => {
+    const ports = fakePorts();
+    ports.rankOwners.set(rankKey(snapshotId, "#3", buildId), runner);
+    ports.profiles.set(runner, {
+      displayName: "Jinseo",
+      nickname: "Jinseo_main",
+      avatarInitials: "JI",
+      locationLabel: "Jurong East, Singapore",
+      levelLabel: "Level 8",
+      level: 8,
+      levelProgressPercent: 97.5,
+      totalXp: 780,
+      nextLevelXp: 800,
+      xpToNextLevel: 20,
+      divisionKey: "tier_03",
+      divisionLabel: "Silver League",
+      longestStreakLabel: "4 days",
+      totalDistanceLabel: "69.8 km",
+      publicStatsHidden: true,
+    });
+    ports.accounts.set(runner, { subscriptionStatus: "premium" });
+    ports.badges.set(runner, ["250K"]);
+
+    const profile = await getRunnerPublicProfile({ auth: { uid: viewer }, data: entry() }, ports);
+
+    // Identity survives: every one of these already appears on the public
+    // board the viewer tapped, so hiding them here would suppress nothing.
+    assert.equal(profile.displayName, "Jinseo_main");
+    assert.equal(profile.regionLabel, "Jurong East, Singapore");
+    assert.equal(profile.levelLabel, "Level 8");
+    assert.equal(profile.level, 8);
+    assert.equal(profile.divisionLabel, "Silver League");
+    assert.equal(profile.subscriptionStatusLabel, "Premium");
+
+    // The record does not. These are asserted on the returned object rather
+    // than on what a screen draws, because the screen's blur is cosmetic — the
+    // guarantee is that the values never reach the viewer's device at all.
+    assert.equal(profile.statsHidden, true);
+    assert.equal(profile.levelProgressPercent, 0);
+    assert.equal(profile.totalXp, null);
+    assert.equal(profile.nextLevelXp, null);
+    assert.equal(profile.xpToNextLevel, null);
+    assert.equal(profile.isMaxLevel, false);
+    assert.equal(profile.longestStreakLabel, "");
+    assert.equal(profile.totalDistanceLabel, "");
+    assert.deepEqual(profile.ownedBadgeTierIds, []);
+
+    // Not read-then-discard: a hidden profile never pays for the badge read.
+    assert.deepEqual(ports.badgeReadCalls, []);
+  });
+
+  it("does not report max level for a hidden record", async () => {
+    const ports = fakePorts();
+    ports.rankOwners.set(rankKey(snapshotId, "#3", buildId), runner);
+    // The explicit null is the backend's "max level reached" assertion, which
+    // is itself a fact about how far this runner has come.
+    ports.profiles.set(runner, { displayName: "Jinseo", xpToNextLevel: null, publicStatsHidden: true });
+
+    const profile = await getRunnerPublicProfile({ auth: { uid: viewer }, data: entry() }, ports);
+
+    assert.equal(profile.isMaxLevel, false);
+    assert.equal(profile.statsHidden, true);
+  });
+
+  it("shows a runner their own record even when they keep it private", async () => {
+    const ports = fakePorts();
+    ports.profiles.set(runner, {
+      displayName: "Jinseo",
+      longestStreakLabel: "4 days",
+      totalDistanceLabel: "69.8 km",
+      totalXp: 780,
+      publicStatsHidden: true,
+    });
+    ports.badges.set(runner, ["250K"]);
+
+    const profile = await getRunnerPublicProfile({ auth: { uid: runner }, data: { uid: runner } }, ports);
+
+    assert.equal(profile.statsHidden, false);
+    assert.equal(profile.longestStreakLabel, "4 days");
+    assert.equal(profile.totalDistanceLabel, "69.8 km");
+    assert.equal(profile.totalXp, 780);
+    assert.deepEqual(profile.ownedBadgeTierIds, ["250K"]);
+  });
+
+  it("treats a non-boolean privacy field as visible", async () => {
+    const ports = fakePorts();
+    ports.rankOwners.set(rankKey(snapshotId, "#3", buildId), runner);
+    for (const stored of ["true", 1, {}, [], null]) {
+      ports.profiles.set(runner, { displayName: "Jinseo", totalDistanceLabel: "69.8 km", publicStatsHidden: stored });
+
+      const profile = await getRunnerPublicProfile({ auth: { uid: viewer }, data: entry() }, ports);
+
+      // Only an explicit `true` hides a record. Anything else is a malformed
+      // write, and a malformed write must not silently blank a profile.
+      assert.equal(profile.statsHidden, false, `${JSON.stringify(stored)} must read as visible`);
+      assert.equal(profile.totalDistanceLabel, "69.8 km");
+    }
   });
 
   it("never leaks the private half of the profile document", async () => {

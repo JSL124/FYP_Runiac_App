@@ -542,7 +542,8 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.text('Settings'), findsOneWidget);
+      // Settings now lives in the Home stage-map Menu, not the Manage list.
+      expect(find.text('Settings'), findsNothing);
       expect(find.text('Privacy & Safety'), findsOneWidget);
       expect(find.text('Notifications'), findsOneWidget);
       expect(find.text('Watch & Health Apps'), findsOneWidget);
@@ -877,19 +878,24 @@ void main() {
 
     expect(find.text('Profile'), findsOneWidget);
 
-    await tester.scrollUntilVisible(
-      find.text('Settings'),
-      180,
-      scrollable: find.byType(Scrollable).last,
-    );
+    // Settings is reached from the Home stage-map Menu, not from the Profile
+    // screen, so step back out to Home first.
+    await tester.tap(find.bySemanticsLabel('Back to Home'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Settings'));
+    await tester.tap(find.text('Menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('home_menu_settings')));
     await tester.pumpAndSettle();
 
     expect(find.text('Distance units'), findsOneWidget);
     expect(find.text('APP COMFORT'), findsOneWidget);
+    expect(find.text('PROFILE VISIBILITY'), findsOneWidget);
 
+    // Settings was pushed from Home, so backing out lands on Home; re-enter
+    // Profile for the About Runiac half of this test.
     await tester.tap(find.byTooltip('Back to Account'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.bySemanticsLabel('Profile'));
     await tester.pumpAndSettle();
 
     expect(find.text('Profile'), findsOneWidget);
@@ -1260,7 +1266,9 @@ void main() {
     expect(find.text('Lv. 1'), findsNothing);
     expect(find.text('Beginner 10K preparation'), findsNothing);
     expect(find.text('Building consistency'), findsNothing);
-    expect(find.text('Settings'), findsOneWidget);
+    // Settings moved to the Home stage-map Menu, so the Profile body carries
+    // the row no longer.
+    expect(find.text('Settings'), findsNothing);
     expect(find.text('Privacy & Safety'), findsOneWidget);
     expect(find.bySemanticsLabel('Back to Home'), findsOneWidget);
     expect(tester.takeException(), isNull);

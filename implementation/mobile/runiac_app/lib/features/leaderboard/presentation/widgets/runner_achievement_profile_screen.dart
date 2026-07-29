@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -204,7 +206,22 @@ class _RunnerAchievementProfileScreenState
     );
   }
 
+  /// True when this runner keeps their record private. Asserted by the
+  /// backend, which already withheld the values; the guard below is what the
+  /// viewer sees, never what enforces it.
+  bool get _statsHidden => _publicProfile?.statsHidden ?? false;
+
   Widget _buildProfileBody() {
+    final record = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        AccountLevelUpGauge(snapshot: _snapshot()),
+        const SizedBox(height: 14),
+        AccountLifetimeStats(snapshot: _snapshot()),
+        const SizedBox(height: 14),
+        AccountChallengeBadgeCase(ownedTierIds: _ownedTierIds()),
+      ],
+    );
     return ScrollConfiguration(
       behavior: ScrollConfiguration.of(context).copyWith(overscroll: false),
       child: SingleChildScrollView(
@@ -215,11 +232,23 @@ class _RunnerAchievementProfileScreenState
           children: [
             AccountIdentityCard(snapshot: _snapshot()),
             const SizedBox(height: 14),
-            AccountLevelUpGauge(snapshot: _snapshot()),
-            const SizedBox(height: 14),
-            AccountLifetimeStats(snapshot: _snapshot()),
-            const SizedBox(height: 14),
-            AccountChallengeBadgeCase(ownedTierIds: _ownedTierIds()),
+            // One guard over the whole record rather than one per card: the
+            // cards underneath are already empty (the backend sent no figures
+            // for them), and blurring them as a single pane reads as "this
+            // section is private" instead of three separate blanks.
+            if (_statsHidden)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: Stack(
+                  fit: StackFit.passthrough,
+                  children: [
+                    record,
+                    const Positioned.fill(child: _PrivateRecordGuard()),
+                  ],
+                ),
+              )
+            else
+              record,
             const SizedBox(height: 14),
             Text(
               _state == _PublicProfileState.failed
@@ -318,6 +347,79 @@ class _RunnerAchievementProfileScreenState
       }
     }
     return '';
+  }
+}
+
+/// Frosted pane over a runner's record when they keep it private.
+///
+/// Styled after the Premium blur guards so the gesture reads as familiar, but
+/// it is doing something different: a Premium guard sits on top of real values
+/// the viewer's device holds, whereas this one sits on top of empty cards,
+/// because `getRunnerPublicProfile` never sent the figures. Removing this
+/// widget would reveal blanks, not the runner's record.
+class _PrivateRecordGuard extends StatelessWidget {
+  const _PrivateRecordGuard();
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 3.2, sigmaY: 3.2),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: RuniacColors.white.withValues(alpha: 0.44),
+          ),
+          child: const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.lock_rounded,
+                    size: 22,
+                    color: RuniacColors.accentOrange,
+                  ),
+                  SizedBox(height: 6),
+                  Text(
+                    'Private',
+                    key: Key('runner_profile_private_record_guard'),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: RuniacColors.accentOrange,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                      shadows: [
+                        Shadow(color: RuniacColors.white, blurRadius: 10),
+                        Shadow(
+                          color: RuniacColors.white,
+                          blurRadius: 2,
+                          offset: Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'This runner keeps their running record private.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: RuniacColors.textSecondary,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      height: 1.3,
+                      shadows: [
+                        Shadow(color: RuniacColors.white, blurRadius: 8),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 

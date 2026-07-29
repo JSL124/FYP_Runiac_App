@@ -328,6 +328,7 @@ void main() {
             'firestore_user_profile_persistence_repository.dart',
         'lib/features/profile/data/firestore_user_profile_repository.dart',
         'lib/features/profile/data/firestore_user_account_repository.dart',
+        'lib/features/settings/data/firestore_profile_visibility_repository.dart',
         'lib/features/paywall/data/firestore_paywall_config_repository.dart',
         'lib/features/paywall/data/firestore_feature_access_repository.dart',
         'lib/features/paywall/data/firestore_character_access_repository.dart',
@@ -405,6 +406,24 @@ void main() {
         }
       },
     );
+
+    test('limits profile visibility writes to the owner privacy preference', () {
+      final source = File(
+        'lib/features/settings/data/firestore_profile_visibility_repository.dart',
+      ).readAsStringSync();
+
+      expect(source, contains("collection('userProfiles')"));
+      expect(source, contains("'publicStatsHidden'"));
+      expect(source, isNot(contains("collection('users')")));
+      expect(source, isNot(contains('.delete(')));
+      // The preference is a display choice, not a scoring value. This adapter
+      // must never become a second path to a backend-owned field, and it must
+      // never be the thing that hides a record — `getRunnerPublicProfile`
+      // withholds the values server-side.
+      for (final field in BackendOwnedValueContract.protectedFieldNames) {
+        expect(source, isNot(contains("'$field'")), reason: field);
+      }
+    });
 
     test(
       'limits feature access reads to a read-only config/featureAccess get',

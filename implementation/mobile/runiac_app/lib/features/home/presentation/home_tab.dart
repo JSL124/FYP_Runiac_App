@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../profile/presentation/account_profile_screen.dart';
+import '../../profile/presentation/app_settings_screen.dart';
+import '../../settings/data/shared_preferences_app_settings_repository.dart';
+import '../../settings/domain/repositories/app_settings_repository.dart';
 import '../../profile/domain/models/user_profile_read_model.dart';
 import '../../profile/domain/repositories/user_profile_persistence_repository.dart';
 import '../../profile/domain/repositories/user_profile_repository.dart';
@@ -77,6 +80,7 @@ class HomeTab extends StatefulWidget {
         const AlwaysGrantedHomeGuideConsentRepository(),
     this.consentPromptStore =
         const SharedPreferencesHomeGuideConsentPromptStore(),
+    this.appSettingsRepository = const SharedPreferencesAppSettingsRepository(),
     super.key,
     this.enableForegroundGps = true,
     this.activeRunSessionCoordinator,
@@ -122,6 +126,11 @@ class HomeTab extends StatefulWidget {
   /// one-time data-use consent sheet auto-presents on first Home entry. Never
   /// grants consent or influences any backend-owned value.
   final HomeGuideConsentPromptStore consentPromptStore;
+
+  /// Persistence for the Menu's Settings screen. On-device preference state,
+  /// not backend-owned data; the profile-visibility switch inside that screen
+  /// has its own backend-backed source.
+  final AppSettingsRepository appSettingsRepository;
 
   /// Backend-owned generated-plan progress (completed scheduled-workout ids),
   /// forwarded from the shell. Display-only.
@@ -706,6 +715,17 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
     _refreshAfterAccountProfile();
   }
 
+  /// Settings is reached from the stage-map Menu rather than from the Profile
+  /// screen, so app-level controls sit alongside the other app-level entries.
+  void _openSettings(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            AppSettingsScreen(settingsRepository: widget.appSettingsRepository),
+      ),
+    );
+  }
+
   void _openFriends(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -1073,6 +1093,7 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
       onProfile: () => _openAccountProfile(context),
       onOpenFriends: () => _openFriends(context),
       onOpenChallenge: () => _openChallenge(context),
+      onOpenSettings: () => _openSettings(context),
       activeChallenge: _activeChallengeDisplay,
       onOpenChallengeProgress: () => _openChallengeProgress(context),
       onTapTodayStage: () => _openTodayWorkout(context),

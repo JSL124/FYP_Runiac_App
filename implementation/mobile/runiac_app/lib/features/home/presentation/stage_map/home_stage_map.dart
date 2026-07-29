@@ -108,6 +108,7 @@ class HomeStageMap extends StatefulWidget {
     this.guideConsentStatus = HomeGuideConsentStatus.granted,
     this.onOpenFriends,
     this.onOpenChallenge,
+    this.onOpenSettings,
     this.activeChallenge,
     this.onOpenChallengeProgress,
     this.challengeClock,
@@ -153,6 +154,11 @@ class HomeStageMap extends StatefulWidget {
   /// Challenge item simply closes the menu. Navigation trigger only — the stage
   /// map internals read or write no Challenge/Firebase data.
   final VoidCallback? onOpenChallenge;
+
+  /// Opens the app Settings screen when the Menu's Settings item is tapped.
+  /// Optional on the same terms as the two above; when null the item simply
+  /// closes the menu. Navigation trigger only.
+  final VoidCallback? onOpenSettings;
 
   /// The caller's live ACTIVE/SETTLING challenge, resolved by `HomeTab` from its
   /// repository and handed down as a plain Firebase-free projection. Null hides
@@ -364,6 +370,11 @@ class _HomeStageMapState extends State<HomeStageMap>
   void _onMenuChallengeTap() {
     _closeMenu();
     widget.onOpenChallenge?.call();
+  }
+
+  void _onMenuSettingsTap() {
+    _closeMenu();
+    widget.onOpenSettings?.call();
   }
 
   void _advanceGuideBubble() {
@@ -665,6 +676,7 @@ class _HomeStageMapState extends State<HomeStageMap>
                         onNotifications: _onMenuNotificationsTap,
                         onFriends: _onMenuFriendsTap,
                         onChallenge: _onMenuChallengeTap,
+                        onSettings: _onMenuSettingsTap,
                       ),
                     ),
                 ],

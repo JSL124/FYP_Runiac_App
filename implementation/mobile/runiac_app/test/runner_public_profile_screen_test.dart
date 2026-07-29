@@ -258,6 +258,57 @@ void main() {
     }
   });
 
+  testWidgets('guards a private record and shows no figures behind it', (
+    WidgetTester tester,
+  ) async {
+    // Exactly the shape the backend returns for a hidden runner: identity
+    // intact, every record value already blanked server-side.
+    const hidden = RunnerPublicProfileReadModel(
+      displayName: 'Jinseo_main',
+      avatarInitials: 'JI',
+      regionLabel: 'Jurong East, Singapore',
+      level: 8,
+      divisionKey: 'tier_03',
+      divisionLabel: 'Silver League',
+      subscriptionStatusLabel: 'Basic',
+      statsHidden: true,
+    );
+
+    await tester.pumpWidget(
+      _screen(_FakeRunnerPublicProfileRepository(profile: hidden)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('runner_profile_private_record_guard')),
+      findsOneWidget,
+    );
+    // Identity survives — it is already public on the board this viewer came
+    // from.
+    expect(find.text('Jinseo_main'), findsOneWidget);
+    // The blur is cosmetic, so the real assertion is that there is nothing
+    // underneath it to reveal: the leaderboard row's own placeholders must not
+    // stand in for the withheld values either.
+    expect(find.text('69.8 km'), findsNothing);
+    expect(find.text('4 days'), findsNothing);
+    expect(find.textContaining('780'), findsNothing);
+  });
+
+  testWidgets('a visible record renders without the private guard', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      _screen(_FakeRunnerPublicProfileRepository(profile: _publicProfile)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('runner_profile_private_record_guard')),
+      findsNothing,
+    );
+    expect(find.text('69.8 km'), findsOneWidget);
+  });
+
   testWidgets('shows the failure message and no earned badges when denied', (
     WidgetTester tester,
   ) async {

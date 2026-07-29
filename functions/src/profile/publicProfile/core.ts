@@ -19,6 +19,12 @@ import { NULL_AVATAR_URL_CONTEXT } from "../avatar/avatarUrlContextDefaults.js";
  * not leak through this callable: email, full name, date of birth, age,
  * weight, onboarding answers, plan setup, activity history, and every route
  * or GPS value.
+ *
+ * A runner may additionally hide their own running record from other viewers
+ * (`userProfiles/{uid}.publicStatsHidden`). That preference is honoured HERE,
+ * by withholding the values, not by the client declining to draw them: the
+ * hidden fields come back at their empty values and `statsHidden` says so.
+ * A viewer who reads the raw response learns exactly what the screen shows.
  */
 export type RunnerPublicProfile = {
   readonly displayName: string;
@@ -42,6 +48,13 @@ export type RunnerPublicProfile = {
   readonly totalDistanceLabel: string;
   readonly subscriptionStatusLabel: string;
   readonly ownedBadgeTierIds: readonly string[];
+  /**
+   * True when this runner keeps their running record private and the viewer is
+   * someone else. The record fields above are then at their empty values —
+   * this flag exists so the viewer's screen can say "kept private" instead of
+   * rendering a runner with no runs.
+   */
+  readonly statsHidden: boolean;
 };
 
 export type RunnerPublicProfileRequest = { readonly auth?: { readonly uid: string }; readonly data: unknown };
@@ -182,7 +195,15 @@ export async function getRunnerPublicProfile(
 
   if (profile === undefined) throw new HttpsError("not-found", UNAVAILABLE_MESSAGE);
 
-  const ownedBadgeTierIds = await ports.readOwnedBadgeTierIds(targetUid);
+  // The runner's own "keep my record private" preference. It never applies to
+  // the runner themselves: this callable also serves a runner who addresses
+  // their own uid, and hiding their record from their own screen would be a
+  // bug, not privacy. Anything other than an explicit `true` reads as visible,
+  // so an absent or malformed field can never silently blank a profile.
+  const statsHidden = targetUid !== callerUid && profile["publicStatsHidden"] === true;
+  // Not read-then-discard: a hidden profile must not spend a Firestore read on
+  // badge documents it will never relay.
+  const ownedBadgeTierIds = statsHidden ? [] : await ports.readOwnedBadgeTierIds(targetUid);
   // Resolved through the shared reader so this projection and the Feed author
   // overlay apply the identical nickname-wins rule and avatarUrl sanitisation
   // to the same stored fields.
@@ -190,6 +211,13 @@ export async function getRunnerPublicProfile(
   // The resolved uid stays here. Echoing it back would let any signed-in
   // caller walk every rank of every public snapshot and rebuild the uid
   // directory this whole design exists to avoid.
+  // Identity — name, avatar, region, level badge, division, tier — is NOT
+  // covered by the privacy switch. Every one of those values already appears
+  // on `leaderboardSnapshots`, which any signed-in user can read, so
+  // withholding them here would suppress nothing while breaking the header of
+  // a screen the viewer reached by tapping that very row. What the switch
+  // covers is the running record underneath: XP progress, streak, distance,
+  // and earned badges.
   return {
     displayName: identity.displayName,
     avatarInitials: identity.avatarInitials,
@@ -197,20 +225,23 @@ export async function getRunnerPublicProfile(
     regionLabel: trimmedString(profile["locationLabel"]),
     levelLabel: trimmedString(profile["levelLabel"]),
     level: nonNegativeInteger(profile["level"]),
-    levelProgressPercent: clampedPercent(profile["levelProgressPercent"]),
-    totalXp: nonNegativeIntegerOrNull(profile["totalXp"]),
-    nextLevelXp: nonNegativeIntegerOrNull(profile["nextLevelXp"]),
-    xpToNextLevel: nonNegativeIntegerOrNull(profile["xpToNextLevel"]),
+    levelProgressPercent: statsHidden ? 0 : clampedPercent(profile["levelProgressPercent"]),
+    totalXp: statsHidden ? null : nonNegativeIntegerOrNull(profile["totalXp"]),
+    nextLevelXp: statsHidden ? null : nonNegativeIntegerOrNull(profile["nextLevelXp"]),
+    xpToNextLevel: statsHidden ? null : nonNegativeIntegerOrNull(profile["xpToNextLevel"]),
     // Max level is asserted by the backend writing an explicit null, exactly
     // the signal the runner's own progress read model uses. An absent field
-    // means "not published yet", never "max level".
-    isMaxLevel: "xpToNextLevel" in profile && profile["xpToNextLevel"] === null,
+    // means "not published yet", never "max level". A hidden record reports
+    // false rather than relaying the assertion, which is itself a fact about
+    // how far the runner has come.
+    isMaxLevel: !statsHidden && "xpToNextLevel" in profile && profile["xpToNextLevel"] === null,
     divisionKey: trimmedString(profile["divisionKey"]),
     divisionLabel: trimmedString(profile["divisionLabel"]),
-    longestStreakLabel: trimmedString(profile["longestStreakLabel"]),
-    totalDistanceLabel: trimmedString(profile["totalDistanceLabel"]),
+    longestStreakLabel: statsHidden ? "" : trimmedString(profile["longestStreakLabel"]),
+    totalDistanceLabel: statsHidden ? "" : trimmedString(profile["totalDistanceLabel"]),
     subscriptionStatusLabel: subscriptionStatusLabel(account),
     ownedBadgeTierIds,
+    statsHidden,
   };
 }
 

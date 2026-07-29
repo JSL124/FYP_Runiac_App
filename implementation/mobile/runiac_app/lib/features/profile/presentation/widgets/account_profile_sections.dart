@@ -5,11 +5,8 @@ import '../../../../core/widgets/runiac_buttons.dart';
 import '../../../auth/domain/runiac_auth_service.dart';
 import '../../../home/domain/guide/home_guide_consent.dart';
 import '../../../paywall/presentation/premium_gate.dart';
-import '../../../settings/data/shared_preferences_app_settings_repository.dart';
-import '../../../settings/domain/repositories/app_settings_repository.dart';
 import '../../domain/models/user_profile_read_model.dart';
 import '../about_runiac_screen.dart';
-import '../app_settings_screen.dart';
 import '../data/account_profile_demo_snapshots.dart';
 import '../feedback_screen.dart';
 import '../notification_center_screen.dart';
@@ -123,7 +120,6 @@ class AccountManageSection extends StatelessWidget {
     this.onNotificationSettingsChanged,
     this.homeGuideConsentRepository =
         const AlwaysGrantedHomeGuideConsentRepository(),
-    this.appSettingsRepository = const SharedPreferencesAppSettingsRepository(),
     super.key,
   });
 
@@ -132,7 +128,6 @@ class AccountManageSection extends StatelessWidget {
   final VoidCallback? onEditProfile;
   final VoidCallback? onNotificationSettingsChanged;
   final HomeGuideConsentRepository homeGuideConsentRepository;
-  final AppSettingsRepository appSettingsRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -144,7 +139,6 @@ class AccountManageSection extends StatelessWidget {
             onEditProfile: onEditProfile,
             onNotificationSettingsChanged: onNotificationSettingsChanged,
             homeGuideConsentRepository: homeGuideConsentRepository,
-            appSettingsRepository: appSettingsRepository,
           ),
           const SizedBox(height: 8),
         ],
@@ -205,7 +199,6 @@ class _ManageRow extends StatelessWidget {
   const _ManageRow({
     required this.row,
     required this.homeGuideConsentRepository,
-    required this.appSettingsRepository,
     this.onEditProfile,
     this.onNotificationSettingsChanged,
   });
@@ -214,7 +207,6 @@ class _ManageRow extends StatelessWidget {
   final VoidCallback? onEditProfile;
   final VoidCallback? onNotificationSettingsChanged;
   final HomeGuideConsentRepository homeGuideConsentRepository;
-  final AppSettingsRepository appSettingsRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -274,15 +266,9 @@ class _ManageRow extends StatelessWidget {
           ).push(MaterialPageRoute<void>(builder: (_) => FeedbackScreen()));
           return;
         }
-        if (row.action == UserProfileManageAction.settings) {
-          Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (_) =>
-                  AppSettingsScreen(settingsRepository: appSettingsRepository),
-            ),
-          );
-          return;
-        }
+        // UserProfileManageAction.settings is deliberately unhandled here:
+        // Settings moved to the Profile header's overflow menu, so no manage
+        // row carries that action any more.
         if (row.action == UserProfileManageAction.about) {
           Navigator.of(context).push(
             MaterialPageRoute<void>(builder: (_) => const AboutRuniacScreen()),

@@ -3,29 +3,45 @@ import 'package:flutter/material.dart';
 import '../../../core/haptics/runiac_haptics_scope.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_back_header.dart';
+import '../../settings/data/firestore_profile_visibility_repository.dart';
 import '../../settings/data/shared_preferences_app_settings_repository.dart';
 import '../../settings/domain/models/app_settings.dart';
 import '../../settings/domain/repositories/app_settings_repository.dart';
+import '../../settings/domain/repositories/profile_visibility_repository.dart';
 
 class AppSettingsScreen extends StatefulWidget {
   const AppSettingsScreen({
     this.settingsRepository = const SharedPreferencesAppSettingsRepository(),
+    this.profileVisibilityRepository =
+        const FirestoreProfileVisibilityRepository(),
     super.key,
   });
 
   final AppSettingsRepository settingsRepository;
 
+  /// Source for the profile-visibility switch. Unlike [settingsRepository],
+  /// which is on-device preference state, this one is backed by the runner's
+  /// `userProfiles/{uid}` document — the switch has to be readable by the
+  /// server, because the server is what enforces it.
+  final ProfileVisibilityRepository profileVisibilityRepository;
+
   @override
   State<AppSettingsScreen> createState() => _AppSettingsScreenState();
 }
 
+enum _VisibilityState { loading, ready, unavailable }
+
 class _AppSettingsScreenState extends State<AppSettingsScreen> {
   AppSettings _settings = AppSettings.defaults;
+  var _visibilityState = _VisibilityState.loading;
+  var _statsHidden = false;
+  var _savingVisibility = false;
 
   @override
   void initState() {
     super.initState();
     _restoreSettings();
+    _restoreVisibility();
   }
 
   Future<void> _restoreSettings() async {
@@ -43,6 +59,66 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
       _settings = settings;
     });
     await widget.settingsRepository.saveSettings(settings);
+  }
+
+  Future<void> _restoreVisibility() async {
+    try {
+      final hidden = await widget.profileVisibilityRepository
+          .loadStatsHidden();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _statsHidden = hidden;
+        _visibilityState = _VisibilityState.ready;
+      });
+    } on Object {
+      if (!mounted) {
+        return;
+      }
+      // Never fall back to a guessed value. Showing "off" for a runner who is
+      // actually hidden — or "on" for one who is not — is worse than showing
+      // that the control could not be loaded.
+      setState(() {
+        _visibilityState = _VisibilityState.unavailable;
+      });
+    }
+  }
+
+  Future<void> _setStatsHidden(bool hidden) async {
+    final previous = _statsHidden;
+    setState(() {
+      _statsHidden = hidden;
+      _savingVisibility = true;
+    });
+    try {
+      await widget.profileVisibilityRepository.saveStatsHidden(hidden: hidden);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _savingVisibility = false;
+      });
+    } on Object {
+      if (!mounted) {
+        return;
+      }
+      // The switch reverts to what is actually stored, so it never shows a
+      // privacy state the backend did not accept.
+      setState(() {
+        _statsHidden = previous;
+        _savingVisibility = false;
+      });
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Could not update profile visibility. Please try again.',
+            ),
+          ),
+        );
+    }
   }
 
   @override
@@ -76,6 +152,15 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                         onChanged: (unit) {
                           _setSettings(_settings.copyWith(distanceUnit: unit));
                         },
+                      ),
+                      const SizedBox(height: 20),
+                      const _SectionLabel('PROFILE VISIBILITY'),
+                      const SizedBox(height: 8),
+                      _ProfileVisibilityCard(
+                        state: _visibilityState,
+                        statsHidden: _statsHidden,
+                        isSaving: _savingVisibility,
+                        onChanged: _setStatsHidden,
                       ),
                       const SizedBox(height: 20),
                       const _SectionLabel('APP COMFORT'),
@@ -253,6 +338,69 @@ class _DistanceUnitOption extends StatelessWidget {
   }
 }
 
+/// The one switch that decides whether other runners see this runner's record.
+///
+/// The switch stores a preference; it does not hide anything by itself. The
+/// values are withheld by `getRunnerPublicProfile`, which is why the subtitle
+/// promises what it does.
+class _ProfileVisibilityCard extends StatelessWidget {
+  const _ProfileVisibilityCard({
+    required this.state,
+    required this.statsHidden,
+    required this.isSaving,
+    required this.onChanged,
+  });
+
+  final _VisibilityState state;
+  final bool statsHidden;
+  final bool isSaving;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: RuniacColors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: RuniacColors.border),
+      ),
+      child: Column(
+        children: [
+          _SwitchRow(
+            switchKey: const ValueKey('settings-private-profile-switch'),
+            icon: Icons.lock_outline,
+            title: 'Private profile',
+            subtitle: statsHidden
+                ? 'On — other runners see only your name, photo and rank.'
+                : 'Hide your level, streak, distance and badges from other '
+                      'runners.',
+            value: statsHidden,
+            // Disabled while loading or in-flight, and when the preference
+            // could not be reached at all.
+            onChanged: state == _VisibilityState.ready && !isSaving
+                ? onChanged
+                : null,
+          ),
+          if (state == _VisibilityState.unavailable)
+            const Padding(
+              padding: EdgeInsets.fromLTRB(14, 0, 14, 13),
+              child: Text(
+                key: ValueKey('settings-private-profile-unavailable'),
+                'Sign in to change who can see your running record.',
+                style: TextStyle(
+                  color: RuniacColors.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  height: 1.3,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 class _AppComfortCard extends StatelessWidget {
   const _AppComfortCard({
     required this.settings,
@@ -317,7 +465,10 @@ class _SwitchRow extends StatelessWidget {
   final String title;
   final String subtitle;
   final bool value;
-  final ValueChanged<bool> onChanged;
+
+  /// Null renders the row as read-only, which is how an unresolved or in-flight
+  /// preference is shown.
+  final ValueChanged<bool>? onChanged;
 
   @override
   Widget build(BuildContext context) {
