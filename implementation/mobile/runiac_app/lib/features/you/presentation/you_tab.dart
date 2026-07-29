@@ -10,6 +10,8 @@ import '../../plan/domain/repositories/generated_plan_persistence_repository.dar
 import '../../run/domain/models/run_activity_display_model.dart';
 import '../../run/presentation/active_run_session_coordinator.dart';
 import '../../run/presentation/view_summary_screen.dart';
+import '../../tutorial/domain/models/tutorial_step.dart';
+import '../../tutorial/presentation/tutorial_anchor_registry.dart';
 import '../data/static_activity_history_repository.dart';
 import '../domain/models/user_progress_read_model.dart';
 import '../domain/repositories/activity_history_repository.dart';
@@ -288,12 +290,15 @@ class _YouTabState extends State<YouTab> {
               physics: const ClampingScrollPhysics(),
               padding: EdgeInsets.fromLTRB(16, headerHeight + 8, 16, 28),
               children: [
-                YouSegmentedControl(
-                  labels: const ['Progress', 'Plans'],
-                  selected: _plans ? 1 : 0,
-                  onTap: (index) {
-                    setState(() => _plans = index == 1);
-                  },
+                TutorialAnchor(
+                  id: TutorialAnchorId.youSegmentedControl,
+                  child: YouSegmentedControl(
+                    labels: const ['Progress', 'Plans'],
+                    selected: _plans ? 1 : 0,
+                    onTap: (index) {
+                      setState(() => _plans = index == 1);
+                    },
+                  ),
                 ),
                 const SizedBox(height: 12),
                 if (_plans)

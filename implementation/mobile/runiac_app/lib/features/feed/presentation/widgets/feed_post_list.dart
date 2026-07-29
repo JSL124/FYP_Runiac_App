@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../tutorial/domain/models/tutorial_step.dart';
+import '../../../tutorial/presentation/tutorial_anchor_registry.dart';
 import '../../domain/models/feed_display_models.dart';
 import '../feed_timeline_screen_controller.dart';
 import 'feed_post_section.dart';
@@ -43,10 +45,21 @@ class FeedPostList extends StatelessWidget {
           );
         }
         if (index <= posts.length) {
-          return FeedPostSection(
+          final section = FeedPostSection(
             post: posts[index - 1],
             controller: controller,
           );
+          // Only the very first post card (index == 1) is a tour anchor, so
+          // the app tour has something concrete to spotlight on Feed. This
+          // must never wrap any other index — a shared GlobalKey mounted
+          // twice at once crashes the app.
+          if (index == 1) {
+            return TutorialAnchor(
+              id: TutorialAnchorId.feedFirstPost,
+              child: section,
+            );
+          }
+          return section;
         }
         return _FeedFooter(state: state);
       },
