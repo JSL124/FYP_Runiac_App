@@ -198,6 +198,14 @@ class AppTourController extends ChangeNotifier {
     }
     _advancing = true;
     _stepIndex += 1;
+    // Drop the previous step's resolved anchor before announcing the new one.
+    // `_resolveCurrentStep` may switch tabs and then poll for up to
+    // `anchorPollBudget`, so publishing the new step while `_hole` still holds
+    // the old coordinates would narrate one thing while spotlighting another —
+    // e.g. the Leaderboard copy over the Feed card's cutout. The step renders
+    // in no-hole mode until its own anchor resolves.
+    _hole = null;
+    _useFallbackCopy = false;
     notifyListeners();
     try {
       await _resolveCurrentStep();

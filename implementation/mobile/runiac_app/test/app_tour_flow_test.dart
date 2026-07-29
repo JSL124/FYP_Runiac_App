@@ -727,5 +727,74 @@ void main() {
       expect(controller.hole, isNull);
       expect(controller.useFallbackCopy, isFalse);
     });
+
+    testWidgets(
+      'advancing drops the previous step\'s spotlight before the new step '
+      'resolves its own anchor',
+      (tester) async {
+        final controller = AppTourController(
+          steps: const [
+            TutorialStep(
+              id: 'resolves',
+              tabIndex: 0,
+              message: 'Zero.',
+              anchorCandidates: [TutorialAnchorId.homeMenuTrigger],
+            ),
+            TutorialStep(
+              id: 'slow',
+              tabIndex: 0,
+              message: 'One.',
+              // Never mounted below, so this step polls the full budget.
+              anchorCandidates: [TutorialAnchorId.homeTodayStone],
+            ),
+          ],
+          onRequestTab: (_) {},
+          anchorPollInterval: const Duration(milliseconds: 300),
+          anchorPollBudget: const Duration(milliseconds: 1500),
+          preferredAnchorWindow: const Duration(milliseconds: 300),
+        );
+        addTearDown(controller.dispose);
+
+        await tester.pumpWidget(
+          TutorialAnchorScope(
+            registry: controller.anchors,
+            child: const Directionality(
+              textDirection: TextDirection.ltr,
+              child: Center(
+                child: TutorialAnchor(
+                  id: TutorialAnchorId.homeMenuTrigger,
+                  child: SizedBox(width: 40, height: 40),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        unawaited(controller.start());
+        await _pumpUntil(tester, () => controller.hole != null);
+        expect(
+          controller.hole,
+          isNotNull,
+          reason: 'step 0 should have resolved a real cutout to begin with',
+        );
+
+        unawaited(controller.next());
+        await _pumpUntil(tester, () => controller.stepIndex == 1);
+
+        // The new step's copy is already published. Its own anchor has not
+        // resolved (and never will), so the overlay must be in no-hole mode
+        // rather than still cutting the previous step's target — narrating one
+        // thing while spotlighting another.
+        expect(controller.stepIndex, 1);
+        expect(
+          controller.hole,
+          isNull,
+          reason: "the previous step's cutout must not outlive its copy",
+        );
+
+        // Drain the still-running poll so no timer outlives the widget tree.
+        await _pumpTourSettle(tester);
+      },
+    );
   });
 }
