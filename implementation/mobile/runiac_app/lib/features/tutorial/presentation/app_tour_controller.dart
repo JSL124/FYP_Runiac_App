@@ -381,11 +381,24 @@ class AppTourController extends ChangeNotifier {
   /// because widget tests fail their pending-timer invariant otherwise.
   Timer? _pendingWaitTimer;
 
+  /// The waiter [_pendingWaitTimer] will complete.
+  ///
+  /// Cancelling must complete it too, not just drop the timer: the awaiting
+  /// [_pollAnchor] would otherwise stay suspended forever, so the
+  /// [_resolveCurrentStep] that owns it never returns and [next] never reaches
+  /// its `finally`. That would leave [_advancing] stuck true and silently
+  /// ignore every later Next tap, leaving the tour skippable but not
+  /// advanceable. Callers past the wait re-check their serial, so completing
+  /// early simply lets a superseded resolve unwind.
+  Completer<void>? _pendingWait;
+
   Future<void> _wait(Duration duration) {
+    _cancelPendingWait();
     final completer = Completer<void>();
-    _pendingWaitTimer?.cancel();
+    _pendingWait = completer;
     _pendingWaitTimer = Timer(duration, () {
       _pendingWaitTimer = null;
+      _pendingWait = null;
       if (!completer.isCompleted) {
         completer.complete();
       }
@@ -396,6 +409,11 @@ class AppTourController extends ChangeNotifier {
   void _cancelPendingWait() {
     _pendingWaitTimer?.cancel();
     _pendingWaitTimer = null;
+    final pending = _pendingWait;
+    _pendingWait = null;
+    if (pending != null && !pending.isCompleted) {
+      pending.complete();
+    }
   }
 
   @override

@@ -796,5 +796,44 @@ void main() {
         await _pumpTourSettle(tester);
       },
     );
+
+    testWidgets(
+      'a refresh that supersedes an in-flight advance still lets Next work',
+      (tester) async {
+        await tester.pumpWidget(const SizedBox.shrink());
+
+        final controller = buildRaceController();
+        addTearDown(controller.dispose);
+
+        unawaited(controller.start());
+        await tester.pump();
+        expect(controller.stepIndex, 0);
+
+        // Advance into step 1's slow poll, then let a rotation/app-resume
+        // style refresh supersede it mid-wait. The superseded resolve must
+        // unwind rather than hanging on a cancelled waiter — otherwise the
+        // advance guard is never released.
+        unawaited(controller.next());
+        // One frame lets the resolve past its `endOfFrame` await and into the
+        // poll loop; the short pump then leaves it suspended inside the first
+        // `_wait` (300ms interval) rather than before it. Superseding it
+        // earlier would cancel nothing and would not exercise the bug.
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+        expect(controller.stepIndex, 1);
+        unawaited(controller.refreshAnchor());
+        await _pumpTourSettle(tester);
+
+        // The tour must still be advanceable, not stuck skip-only.
+        unawaited(controller.next());
+        await _pumpUntil(tester, () => controller.stepIndex == 2);
+        expect(
+          controller.stepIndex,
+          2,
+          reason: 'a superseded advance must release the in-flight guard',
+        );
+        await _pumpTourSettle(tester);
+      },
+    );
   });
 }
