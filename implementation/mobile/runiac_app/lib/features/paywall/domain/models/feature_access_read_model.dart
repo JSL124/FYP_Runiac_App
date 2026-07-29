@@ -8,8 +8,8 @@
 //
 // The gate this model drives is a UX layer, never the enforcement: features
 // with a server surface (`shareRouteToFeed`, `activityFeedback`,
-// `aiHomeCoach`) are re-checked against the same document inside Cloud
-// Functions, which is what actually denies a Basic runner.
+// `aiHomeCoach`, `workoutBriefing`) are re-checked against the same document
+// inside Cloud Functions, which is what actually denies a Basic runner.
 
 import 'package:flutter/foundation.dart';
 
@@ -30,6 +30,7 @@ class FeatureAccessReadModel {
     'advancedAnalysis',
     'aiHomeCoach',
     'activityFeedback',
+    'workoutBriefing',
     'shareRouteToFeed',
   ];
 

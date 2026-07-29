@@ -165,6 +165,11 @@ export const DEFAULT_LEADERBOARD_CONFIG: LeaderboardConfig = deepFreeze({
 //   - aiHomeCoach       homeGuideAgent callable; a denied Basic runner keeps
 //                       the app's offline rule-based guide copy
 //   - activityFeedback  activityFeedbackAgent callable
+//   - workoutBriefing   workoutBriefingAgent callable; the sparkle explainer on
+//                       a planned workout's detail screen. A denied Basic
+//                       runner still sees the whole session — metrics,
+//                       breakdown, effort guide — because the briefing explains
+//                       that screen rather than unlocking it.
 //   - shareRouteToFeed  publishActivityToFeed callable
 //   - shareCards        client-only gate (achievement + rank card exports)
 //   - healthWorkoutImport  client-only gate (Apple Health / watch import)
@@ -188,6 +193,11 @@ export const DEFAULT_FEATURE_ACCESS_CONFIG: FeatureAccessConfig = deepFreeze({
     // was replaced by the config read. The default now states the shipped
     // intent; the console can open it deliberately.
     activityFeedback: { minimumTier: "premium", enabled: true },
+    // "premium" from the day it shipped (2026-07-29). This is the third
+    // OpenAI-backed feature, and it is the only one a runner can invoke
+    // repeatedly without first completing a run, so a "basic" default would
+    // have opened model spend on the most reachable surface in the app.
+    workoutBriefing: { minimumTier: "premium", enabled: true },
     shareRouteToFeed: { minimumTier: "premium", enabled: true },
     shareCards: { minimumTier: "basic", enabled: true },
     healthWorkoutImport: { minimumTier: "basic", enabled: true },

@@ -70,6 +70,7 @@ const expectedExports = [
   "unregisterNotificationDevice",
   "upsertNickname",
   "withdrawFromChallengeLobby",
+  "workoutBriefingAgent",
 ] as const;
 
 const feedExports = [

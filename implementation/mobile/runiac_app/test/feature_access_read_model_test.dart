@@ -15,6 +15,7 @@ void main() {
         'advancedAnalysis',
         'aiHomeCoach',
         'activityFeedback',
+        'workoutBriefing',
         'shareRouteToFeed',
       ]);
     });
