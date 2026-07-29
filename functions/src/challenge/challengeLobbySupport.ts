@@ -240,12 +240,26 @@ export type ChallengeParticipantView = {
   // resolveProfileAvatarUrl. Empty when the participant has no avatar set, or
   // when the stored value is foreign/malformed.
   readonly avatarUrlSnapshot: string;
+  // Backend-owned progress toward the next level, 0..100, resolved live from
+  // the participant's profile alongside levelLabelSnapshot and through the
+  // same shared reader. Drives the XP ring the client draws around the roster
+  // avatar; 0 when the profile carries no usable percent, which renders the
+  // empty ring every roster row showed before this field existed.
+  readonly levelProgressPercentSnapshot: number;
 };
 
 /** The live, per-uid display values `sortedParticipantViews` overlays onto each stored participant doc. */
-export type ParticipantLiveDisplay = { readonly levelLabel: string; readonly avatarUrl: string };
+export type ParticipantLiveDisplay = {
+  readonly levelLabel: string;
+  readonly avatarUrl: string;
+  readonly levelProgressPercent: number;
+};
 
-const EMPTY_PARTICIPANT_LIVE_DISPLAY: ParticipantLiveDisplay = { levelLabel: "", avatarUrl: "" };
+const EMPTY_PARTICIPANT_LIVE_DISPLAY: ParticipantLiveDisplay = {
+  levelLabel: "",
+  avatarUrl: "",
+  levelProgressPercent: 0,
+};
 
 export function serializeInstance(
   challengeId: string,
@@ -290,6 +304,7 @@ export function serializeParticipant(
     avatarInitialsSnapshot: readString(data, "avatarInitialsSnapshot"),
     levelLabelSnapshot: liveDisplay.levelLabel,
     avatarUrlSnapshot: liveDisplay.avatarUrl,
+    levelProgressPercentSnapshot: liveDisplay.levelProgressPercent,
   };
 }
 

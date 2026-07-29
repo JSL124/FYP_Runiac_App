@@ -595,6 +595,76 @@ describe(
       );
     });
 
+    // Same staleness class as the rename above: levelling up on a run in a
+    // DIFFERENT region never rewrites this board's contribution, so its
+    // levelLabel froze at the last run here. The percent is new entirely —
+    // it drives the XP ring the client draws around each row's avatar, which
+    // every leaderboard row previously rendered empty.
+    it("republishes the live profile level and progress over the contribution's frozen label", async () => {
+      const levelledUid = "level-writer-levelled";
+      const levellessUid = "level-writer-no-level";
+      await Promise.all([
+        firestore.doc(`users/${levelledUid}`).set({ subscriptionStatus: "basic" }),
+        firestore.doc(`userProfiles/${levelledUid}`).set({
+          nickname: "Levelled",
+          locationLabel: "Jurong East, Singapore",
+          divisionKey: "tier_01",
+          level: 9,
+          levelLabel: "Level 9",
+          levelProgressPercent: 64,
+        }),
+        firestore
+          .doc(`leaderboardContributions/${levelledUid}_monthly_2026-07`)
+          .set({
+            ...contribution({ ownerUid: levelledUid, scoreXp: 200 }),
+            levelLabel: "Level 8",
+          }),
+        firestore.doc(`users/${levellessUid}`).set({ subscriptionStatus: "basic" }),
+        firestore.doc(`userProfiles/${levellessUid}`).set({
+          nickname: "No Level",
+          locationLabel: "Jurong East, Singapore",
+          divisionKey: "tier_01",
+          level: 1,
+        }),
+        firestore
+          .doc(`leaderboardContributions/${levellessUid}_monthly_2026-07`)
+          .set(contribution({ ownerUid: levellessUid, scoreXp: 100 })),
+      ]);
+
+      await refreshMonthlyLeaderboardSnapshots(firestore, "2026-07", {
+        now: new Date("2026-07-10T00:00:00.000Z"),
+        buildId: "level-refresh-build",
+      });
+
+      const snapshot = await firestore
+        .doc("leaderboardSnapshots/monthly_jurong-east_tier_01_2026-07")
+        .get();
+      const topEntries = snapshot.get("topEntries") as readonly Record<string, unknown>[];
+      const levelledEntry = topEntries.find((entryItem) => entryItem["publicAlias"] === "Levelled");
+      const levellessEntry = topEntries.find((entryItem) => entryItem["publicAlias"] === "No Level");
+      assert.equal(levelledEntry?.["levelLabel"], "Level 9");
+      assert.equal(levelledEntry?.["levelProgressPercent"], 64);
+      // A profile with a level but no stored percent still publishes a row;
+      // its ring is simply empty.
+      assert.equal(levellessEntry?.["levelLabel"], "Lv.1");
+      assert.equal(levellessEntry?.["levelProgressPercent"], 0);
+
+      const rank = await firestore
+        .doc(`leaderboardUserRanks/${levelledUid}_monthly_2026-07`)
+        .get();
+      const currentEntry = rank.get("currentEntry") as Record<string, unknown>;
+      assert.equal(currentEntry["levelLabel"], "Level 9");
+      assert.equal(currentEntry["levelProgressPercent"], 64);
+      // And inside every neighbour's view of that runner, not only their own.
+      const neighbourRank = await firestore
+        .doc(`leaderboardUserRanks/${levellessUid}_monthly_2026-07`)
+        .get();
+      const nearbySelf = (
+        neighbourRank.get("nearbyEntries") as readonly Record<string, unknown>[]
+      ).find((entryItem) => entryItem["publicAlias"] === "Levelled");
+      assert.equal(nearbySelf?.["levelProgressPercent"], 64);
+    });
+
     it("resolves a foreign-bucket avatarUrl to empty string, proving the sanitiser is live on the leaderboard read path and not vacuous", async () => {
       const uid = "avatar-writer-foreign-bucket";
       const foreignUrl = buildAvatarDownloadUrl({

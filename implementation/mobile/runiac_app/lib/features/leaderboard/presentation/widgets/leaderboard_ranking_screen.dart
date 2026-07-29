@@ -515,6 +515,7 @@ class _LeaderboardRankRow extends StatelessWidget {
                   levelLabel: row.levelBadgeLabel,
                   isCurrentUser: row.isCurrentUser,
                   photoUrl: row.photoUrl,
+                  levelProgressFraction: row.levelProgressFraction,
                 ),
                 const SizedBox(width: 12),
                 Expanded(

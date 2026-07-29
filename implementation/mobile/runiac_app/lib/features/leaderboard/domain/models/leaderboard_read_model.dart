@@ -60,6 +60,7 @@ class LeaderboardRowReadModel {
     this.snapshotId = '',
     this.buildId = '',
     this.avatarUrl = '',
+    this.levelProgressFraction = 0,
   });
 
   final String userId;
@@ -74,6 +75,13 @@ class LeaderboardRowReadModel {
   /// Raw, not-yet-sanitised avatar photo URL relayed from the snapshot/rank
   /// row (`entry['avatarUrl']`). Empty when the runner has no photo set.
   final String avatarUrl;
+
+  /// Backend-owned progress toward the next level, already converted from the
+  /// row's 0..100 `levelProgressPercent` into 0.0..1.0 and clamped. Drives the
+  /// XP ring around the row's avatar. Never computed on the client: it is not
+  /// derived from [scoreLabel], and `0` (an empty ring) is what a row written
+  /// before the backend published this field resolves to.
+  final double levelProgressFraction;
 
   /// The board this row was read from, taken from its own source document —
   /// the snapshot for a top row, the rank projection for a nearby row. A

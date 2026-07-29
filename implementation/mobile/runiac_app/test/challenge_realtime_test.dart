@@ -138,6 +138,58 @@ void main() {
       },
     );
 
+    test(
+      'keeps the seeded level progress for a known uid and zeroes an unseeded one',
+      () {
+        final view = _view(
+          instance: _instanceView(rosterUids: const <String>['uidA', 'uidB']),
+          participants: <Map<String, Object?>>[
+            _participantView(uid: 'uidA', role: 'owner', meters: 100),
+            _participantView(uid: 'uidB', role: 'member', meters: 50),
+          ],
+        );
+        final active = mapActiveChallengeView(
+          view,
+          levelLabelSeed: const <String, String>{},
+          levelProgressPercentSeed: const <String, int>{'uidA': 64},
+          currentUid: 'uidA',
+        )!;
+
+        expect(
+          active.participants
+              .firstWhere((r) => r.uid == 'uidA')
+              .levelProgressPercentSnapshot,
+          64,
+        );
+        expect(
+          active.participants
+              .firstWhere((r) => r.uid == 'uidB')
+              .levelProgressPercentSnapshot,
+          0,
+        );
+      },
+    );
+
+    test(
+      'clamps a corrupt stored level progress instead of overdrawing the ring',
+      () {
+        final view = _view(
+          instance: _instanceView(rosterUids: const <String>['uidA']),
+          participants: <Map<String, Object?>>[
+            _participantView(uid: 'uidA', role: 'owner', meters: 100),
+          ],
+        );
+        final active = mapActiveChallengeView(
+          view,
+          levelLabelSeed: const <String, String>{},
+          levelProgressPercentSeed: const <String, int>{'uidA': 140},
+          currentUid: 'uidA',
+        )!;
+
+        expect(active.participants.single.levelProgressPercentSnapshot, 100);
+      },
+    );
+
     test('wraps a malformed view as INVALID_RESPONSE', () {
       final broken = _view(
         instance: _instanceView(),

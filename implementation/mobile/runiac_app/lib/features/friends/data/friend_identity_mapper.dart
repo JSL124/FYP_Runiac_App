@@ -41,6 +41,7 @@ FriendUserReadModel? mapFriendIdentityDocument(
     levelProgressFraction: friendLevelProgressFractionValue(
       data['levelProgressPercent'],
     ),
+    avatarUrl: friendAvatarUrlValue(data['avatarUrl']),
     subtitleLabel: requestDirection == null
         ? ''
         : friendRequestSubtitleLabel(
@@ -66,6 +67,17 @@ double? friendLevelProgressFractionValue(Object? value) {
   if (value is! num) return null;
   return (value / 100).clamp(0.0, 1.0).toDouble();
 }
+
+/// Defensively reads the optional `avatarUrl` carried by enriched sources.
+///
+/// The Friends, Requests, and Blocked tabs overlay their avatar from
+/// `getFriendLevels` afterwards, so this only decides what the Search tab
+/// shows — the one tab that never calls that resolver, having no social edge
+/// to the runner yet. Firestore edge documents never carry the key, so an
+/// absent or non-String value keeps today's behaviour: no photo, initials
+/// disc. The value stays raw here and is sanitised at the render site, the
+/// same as every other avatar URL the client transports.
+String friendAvatarUrlValue(Object? value) => value is String ? value : '';
 
 /// Builds the Requests-tab subtitle for one friend-request row: `'Requested
 /// …ago'` for an incoming request, `'Sent …ago'` for an outgoing one. A

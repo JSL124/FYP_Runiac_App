@@ -20,6 +20,7 @@ class ChallengeParticipantRow {
     required this.reward,
     required this.isCurrentUser,
     this.avatarUrlSnapshot = '',
+    this.levelProgressPercentSnapshot = 0,
   });
 
   /// Backend uid. Not for display — used only for self-detection and ordering.
@@ -38,6 +39,14 @@ class ChallengeParticipantRow {
   /// May be empty when the backend cannot resolve a level; callers fall back
   /// to the display-only `Lv.0` placeholder.
   final String levelLabelSnapshot;
+
+  /// Backend-owned progress toward the next level, 0..100, resolved live from
+  /// the participant's profile alongside [levelLabelSnapshot]. Surfaces divide
+  /// it by 100 to paint the XP ring around the roster avatar. Read back
+  /// verbatim; never computed on the client. `0` — an empty ring — is the
+  /// normal case for a profile with no progress on record, so like
+  /// [avatarUrlSnapshot] this is parsed leniently rather than strictly.
+  final int levelProgressPercentSnapshot;
   final ChallengeParticipantRole role;
   final ChallengeParticipantStatus status;
   final int creditedMeters;
@@ -64,6 +73,7 @@ class ChallengeParticipantRow {
       reward: ChallengeRewardStatus.parse(ChallengeParse.string(map, 'reward')),
       isCurrentUser: currentUid != null && currentUid == uid,
       avatarUrlSnapshot: _avatarUrlSnapshot(map),
+      levelProgressPercentSnapshot: _levelProgressPercentSnapshot(map),
     );
   }
 
@@ -74,5 +84,19 @@ class ChallengeParticipantRow {
   static String _avatarUrlSnapshot(Map<String, Object?> map) {
     final value = map['avatarUrlSnapshot'];
     return value is String ? value : '';
+  }
+
+  /// Lenient read of `levelProgressPercentSnapshot`, for the same reason as
+  /// [_avatarUrlSnapshot]: a participant whose profile carries no progress is
+  /// normal, not a malformed response, and so is a response from a backend
+  /// revision predating this field. Both resolve to `0` (an empty ring) rather
+  /// than throwing. Clamped to 0..100 so a corrupt stored value cannot
+  /// overdraw the ring.
+  static int _levelProgressPercentSnapshot(Map<String, Object?> map) {
+    final value = map['levelProgressPercentSnapshot'];
+    if (value is! num || !value.isFinite) {
+      return 0;
+    }
+    return value.round().clamp(0, 100);
   }
 }

@@ -85,6 +85,7 @@ leaderboardRankRowDisplaySnapshotFromReadModel(
     medalTone: _medalToneForOrdinal(ordinal),
     isCurrentUser: entry.isCurrentUser,
     photoUrl: entry.avatarUrl,
+    levelProgressFraction: entry.levelProgressFraction,
     profile: RunnerAchievementProfileSnapshot(
       name: displayName,
       initial: _initialFor(displayName),

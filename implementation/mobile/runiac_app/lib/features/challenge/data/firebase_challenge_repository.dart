@@ -35,11 +35,16 @@ const String _unseededLevelLabel = ' ';
 /// a uid the seed never saw, rather than growing new machinery to close that
 /// gap. Unlike the level label, an unseeded avatar simply renders `''` — a
 /// blank avatar is the same as "no photo", so no space-placeholder is needed.
+///
+/// [levelProgressPercentSeed] does the same for the participant's XP-ring
+/// progress, under the same limitation and the same benign fallback as the
+/// avatar: an unseeded uid renders `0`, an empty ring.
 ActiveChallenge? mapActiveChallengeView(
   Map<String, Object?>? view, {
   required Map<String, String> levelLabelSeed,
   required String? currentUid,
   Map<String, String> avatarUrlSeed = const <String, String>{},
+  Map<String, int> levelProgressPercentSeed = const <String, int>{},
 }) {
   if (view == null) {
     return null;
@@ -55,6 +60,7 @@ ActiveChallenge? mapActiveChallengeView(
         ...participant,
         'levelLabelSnapshot': levelLabelSeed[uid] ?? _unseededLevelLabel,
         'avatarUrlSnapshot': avatarUrlSeed[uid] ?? '',
+        'levelProgressPercentSnapshot': levelProgressPercentSeed[uid] ?? 0,
       };
     }).toList(growable: false);
     final seededView = <String, Object?>{
@@ -263,6 +269,7 @@ class FirebaseChallengeRepository implements ChallengeRepository {
   ) async* {
     var levelLabelSeed = const <String, String>{};
     var avatarUrlSeed = const <String, String>{};
+    var levelProgressPercentSeed = const <String, int>{};
     try {
       final seeded = await activeChallenge();
       levelLabelSeed = <String, String>{
@@ -275,6 +282,11 @@ class FirebaseChallengeRepository implements ChallengeRepository {
             in seeded?.participants ?? const <ChallengeParticipantRow>[])
           row.uid: row.avatarUrlSnapshot,
       };
+      levelProgressPercentSeed = <String, int>{
+        for (final row
+            in seeded?.participants ?? const <ChallengeParticipantRow>[])
+          row.uid: row.levelProgressPercentSnapshot,
+      };
       yield seeded;
     } on ChallengeFailure {
       // The callable seed is unavailable; fall through to the live view with
@@ -286,6 +298,7 @@ class FirebaseChallengeRepository implements ChallengeRepository {
             view,
             levelLabelSeed: levelLabelSeed,
             avatarUrlSeed: avatarUrlSeed,
+            levelProgressPercentSeed: levelProgressPercentSeed,
             currentUid: currentUid(),
           ),
         );

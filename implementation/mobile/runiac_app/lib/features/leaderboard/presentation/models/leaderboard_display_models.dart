@@ -181,6 +181,7 @@ class LeaderboardRankRowDisplaySnapshot {
     this.isCurrentUser = false,
     this.medalTone,
     this.photoUrl = '',
+    this.levelProgressFraction = 0,
   });
 
   final String rankLabel;
@@ -192,6 +193,11 @@ class LeaderboardRankRowDisplaySnapshot {
   /// Raw, not-yet-sanitised avatar photo URL for this row. Empty when the
   /// backend has no photo on record for this runner.
   final String photoUrl;
+
+  /// Backend-owned progress toward the next level, 0.0..1.0, painted as the XP
+  /// ring around this row's avatar. Display-only; never computed on the client
+  /// and never derived from [xpLabel].
+  final double levelProgressFraction;
   final RunnerAchievementProfileSnapshot profile;
   final bool trophy;
   final bool isCurrentUser;

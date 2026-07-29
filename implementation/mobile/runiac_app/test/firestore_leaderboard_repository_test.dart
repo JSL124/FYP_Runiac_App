@@ -42,6 +42,7 @@ void main() {
               'regionLabel': 'Jurong East',
               'avatarUrl':
                   'https://firebasestorage.googleapis.com/v0/b/bucket/o/avatars%2Fari.png?alt=media&token=tok',
+              'levelProgressPercent': 64,
             },
           ],
         },
@@ -60,8 +61,8 @@ void main() {
               'levelLabel': 'Level 18',
               'divisionLabel': 'Bronze League',
               'regionLabel': 'Jurong East',
-              // No avatar on record for this row — must default to empty,
-              // never null or a throw.
+              // No avatar and no level progress on record for this row — both
+              // must default, never null or a throw.
             },
           ],
         },
@@ -83,10 +84,16 @@ void main() {
       leaderboard.entries.single.avatarUrl,
       'https://firebasestorage.googleapis.com/v0/b/bucket/o/avatars%2Fari.png?alt=media&token=tok',
     );
+    // The backend's 0..100 percent becomes the XP ring's 0.0..1.0 here; the
+    // client never derives it from the score.
+    expect(leaderboard.entries.single.levelProgressFraction, closeTo(0.64, 1e-9));
     expect(leaderboard.nearbyEntries.single.displayName, 'Jinseo');
     // No avatar on record for this row — must default to empty, never null
     // or a throw.
     expect(leaderboard.nearbyEntries.single.avatarUrl, '');
+    // Likewise a row from a snapshot published before the backend carried the
+    // percent: an empty ring, not a crash.
+    expect(leaderboard.nearbyEntries.single.levelProgressFraction, 0);
     expect(leaderboard.nearbyEntries.single.isCurrentUser, isTrue);
     expect(leaderboard.periodLabel, 'July 2026');
     expect(leaderboard.periodEndsAt, DateTime.utc(2026, 7, 31, 16));

@@ -328,6 +328,56 @@ describe("monthly leaderboard aggregation", () => {
     );
   });
 
+  it("publishes the live levelDisplayByOwner level and progress over the contribution's frozen label", () => {
+    const planned = planMonthlyLeaderboards({
+      periodKey: "2026-07",
+      levelDisplayByOwner: new Map([
+        ["je-iron-1", { levelLabel: "Level 9", levelProgressPercent: 64 }],
+        // A profile with no usable label must not blank the row's level, but
+        // its percent is still honoured.
+        ["je-iron-2", { levelLabel: "   ", levelProgressPercent: 12 }],
+      ]),
+      contributions: [
+        contribution({ ownerUid: "je-iron-1", scoreXp: 130, levelLabel: "Level 8" }),
+        contribution({ ownerUid: "je-iron-2", scoreXp: 90, levelLabel: "Level 3" }),
+        // Absent from the map entirely: stored label, empty ring.
+        contribution({ ownerUid: "je-iron-3", scoreXp: 50, levelLabel: "Level 2" }),
+      ],
+    });
+
+    assert.deepEqual(
+      planned.snapshots[0]?.topEntries.map((entry) => entry.levelLabel),
+      ["Level 9", "Level 3", "Level 2"],
+    );
+    assert.deepEqual(
+      planned.snapshots[0]?.topEntries.map((entry) => entry.levelProgressPercent),
+      [64, 12, 0],
+    );
+    // The pair reaches a runner's own view and every neighbour's view of them,
+    // exactly like the alias above.
+    const ownRank = planned.ranks.find((item) => item.ownerUid === "je-iron-1");
+    assert.equal(ownRank?.currentEntry.levelLabel, "Level 9");
+    assert.equal(ownRank?.currentEntry.levelProgressPercent, 64);
+    assert.deepEqual(
+      planned.ranks
+        .find((item) => item.ownerUid === "je-iron-3")
+        ?.nearbyEntries.map((entry) => entry.levelProgressPercent),
+      [64, 12, 0],
+    );
+
+    const withoutMap = planMonthlyLeaderboards({
+      periodKey: "2026-07",
+      contributions: [
+        contribution({ ownerUid: "je-iron-1", scoreXp: 130, levelLabel: "Level 8" }),
+      ],
+    });
+    assert.equal(withoutMap.snapshots[0]?.topEntries[0]?.levelLabel, "Level 8");
+    assert.equal(
+      withoutMap.snapshots[0]?.topEntries[0]?.levelProgressPercent,
+      0,
+    );
+  });
+
   it("uses Asia Singapore month boundaries and labels", () => {
     assert.equal(
       currentSingaporeMonthKey(new Date("2026-06-30T15:59:59.000Z")),

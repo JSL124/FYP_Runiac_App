@@ -288,6 +288,9 @@ class FirestoreLeaderboardRepository
             divisionLabel: _string(entry['divisionLabel']),
             regionLabel: _string(entry['regionLabel']),
             avatarUrl: _string(entry['avatarUrl']),
+            levelProgressFraction: _progressFraction(
+              entry['levelProgressPercent'],
+            ),
             isCurrentUser:
                 currentEntry != null &&
                 _string(entry['rankLabel']) ==
@@ -322,6 +325,9 @@ class FirestoreLeaderboardRepository
         divisionLabel: _string(currentEntry['divisionLabel']),
         regionLabel: _string(currentEntry['regionLabel']),
         avatarUrl: _string(currentEntry['avatarUrl']),
+        levelProgressFraction: _progressFraction(
+          currentEntry['levelProgressPercent'],
+        ),
         isCurrentUser: true,
         snapshotId: snapshotId,
         buildId: buildId,
@@ -346,6 +352,18 @@ class FirestoreLeaderboardRepository
 
   String _string(Object? value) {
     return value is String ? value.trim() : '';
+  }
+
+  /// Converts the row's backend-owned 0..100 `levelProgressPercent` into the
+  /// 0.0..1.0 the XP ring paints, matching how Friends and Feed rows read the
+  /// same backend field. A row published before the backend carried this
+  /// field, or any non-numeric value, resolves to 0 — an empty ring, which is
+  /// exactly what every leaderboard row drew before.
+  double _progressFraction(Object? value) {
+    if (value is! num || !value.isFinite) {
+      return 0;
+    }
+    return (value / 100).clamp(0.0, 1.0).toDouble();
   }
 
   String _firstString(List<Object?> values) {

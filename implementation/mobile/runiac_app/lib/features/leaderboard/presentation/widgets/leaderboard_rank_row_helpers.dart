@@ -30,6 +30,7 @@ class LeaderboardInitialBadge extends StatelessWidget {
     required this.levelLabel,
     required this.isCurrentUser,
     this.photoUrl = '',
+    this.levelProgressFraction = 0,
   });
 
   final String name;
@@ -39,6 +40,11 @@ class LeaderboardInitialBadge extends StatelessWidget {
   /// Raw, not-yet-sanitised avatar photo URL for this row. Empty renders the
   /// initials disc.
   final String photoUrl;
+
+  /// Backend-owned progress toward the next level, 0.0..1.0, painted as the XP
+  /// ring around the disc. Defaults to 0 (an empty ring) so a caller with no
+  /// backend progress on record renders exactly what this badge drew before.
+  final double levelProgressFraction;
 
   static const double _size = 56;
   static const double _levelPillHeight = 18;
@@ -61,7 +67,7 @@ class LeaderboardInitialBadge extends StatelessWidget {
       child: RuniacLevelProfileBadge(
         initials: name,
         levelLabel: levelLabel,
-        progressFraction: 0,
+        progressFraction: levelProgressFraction,
         photoUrl: photoUrl,
         size: _size,
         badgeHeight: _levelPillHeight,

@@ -16,6 +16,7 @@ import {
   leaderboardTimezone,
   type MonthlyLeaderboardCurrentViewPlan,
 } from "./leaderboardTypes.js";
+import { resolveProfileLevelDisplay } from "../progression/profileLevelDisplay.js";
 import { resolveProfileAvatarUrl, type AvatarUrlContext } from "../profile/avatar/avatarPaths.js";
 import { NULL_AVATAR_URL_CONTEXT } from "../profile/avatar/avatarUrlContextDefaults.js";
 
@@ -172,6 +173,21 @@ export async function refreshMonthlyLeaderboardSnapshots(
         readString(facts.profile?.["nickname"]) ?? "",
       ]),
     );
+    // Same `ownerFacts` again, so still zero new reads. Resolved through the
+    // shared `resolveProfileLevelDisplay` that `getFriendLevels` and
+    // `getFeedAuthorLevels` already use, so a leaderboard row's level reads
+    // identically to the same runner's Friends row. Carries both halves of
+    // the pair: the percent is new (it drives the avatar's XP ring, which
+    // every leaderboard row previously drew empty), and the label moves off
+    // the contribution for the same staleness reason as the alias above —
+    // levelling up on a run in another region never rewrites this board's
+    // contribution.
+    const levelDisplayByOwner = new Map(
+      [...ownerFacts.entries()].map(([uid, facts]) => [
+        uid,
+        resolveProfileLevelDisplay(facts.profile),
+      ]),
+    );
     const plan = planMonthlyLeaderboards({
       periodKey,
       contributions: contributionSnapshot.docs.map((document) =>
@@ -182,6 +198,7 @@ export async function refreshMonthlyLeaderboardSnapshots(
       minRunsToQualify: leaderboardConfig.minRunsToQualify,
       avatarUrlByOwner,
       publicAliasByOwner,
+      levelDisplayByOwner,
     });
     const currentViews = mergeRolloverViews({
       periodKey,

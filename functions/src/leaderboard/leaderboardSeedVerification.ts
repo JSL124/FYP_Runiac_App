@@ -201,10 +201,15 @@ function rankNumber(value: unknown): number {
   return Number(value.slice(1));
 }
 
-function isSafePublicEntry(value: unknown): value is { readonly avatarUrl: string; readonly divisionLabel: string; readonly levelLabel: string; readonly publicAlias: string; readonly rankLabel: string; readonly regionLabel: string; readonly score: number; readonly scoreLabel: string } {
+// Exact key-set guard, deliberately not a subset check: a published entry lands
+// in world-readable `leaderboardSnapshots`, so an unexpected extra key (a uid,
+// a raw profile field) must fail verification rather than be tolerated. Any
+// intentional addition to `LeaderboardPublicEntry` therefore has to be
+// registered here as well — `levelProgressPercent` is the XP-ring value.
+function isSafePublicEntry(value: unknown): value is { readonly avatarUrl: string; readonly divisionLabel: string; readonly levelLabel: string; readonly levelProgressPercent: number; readonly publicAlias: string; readonly rankLabel: string; readonly regionLabel: string; readonly score: number; readonly scoreLabel: string } {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
-  const keys = ["avatarUrl", "divisionLabel", "levelLabel", "publicAlias", "rankLabel", "regionLabel", "score", "scoreLabel"];
-  return JSON.stringify(Object.keys(value).sort()) === JSON.stringify(keys.sort()) && typeof Reflect.get(value, "avatarUrl") === "string" && typeof Reflect.get(value, "divisionLabel") === "string" && typeof Reflect.get(value, "levelLabel") === "string" && typeof Reflect.get(value, "publicAlias") === "string" && typeof Reflect.get(value, "rankLabel") === "string" && typeof Reflect.get(value, "regionLabel") === "string" && typeof Reflect.get(value, "score") === "number" && typeof Reflect.get(value, "scoreLabel") === "string";
+  const keys = ["avatarUrl", "divisionLabel", "levelLabel", "levelProgressPercent", "publicAlias", "rankLabel", "regionLabel", "score", "scoreLabel"];
+  return JSON.stringify(Object.keys(value).sort()) === JSON.stringify(keys.sort()) && typeof Reflect.get(value, "avatarUrl") === "string" && typeof Reflect.get(value, "divisionLabel") === "string" && typeof Reflect.get(value, "levelLabel") === "string" && typeof Reflect.get(value, "levelProgressPercent") === "number" && typeof Reflect.get(value, "publicAlias") === "string" && typeof Reflect.get(value, "rankLabel") === "string" && typeof Reflect.get(value, "regionLabel") === "string" && typeof Reflect.get(value, "score") === "number" && typeof Reflect.get(value, "scoreLabel") === "string";
 }
 
 function sameStringList(value: unknown, expected: readonly string[]): boolean {

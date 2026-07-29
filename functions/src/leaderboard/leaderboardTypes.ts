@@ -56,6 +56,16 @@ export type LeaderboardPublicEntry = {
    * runner's uid to every other signed-in user.
    */
   readonly avatarUrl: string;
+  /**
+   * Backend-owned progress toward the next level, 0..100, resolved through
+   * `resolveProfileLevelDisplay` from the same `userProfiles` document that
+   * supplies `levelLabel`. The client renders it as the XP ring around the
+   * row's avatar; it never derives the value from `score` or from any XP
+   * input. `0` when the owner's profile carries no usable percent, which
+   * renders as an empty ring — the same thing every row showed before this
+   * field existed.
+   */
+  readonly levelProgressPercent: number;
 };
 
 export type MonthlyLeaderboardSnapshotPlan = {

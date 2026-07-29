@@ -41,6 +41,7 @@ ChallengeParticipantRow _owner({
   String displayName = 'You',
   String levelLabel = 'Lv.5',
   String avatarUrlSnapshot = '',
+  int levelProgressPercentSnapshot = 0,
 }) =>
     ChallengeParticipantRow(
       uid: 'me',
@@ -53,6 +54,7 @@ ChallengeParticipantRow _owner({
       reward: ChallengeRewardStatus.notEligible,
       isCurrentUser: isCurrentUser,
       avatarUrlSnapshot: avatarUrlSnapshot,
+      levelProgressPercentSnapshot: levelProgressPercentSnapshot,
     );
 
 ChallengeParticipantRow _member({
@@ -154,6 +156,50 @@ void main() {
             )
             .photoUrl,
         photoUrl,
+      );
+    },
+  );
+
+  testWidgets(
+    'roster badge converts the backend levelProgressPercentSnapshot into the XP ring',
+    (tester) async {
+      final repository = FakeChallengeRepository(
+        activeOverride: () => _lobby(
+          isOwner: true,
+          participants: [_owner(levelProgressPercentSnapshot: 64)],
+        ),
+      );
+      await tester.pumpWidget(_harness(_screen(repository: repository)));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .widget<RuniacLevelProfileBadge>(
+              find.byType(RuniacLevelProfileBadge),
+            )
+            .progressFraction,
+        closeTo(0.64, 1e-9),
+      );
+    },
+  );
+
+  testWidgets(
+    'roster badge leaves the ring empty when the backend resolved no progress',
+    (tester) async {
+      final repository = FakeChallengeRepository(
+        activeOverride: () =>
+            _lobby(isOwner: true, participants: [_owner()]),
+      );
+      await tester.pumpWidget(_harness(_screen(repository: repository)));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .widget<RuniacLevelProfileBadge>(
+              find.byType(RuniacLevelProfileBadge),
+            )
+            .progressFraction,
+        0,
       );
     },
   );
@@ -452,6 +498,44 @@ void main() {
     // The second row is now over cap and disabled.
     expect(find.text('Invite limit reached'), findsOneWidget);
   });
+
+  testWidgets(
+    'picker rows paint the level progress carried over from the Friends model',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChallengeFriendPickerScreen(
+            cap: 2,
+            onBack: () {},
+            friends: const [
+              ChallengeInvitableFriend(
+                uid: 'a',
+                displayName: 'Ann',
+                initials: 'AN',
+                levelLabel: 'Lv.9',
+                levelProgressFraction: 0.42,
+              ),
+              // A friend whose level never resolved keeps the empty ring.
+              ChallengeInvitableFriend(
+                uid: 'b',
+                displayName: 'Bob',
+                initials: 'BO',
+              ),
+            ],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final rings = tester
+          .widgetList<RuniacLevelProfileBadge>(
+            find.byType(RuniacLevelProfileBadge),
+          )
+          .map((badge) => badge.progressFraction)
+          .toList();
+      expect(rings, [0.42, 0.0]);
+    },
+  );
 
   testWidgets(
     'friend picker avatar exposes profile semantics and the row still '

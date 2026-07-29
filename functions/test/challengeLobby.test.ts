@@ -518,6 +518,7 @@ describe("challenge read models", () => {
         "creditedMeters",
         "displayNameSnapshot",
         "levelLabelSnapshot",
+        "levelProgressPercentSnapshot",
         "reward",
         "role",
         "status",
@@ -546,6 +547,27 @@ describe("challenge read models", () => {
     const { challengeId } = await createChallengeLobbyForCallable(req(OWNER, { tierId: "42K" }), firestore);
     const active = await getActiveChallengeForCallable(req(OWNER, {}), firestore);
     assert.equal(active.challenge?.participants[0]?.levelLabelSnapshot, "");
+  });
+
+  it("getActiveChallenge resolves each participant's current level progress live", async () => {
+    const { challengeId } = await createChallengeLobbyForCallable(req(OWNER, { tierId: "42K" }), firestore);
+    await inviteChallengeFriendsForCallable(req(OWNER, { challengeId, uids: [A] }), firestore);
+    await respondToChallengeInvitationForCallable(req(A, { inviteId: inviteId(challengeId, A), response: "accept" }), firestore);
+
+    await firestore.doc(`userProfiles/${OWNER}`).set({ levelProgressPercent: 64 }, { merge: true });
+    // Out of range and non-numeric values must not reach the client's ring.
+    await firestore.doc(`userProfiles/${A}`).set({ levelProgressPercent: 140 }, { merge: true });
+
+    const active = await getActiveChallengeForCallable(req(OWNER, {}), firestore);
+    const byUid = new Map(active.challenge!.participants.map((p) => [p.uid, p.levelProgressPercentSnapshot]));
+    assert.equal(byUid.get(OWNER), 64);
+    assert.equal(byUid.get(A), 100);
+  });
+
+  it("getActiveChallenge returns zero level progress when the profile carries none", async () => {
+    const { challengeId } = await createChallengeLobbyForCallable(req(OWNER, { tierId: "42K" }), firestore);
+    const active = await getActiveChallengeForCallable(req(OWNER, {}), firestore);
+    assert.equal(active.challenge?.participants[0]?.levelProgressPercentSnapshot, 0);
   });
 
   describe("getActiveChallenge avatarUrlSnapshot", () => {

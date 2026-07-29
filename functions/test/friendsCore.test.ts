@@ -4,6 +4,7 @@ import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 
+import { buildAvatarDownloadUrl, type AvatarUrlContext } from "../src/profile/avatar/avatarPaths.js";
 import { createFriendsService, type FriendsCallableRequest } from "../src/friends/friendsCore.js";
 import { FRIEND_REASON, readFriendReason } from "../src/friends/friendsErrors.js";
 import {
@@ -20,6 +21,20 @@ const BOB = "friends-bob";
 const CAROL = "friends-carol";
 const ADMIN = "friends-admin";
 const ADMIN_CANONICAL = "friends-admin-canonical";
+
+const BUCKET = "runiac-fypp.appspot.com";
+const AVATAR_CONTEXT: AvatarUrlContext = { bucket: BUCKET };
+const AVATAR_TOKEN = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
+const VALID_AVATAR_URL = buildAvatarDownloadUrl({
+  bucket: BUCKET,
+  objectPath: "avatars/0123456789abcdef0123456789abcdef.png",
+  token: AVATAR_TOKEN,
+});
+const FOREIGN_AVATAR_URL = buildAvatarDownloadUrl({
+  bucket: "some-other-bucket.appspot.com",
+  objectPath: "avatars/0123456789abcdef0123456789abcdef.png",
+  token: AVATAR_TOKEN,
+});
 
 let firestore: Firestore;
 let nowMs = Date.UTC(2026, 6, 13, 10, 0, 0);
@@ -160,6 +175,7 @@ describe("Friends discovery and social transitions", () => {
           avatarInitials: "BØ",
           levelLabel: "",
           levelProgressPercent: 0,
+          avatarUrl: "",
         },
       ],
     });
@@ -182,6 +198,7 @@ describe("Friends discovery and social transitions", () => {
           avatarInitials: "BØ",
           levelLabel: "Champion",
           levelProgressPercent: 42,
+          avatarUrl: "",
         },
       ],
     });
@@ -197,6 +214,39 @@ describe("Friends discovery and social transitions", () => {
 
     assert.equal(result.results[0]?.levelLabel, "Lv.7");
     assert.equal(result.results[0]?.levelProgressPercent, 0);
+  });
+
+  it("serves the target's avatar in a search result when the context resolves it", async () => {
+    const friends = serviceWithAvatars();
+    await friends.upsertNickname(request(ALICE, { nickname: "Alice" }));
+    await friends.upsertNickname(request(BOB, { nickname: "Bøb" }));
+    await firestore.doc(`userProfiles/${BOB}`).update({ avatarUrl: VALID_AVATAR_URL });
+
+    const result = await friends.search(request(ALICE, { nickname: "bØB" }));
+
+    assert.equal(result.results[0]?.avatarUrl, VALID_AVATAR_URL);
+  });
+
+  it("drops a foreign-bucket avatar from a search result rather than relaying it", async () => {
+    const friends = serviceWithAvatars();
+    await friends.upsertNickname(request(ALICE, { nickname: "Alice" }));
+    await friends.upsertNickname(request(BOB, { nickname: "Bøb" }));
+    await firestore.doc(`userProfiles/${BOB}`).update({ avatarUrl: FOREIGN_AVATAR_URL });
+
+    const result = await friends.search(request(ALICE, { nickname: "bØB" }));
+
+    assert.equal(result.results[0]?.avatarUrl, "");
+  });
+
+  it("fails closed to an empty avatar when no avatar context is injected", async () => {
+    const friends = service();
+    await friends.upsertNickname(request(ALICE, { nickname: "Alice" }));
+    await friends.upsertNickname(request(BOB, { nickname: "Bøb" }));
+    await firestore.doc(`userProfiles/${BOB}`).update({ avatarUrl: VALID_AVATAR_URL });
+
+    const result = await friends.search(request(ALICE, { nickname: "bØB" }));
+
+    assert.equal(result.results[0]?.avatarUrl, "");
   });
 
   it("checks availability without reserving a nickname and rolls a duplicate submit back", async () => {
@@ -677,6 +727,11 @@ describe("Friends nickname migration", () => {
 
 function service() {
   return createFriendsService({ firestore, nowMs: () => nowMs });
+}
+
+/** The production wiring: `searchFriends` is the one callable given a real avatar context. */
+function serviceWithAvatars() {
+  return createFriendsService({ firestore, nowMs: () => nowMs, avatarContext: AVATAR_CONTEXT });
 }
 
 async function activateNicknames(friends: ReturnType<typeof service>): Promise<void> {

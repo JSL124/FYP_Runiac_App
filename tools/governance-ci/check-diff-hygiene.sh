@@ -228,6 +228,42 @@ is_friends_live_level_path() {
   esac
 }
 
+is_level_progress_ring_capsule_active() {
+  grep -Eq '^- Newly routed level progress ring live fan-out on 2026-07-29 Asia/Singapore: `implementation/roadmap/capsules/level-progress-ring-live-fan-out\.md`' implementation/roadmap/CURRENT.md
+}
+
+# Exact paths touched by the level-progress-ring capsule. Deliberately an
+# explicit file list, not a directory glob for functions/src/leaderboard/* or
+# functions/src/challenge/*: those directories are shared with other capsules'
+# negative-space regression probes (see
+# tests/governance/backend_functions_scope_test.sh), and this capsule's routing
+# bullet is append-only/permanent, so a broad glob would permanently defeat
+# those probes. `functions/src/friends/friendsDiscovery.ts` and
+# `functions/test/friendsCore.test.ts` are already allowlisted by
+# is_friends_live_level_path and are not repeated here.
+is_level_progress_ring_path() {
+  case "$1" in
+    implementation/roadmap/capsules/level-progress-ring-live-fan-out.md|\
+    functions/src/leaderboard/leaderboardTypes.ts|\
+    functions/src/leaderboard/monthlyLeaderboardPlanner.ts|\
+    functions/src/leaderboard/monthlyLeaderboardWriter.ts|\
+    functions/src/leaderboard/leaderboardSeedVerification.ts|\
+    functions/src/challenge/challengeLobbyCore.ts|\
+    functions/src/challenge/challengeLobbySupport.ts|\
+    functions/src/friends/friendsTypes.ts|\
+    functions/src/friends/friendsCore.ts|\
+    functions/src/friends/callable.ts|\
+    functions/test/monthlyLeaderboard.test.ts|\
+    functions/test/monthlyLeaderboardWriter.test.ts|\
+    functions/test/challengeLobby.test.ts)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_admin_automation_policy_capsule_active() {
   grep -Eq '^- Newly routed admin automation & policy control plane on 2026-07-22 Asia/Singapore: `implementation/roadmap/capsules/admin-automation-policy-control-plane\.md`' implementation/roadmap/CURRENT.md
 }
@@ -1001,6 +1037,10 @@ is_allowed_path() {
     return 0
   fi
 
+  if is_level_progress_ring_path "$1" && is_level_progress_ring_capsule_active; then
+    return 0
+  fi
+
   if is_admin_automation_policy_path "$1" && is_admin_automation_policy_capsule_active; then
     return 0
   fi
@@ -1198,6 +1238,10 @@ is_forbidden_path() {
   fi
 
   if is_friends_live_level_path "$1" && is_friends_live_level_capsule_active; then
+    return 1
+  fi
+
+  if is_level_progress_ring_path "$1" && is_level_progress_ring_capsule_active; then
     return 1
   fi
 

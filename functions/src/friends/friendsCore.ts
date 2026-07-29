@@ -1,5 +1,7 @@
 import type { Firestore } from "firebase-admin/firestore";
 
+import type { AvatarUrlContext } from "../profile/avatar/avatarPaths.js";
+import { NULL_AVATAR_URL_CONTEXT } from "../profile/avatar/avatarUrlContextDefaults.js";
 import { blockUser, unblockUser } from "./friendsBlocks.js";
 import { searchFriends } from "./friendsDiscovery.js";
 import { migrateUnicodeNicknameClaims } from "./friendsMigration.js";
@@ -10,10 +12,15 @@ import type { FriendsDependencies } from "./friendsTypes.js";
 
 export type { FriendsCallableRequest } from "./friendsTypes.js";
 
-export function createFriendsService(input: { readonly firestore: Firestore; readonly nowMs?: () => number }) {
+export function createFriendsService(input: {
+  readonly firestore: Firestore;
+  readonly nowMs?: () => number;
+  readonly avatarContext?: AvatarUrlContext;
+}) {
   const dependencies: FriendsDependencies = {
     firestore: input.firestore,
     nowMs: input.nowMs ?? Date.now,
+    avatarContext: input.avatarContext ?? NULL_AVATAR_URL_CONTEXT,
   };
   return {
     checkNicknameAvailability: (request: import("./friendsTypes.js").FriendsCallableRequest) =>

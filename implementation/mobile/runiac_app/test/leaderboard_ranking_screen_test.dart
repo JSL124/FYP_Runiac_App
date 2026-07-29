@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/core/widgets/runiac_avatar_photo.dart';
+import 'package:runiac_app/core/widgets/runiac_level_profile_badge.dart';
 import 'package:runiac_app/features/leaderboard/domain/models/leaderboard_read_model.dart';
 import 'package:runiac_app/features/leaderboard/presentation/leaderboard_status_copy.dart';
 import 'package:runiac_app/features/leaderboard/presentation/models/leaderboard_display_models.dart';
@@ -32,6 +33,7 @@ LeaderboardRankRowDisplaySnapshot _row(
   bool isCurrentUser = false,
   RegionPreviewMedalTone? tone,
   String photoUrl = '',
+  double levelProgressFraction = 0,
 }) {
   return LeaderboardRankRowDisplaySnapshot(
     rankLabel: rankLabel,
@@ -43,6 +45,7 @@ LeaderboardRankRowDisplaySnapshot _row(
     isCurrentUser: isCurrentUser,
     medalTone: tone,
     photoUrl: photoUrl,
+    levelProgressFraction: levelProgressFraction,
   );
 }
 
@@ -136,6 +139,32 @@ void main() {
         find.byKey(const ValueKey('leaderboard_podium_avatar_2')),
       );
       expect(firstAvatar.width, greaterThan(secondAvatar.width));
+    },
+  );
+
+  testWidgets(
+    'each list row paints its own backend-owned XP ring, not a shared empty one',
+    (tester) async {
+      await tester.pumpWidget(
+        _app(
+          _snapshot(
+            topRanks: [
+              _row('#1', 'Alex', levelProgressFraction: 0.64),
+              // A row from a snapshot published before the backend carried the
+              // percent keeps the empty ring every row used to draw.
+              _row('#2', 'Maya'),
+            ],
+          ),
+        ),
+      );
+
+      final rings = tester
+          .widgetList<RuniacLevelProfileBadge>(
+            find.byType(RuniacLevelProfileBadge),
+          )
+          .map((badge) => badge.progressFraction)
+          .toList();
+      expect(rings, [0.64, 0.0]);
     },
   );
 

@@ -346,6 +346,7 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
               initials: friend.avatarInitials,
               levelLabel: friend.levelLabel,
               avatarUrl: friend.avatarUrl,
+              levelProgressFraction: friend.levelProgressFraction ?? 0,
             ),
           )
           .toList(growable: false);

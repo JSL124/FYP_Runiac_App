@@ -4,6 +4,7 @@ import { onCall } from "firebase-functions/v2/https";
 
 import { createFriendsService, type FriendsCallableRequest } from "./friendsCore.js";
 import { withCallableErrorReporting } from "../errors/withErrorReporting.js";
+import { avatarUrlContextFromEnvironment } from "../profile/avatar/context.js";
 
 if (getApps().length === 0) initializeApp();
 
@@ -27,10 +28,14 @@ export const upsertNickname = onCall(
     createFriendsService({ firestore: getFirestore() }).upsertNickname(requestForCore(request))),
 );
 
+// The only friends callable that returns another runner's avatar, so the only
+// one that needs a real avatar context; every other one leaves the service's
+// fail-closed default in place.
 export const searchFriends = onCall(
   { region: "asia-southeast1" },
   withCallableErrorReporting("searchFriends", async (request: RawCallableRequest) =>
-    createFriendsService({ firestore: getFirestore() }).search(requestForCore(request))),
+    createFriendsService({ firestore: getFirestore(), avatarContext: avatarUrlContextFromEnvironment() })
+      .search(requestForCore(request))),
 );
 
 export const sendFriendRequest = onCall(

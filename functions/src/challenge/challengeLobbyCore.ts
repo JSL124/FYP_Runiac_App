@@ -44,6 +44,7 @@ import { NULL_AVATAR_URL_CONTEXT } from "../profile/avatar/avatarUrlContextDefau
 import { assertCallerAccountNotSuspendedInTransaction } from "../security/accountStatus.js";
 import { loadChallengeAccessConfig } from "../config/configLoader.js";
 import { isPremiumSubscription } from "../progression/progressionAuditHelpers.js";
+import { resolveProfileLevelDisplay } from "../progression/profileLevelDisplay.js";
 import {
   emitChallengeInvitationNotifications,
   emitChallengeStartedNotifications,
@@ -921,21 +922,19 @@ async function readParticipantLiveDisplays(
   const snaps = await transaction.getAll(...unique.map((uid) => profileRef(firestore, uid)));
   unique.forEach((uid, index) => {
     const data = snaps[index]?.data();
+    // Both level halves come from the one shared reader `getFriendLevels` and
+    // `getFeedAuthorLevels` use, so a roster row's level and ring read exactly
+    // like the same runner's Friends row. It replaces a local level-label
+    // helper this file used to keep, which had drifted into a duplicate of
+    // that reader's label rules.
+    const levelDisplay = resolveProfileLevelDisplay(data);
     displays.set(uid, {
-      levelLabel: participantLevelLabel(data),
+      levelLabel: levelDisplay.levelLabel,
       avatarUrl: resolveProfileAvatarUrl(data, avatarContext),
+      levelProgressPercent: levelDisplay.levelProgressPercent,
     });
   });
   return displays;
-}
-
-function participantLevelLabel(data: DocumentData | undefined): string {
-  if (data === undefined) return "";
-  const label = data["levelLabel"];
-  if (typeof label === "string" && label.trim().length > 0) return label.trim();
-  const level = data["level"];
-  if (typeof level === "number" && Number.isFinite(level)) return `Lv.${Math.trunc(level)}`;
-  return "";
 }
 
 // ---------------------------------------------------------------------------

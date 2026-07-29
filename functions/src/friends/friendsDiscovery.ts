@@ -6,6 +6,7 @@ import { nextSearchAttemptMs, writeSearchRate } from "./friendsRateLimits.js";
 import { nicknameIndexKey } from "./nickname.js";
 import type { FriendsCallableRequest, FriendsDependencies } from "./friendsTypes.js";
 import { resolveProfileLevelDisplay } from "../progression/profileLevelDisplay.js";
+import { resolveProfileAvatarDisplay } from "../profile/profileIdentityDisplay.js";
 
 export async function searchFriends(
   dependencies: FriendsDependencies,
@@ -41,6 +42,19 @@ export async function searchFriends(
     if (!profileSnapshot.exists || actorBlockSnapshot.exists || candidateBlockSnapshot.exists) return { results: [] };
     const profile = socialProfile(candidateUid, dataOf(profileSnapshot));
     if (profile === undefined || profile.canonicalNickname !== nickname.canonical) return { results: [] };
-    return { results: [{ ...profile.identity, ...resolveProfileLevelDisplay(dataOf(profileSnapshot)) }] };
+    // `profile.identity` is built from the nickname alone (`buildFriendIdentity`),
+    // so it carries no avatar. Without this the one search result renders as an
+    // initials disc while the same runner shows their photo on every other
+    // Friends tab, whose rows resolve the avatar through `getFriendLevels`.
+    // Search never calls that, being the one tab with no social edge yet.
+    return {
+      results: [
+        {
+          ...profile.identity,
+          ...resolveProfileLevelDisplay(dataOf(profileSnapshot)),
+          ...resolveProfileAvatarDisplay(dataOf(profileSnapshot), dependencies.avatarContext),
+        },
+      ],
+    };
   });
 }

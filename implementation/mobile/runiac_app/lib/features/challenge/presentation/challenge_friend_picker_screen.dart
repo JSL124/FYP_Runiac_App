@@ -27,6 +27,7 @@ class ChallengeInvitableFriend {
     required this.initials,
     this.levelLabel = '',
     this.avatarUrl = '',
+    this.levelProgressFraction = 0,
   });
 
   final String uid;
@@ -40,6 +41,12 @@ class ChallengeInvitableFriend {
   /// Raw, not-yet-sanitised avatar photo URL. Empty when the friend has no
   /// photo set.
   final String avatarUrl;
+
+  /// Backend-owned progress toward the next level, 0.0..1.0, painted as the XP
+  /// ring around the row's avatar. Carried over from the Friends read model
+  /// the caller maps from, which resolves it through `getFriendLevels`.
+  /// Never computed on the client.
+  final double levelProgressFraction;
 }
 
 /// Reciprocal-friends picker with a capacity-capped checkbox selection.
@@ -237,7 +244,7 @@ class _FriendPickRow extends StatelessWidget {
                   levelLabel: friend.levelLabel.trim().isEmpty
                       ? 'Lv.0'
                       : friend.levelLabel,
-                  progressFraction: 0,
+                  progressFraction: friend.levelProgressFraction,
                   photoUrl: friend.avatarUrl,
                 ),
               ),

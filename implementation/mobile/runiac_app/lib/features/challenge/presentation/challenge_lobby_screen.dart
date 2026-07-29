@@ -573,6 +573,7 @@ class _ChallengeLobbyScreenState extends State<ChallengeLobbyScreen> {
                 uid: row.uid,
                 displayName: row.displayNameSnapshot,
                 photoUrl: row.avatarUrlSnapshot,
+                levelProgressPercent: row.levelProgressPercentSnapshot,
                 enabled: !row.isCurrentUser,
               ),
               const SizedBox(width: 12),
@@ -661,8 +662,12 @@ class _ChallengeLobbyScreenState extends State<ChallengeLobbyScreen> {
 /// picker use, rendered with the app-wide blue profile disc so every roster
 /// avatar matches how a runner's profile reads elsewhere. [levelLabel] is the
 /// backend-owned level snapshot read back verbatim; an empty label falls back
-/// to the display-only 'Lv.0' placeholder Friends uses. No trusted progress
-/// fraction travels with the roster, so the ring stays empty.
+/// to the display-only 'Lv.0' placeholder Friends uses.
+/// [levelProgressPercent] is the backend-owned 0..100 progress resolved beside
+/// that label, converted here into the ring's 0.0..1.0 — the one arithmetic
+/// step, the same one Friends and Feed rows perform. It defaults to 0 (an
+/// empty ring) for the pending-invitation tile, whose runner is anonymous and
+/// therefore carries no level at all.
 ///
 /// Wrapped in [RunnerProfileAvatarLink] so tapping another runner's badge
 /// opens their public profile. [uid]/[displayName] default to empty, which
@@ -675,6 +680,7 @@ Widget _rosterBadge({
   String uid = '',
   String displayName = '',
   String photoUrl = '',
+  int levelProgressPercent = 0,
   bool enabled = true,
 }) {
   return RunnerProfileAvatarLink(
@@ -688,7 +694,7 @@ Widget _rosterBadge({
       child: RuniacLevelProfileBadge.row(
         initials: initials,
         levelLabel: levelLabel.trim().isEmpty ? 'Lv.0' : levelLabel,
-        progressFraction: 0,
+        progressFraction: (levelProgressPercent / 100).clamp(0.0, 1.0),
         photoUrl: photoUrl,
       ),
     ),

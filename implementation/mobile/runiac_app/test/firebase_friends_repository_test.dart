@@ -56,6 +56,40 @@ void main() {
     expect(user?.nickname, 'grace-teo');
     expect(user?.displayName, 'Grace Teo');
     expect(user?.avatarInitials, 'GT');
+    // A Firestore edge document never carries an avatar; the Friends,
+    // Requests, and Blocked tabs overlay theirs from `getFriendLevels`.
+    expect(user?.avatarUrl, '');
+  });
+
+  test('carries the avatar an enriched searchFriends result supplies', () {
+    const photoUrl =
+        'https://firebasestorage.googleapis.com/v0/b/bucket/o/avatars%2Fgt.png?alt=media&token=tok';
+    // The Search tab is the one tab that never calls `getFriendLevels` — it
+    // has no social edge to the runner yet — so the callable's own payload is
+    // the only chance its row gets to show a photo.
+    final user = mapFriendIdentityDocument(<String, Object?>{
+      'uid': 'runner-b',
+      'nickname': 'grace-teo',
+      'displayName': 'Grace Teo',
+      'avatarInitials': 'GT',
+      'levelProgressPercent': 42,
+      'avatarUrl': photoUrl,
+    });
+
+    expect(user?.avatarUrl, photoUrl);
+    expect(user?.levelProgressFraction, closeTo(0.42, 1e-9));
+  });
+
+  test('tolerates a non-String avatarUrl from an older backend revision', () {
+    final user = mapFriendIdentityDocument(<String, Object?>{
+      'uid': 'runner-b',
+      'nickname': 'grace-teo',
+      'displayName': 'Grace Teo',
+      'avatarInitials': 'GT',
+      'avatarUrl': 42,
+    });
+
+    expect(user?.avatarUrl, '');
   });
 
   test('an incoming request row renders a "Requested …ago" subtitle', () {

@@ -2,6 +2,7 @@ import {
   leaderboardLeagueForKey,
   type LeaderboardLeagueDefinition,
 } from "../progression/leaderboardLeagues.js";
+import type { ProfileLevelDisplay } from "../progression/profileLevelDisplay.js";
 import {
   singaporePlanningAreaForRegionId,
   type SingaporePlanningArea,
@@ -67,6 +68,26 @@ export function planMonthlyLeaderboards(input: {
    * caller without profile access keeps its current behaviour.
    */
   readonly publicAliasByOwner?: ReadonlyMap<string, string>;
+  /**
+   * Per-owner live level display (`levelLabel` + `levelProgressPercent`) read
+   * from `userProfiles` by the caller (`monthlyLeaderboardWriter.ts`, from the
+   * same `ownerFacts` — zero extra reads), through the shared
+   * `resolveProfileLevelDisplay`.
+   *
+   * Both fields resolve here for the same reason the alias does: a
+   * contribution only carries the level captured at the run that wrote it, so
+   * a runner who levels up on a run in a DIFFERENT region never updates this
+   * board's contribution and keeps its old level until they run here again.
+   * Publishing the pair together also keeps them consistent — a live ring next
+   * to a frozen `levelLabel` could show Lv.8 on the pill and Lv.9's progress
+   * on the ring.
+   *
+   * Optional, so every existing planner test and every caller without profile
+   * access keeps its current behaviour: an owner absent from the map (or a
+   * blank label) falls back to the contribution's stored label and to a
+   * `levelProgressPercent` of 0.
+   */
+  readonly levelDisplayByOwner?: ReadonlyMap<string, ProfileLevelDisplay>;
 }): MonthlyLeaderboardPlan {
   const premiumUids = input.currentPremiumUids ?? emptyUidSet;
   const excludePremium = input.excludePremium ?? false;
@@ -154,6 +175,7 @@ export function planMonthlyLeaderboards(input: {
         index + 1,
         input.avatarUrlByOwner,
         input.publicAliasByOwner,
+        input.levelDisplayByOwner,
       ),
     );
     snapshots.push({
@@ -291,7 +313,9 @@ function publicEntry(
   rank: number,
   avatarUrlByOwner: ReadonlyMap<string, string> | undefined,
   publicAliasByOwner: ReadonlyMap<string, string> | undefined,
+  levelDisplayByOwner: ReadonlyMap<string, ProfileLevelDisplay> | undefined,
 ): LeaderboardPublicEntry {
+  const levelDisplay = levelDisplayByOwner?.get(contribution.ownerUid);
   return {
     // Live profile nickname wins over the alias frozen into the contribution
     // at the last run; a blank or missing live value keeps the stored one.
@@ -300,11 +324,15 @@ function publicEntry(
       contribution.publicAlias,
     rankLabel: `#${rank}`,
     scoreLabel: `${contribution.scoreXp.toLocaleString("en-US")} XP`,
-    levelLabel: contribution.levelLabel,
+    // Live profile level wins over the label frozen into the contribution,
+    // same rule as the alias above, and stays paired with the percent below.
+    levelLabel:
+      readRequiredString(levelDisplay?.levelLabel) ?? contribution.levelLabel,
     divisionLabel: league.label,
     regionLabel: area.regionName,
     score: contribution.scoreXp,
     avatarUrl: avatarUrlByOwner?.get(contribution.ownerUid) ?? "",
+    levelProgressPercent: levelDisplay?.levelProgressPercent ?? 0,
   };
 }
 
