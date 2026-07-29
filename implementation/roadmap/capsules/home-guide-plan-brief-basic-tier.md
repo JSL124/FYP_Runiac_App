@@ -32,7 +32,7 @@ Path 2 was already Premium by default and denies Basic before the model call. Pa
 
 ## Allowed Scope
 
-- Modified: `functions/src/config/configLoader.ts` (the `aiHomeCoach` default tier and its comment) and `functions/test/configLoader.test.ts` (the expected default-tier map).
+- Modified: `functions/src/config/configLoader.ts` (the `aiHomeCoach` default tier and its comment), `functions/test/configLoader.test.ts` (the expected default-tier map), and `functions/test/homeGuideAgentCallableSurface.test.ts` (its runner fixture is now entitled, plus the Basic denial case).
 - Flutter, under the approved scaffold prefix: `home_guide_agent.dart` (the `HomeGuideContent` seam, `HomeGuidePlanBrief`, the `planBrief` message kind, `requiresDataConsent`), the new `plan_brief_home_guide_agent.dart`, `rule_based_home_guide_agent.dart` and `cloud_function_home_guide_agent.dart` (seam conformance), `home_guide_cycle.dart`, `home_stage_map.dart` and `home_stage_map_guide.dart`, `home_tab.dart` (agent selection), `feature_access_read_model.dart` (offline default keys), and `privacy_safety_screen.dart` (tier note).
 - Tests: new `plan_brief_home_guide_agent_test.dart`; updated `home_stage_map_widget_test.dart`, `home_guide_cycle_test.dart`, `cloud_function_home_guide_agent_test.dart`.
 - The admin console mirror `website/src/lib/admin/config-validation.ts`, which lives in its own repository and commits separately.
@@ -55,6 +55,7 @@ Not deployed, and the code default alone changes nothing in production: `loadFea
 Completed on 2026-07-29 Asia/Singapore.
 
 - `functions`: `npx tsc --noEmit` clean; `configLoader` + `featureEntitlement` suites 77/77 pass.
+- Emulator (`firebase emulators:exec --only auth,functions,firestore,storage --project runiac-functions-test`, JDK 21): the full main suite **605/605 pass**. Recorded because the first push failed hosted Governance CI: `homeGuideAgentCallableSurface` seeded a consent document but no `users/{uid}`, so its runner read as Basic and every AI-path case took the new denial. The fixture now provisions a Premium runner, and a new case pins the denial contract — a Basic runner gets HTTP 403 `PERMISSION_DENIED` with no `agentGuidanceDaily` document, proving the entitlement check runs before the quota reservation that precedes every model dispatch. The local pre-push run had exercised only the two config suites, which is what let this through.
 - `node tests/cross-system/config-contract-drift.mjs` PASS after the website mirror was updated in the same change.
 - Flutter: `flutter analyze --no-pub` clean.
 - New Flutter cases: the plan brief is a single `planBrief` message; summary-then-numbered-steps ordering; the six-step cap drops the remainder; a step-less plan renders the summary alone; a rest day states the fact and lists nothing; blank steps are dropped and whitespace normalized; the agent is deterministic and reports `requiresDataConsent == false`.

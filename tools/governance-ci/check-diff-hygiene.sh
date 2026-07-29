@@ -685,7 +685,8 @@ is_home_guide_plan_brief_path() {
   case "$1" in
     implementation/roadmap/capsules/home-guide-plan-brief-basic-tier.md|\
     functions/src/config/configLoader.ts|\
-    functions/test/configLoader.test.ts)
+    functions/test/configLoader.test.ts|\
+    functions/test/homeGuideAgentCallableSurface.test.ts)
       return 0
       ;;
     *)
