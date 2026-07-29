@@ -37,8 +37,14 @@ class CloudFunctionHomeGuideAgent implements HomeGuideAgent {
   /// or returns a response this adapter cannot use.
   final HomeGuideAgent fallbackAgent;
 
+  /// True: this adapter sends recent-run-derived plan context to the server,
+  /// which forwards it to the AI provider, so the Home surface must not run it
+  /// without the runner's personalized-guide consent.
   @override
-  Future<HomeGuideBundle> explainTodayPlan(HomeGuideRequest request) async {
+  bool get requiresDataConsent => true;
+
+  @override
+  Future<HomeGuideContent> explainTodayPlan(HomeGuideRequest request) async {
     // Rest days carry no workout copy; the remote callable is built around
     // workout summaries, so compose the rest-day bundle locally instead of
     // sending an empty-workout request to the server.

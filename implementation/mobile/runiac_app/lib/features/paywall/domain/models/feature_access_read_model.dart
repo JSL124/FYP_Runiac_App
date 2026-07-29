@@ -8,8 +8,8 @@
 //
 // The gate this model drives is a UX layer, never the enforcement: features
 // with a server surface (`shareRouteToFeed`, `activityFeedback`,
-// `aiHomeCoach`) are re-checked against the same document inside Cloud
-// Functions, which is what actually denies a Basic runner.
+// `aiHomeCoach`, `workoutBriefing`) are re-checked against the same document
+// inside Cloud Functions, which is what actually denies a Basic runner.
 
 import 'package:flutter/foundation.dart';
 
@@ -28,7 +28,9 @@ class FeatureAccessReadModel {
   /// freshly provisioned environment rather than guessing.
   static const _defaultKeys = <String>[
     'advancedAnalysis',
+    'aiHomeCoach',
     'activityFeedback',
+    'workoutBriefing',
     'shareRouteToFeed',
   ];
 
@@ -54,18 +56,30 @@ class FeatureAccessReadModel {
   /// this model) would have kept enforcing a lock the console had cleared.
   /// Mirrors `CharacterAccessReadModel.fromMap`, which already honours an
   /// empty premium list.
+  ///
+  /// A key the document does not mention at all is a different case from one
+  /// it sets to Basic, and the two must not be conflated: the backend loads
+  /// this document with `deepMerge(DEFAULT_FEATURE_ACCESS_CONFIG, stored)`, so
+  /// an absent key keeps the shipped default and is still denied server-side.
+  /// Reading it as Basic here let a Basic runner past the paywall into a
+  /// callable that then refused them — the gate showed no paywall and the
+  /// feature surfaced its premium-denial copy instead. Absent premium
+  /// defaults are therefore merged back in, while an explicit Basic entry
+  /// still wins, which is what keeps the cleared-lock fix above intact.
   factory FeatureAccessReadModel.fromMap(Map<String, Object?>? data) {
     final features = data?['features'];
     if (features is! Map) {
       return defaults;
     }
     final keys = <String>[];
+    final mentioned = <String>{};
     for (final entry in features.entries) {
       final key = entry.key;
       final value = entry.value;
       if (key is! String || key.trim().isEmpty || value is! Map) {
         continue;
       }
+      mentioned.add(key.trim());
       if (value['minimumTier'] != 'premium') {
         continue;
       }
@@ -74,6 +88,11 @@ class FeatureAccessReadModel {
         continue;
       }
       keys.add(key.trim());
+    }
+    for (final key in _defaultKeys) {
+      if (!mentioned.contains(key)) {
+        keys.add(key);
+      }
     }
     return FeatureAccessReadModel(premiumFeatureKeys: List.unmodifiable(keys));
   }

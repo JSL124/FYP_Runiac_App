@@ -13,18 +13,25 @@ void main() {
       // document gates exactly like a freshly provisioned environment.
       expect(FeatureAccessReadModel.defaults.premiumFeatureKeys, const [
         'advancedAnalysis',
+        'aiHomeCoach',
         'activityFeedback',
+        'workoutBriefing',
         'shareRouteToFeed',
       ]);
     });
 
     test('collects only enabled premium-tier features in document order', () {
+      // Every default key is mentioned, so this exercises the parsing rules
+      // alone with nothing left for the absent-key merge to fill in.
       final model = FeatureAccessReadModel.fromMap(const {
         'features': {
           'advancedAnalysis': {'minimumTier': 'premium', 'enabled': true},
           'goalPlan': {'minimumTier': 'basic', 'enabled': true},
           'shareCards': {'minimumTier': 'premium', 'enabled': false},
           'activityFeedback': {'minimumTier': 'premium'},
+          'aiHomeCoach': {'minimumTier': 'basic', 'enabled': true},
+          'workoutBriefing': {'minimumTier': 'basic', 'enabled': true},
+          'shareRouteToFeed': {'minimumTier': 'basic', 'enabled': true},
         },
       });
 
@@ -32,6 +39,27 @@ void main() {
         'advancedAnalysis',
         'activityFeedback',
       ]);
+    });
+
+    test('a key the document never mentions keeps its shipped default', () {
+      // The backend loads the same document with
+      // deepMerge(DEFAULT_FEATURE_ACCESS_CONFIG, stored), so an absent key is
+      // still Premium server-side. Reading it as Basic here used to walk a
+      // Basic runner past the paywall into a callable that then refused them.
+      final model = FeatureAccessReadModel.fromMap(const {
+        'features': {
+          'advancedAnalysis': {'minimumTier': 'basic', 'enabled': true},
+        },
+      });
+
+      expect(model.isPremiumFeature('advancedAnalysis'), isFalse);
+      expect(model.isPremiumFeature('workoutBriefing'), isTrue);
+      expect(model.isPremiumFeature('activityFeedback'), isTrue);
+      expect(model.isPremiumFeature('aiHomeCoach'), isTrue);
+      expect(model.isPremiumFeature('shareRouteToFeed'), isTrue);
+      // Keys that ship as Basic are not resurrected by the merge.
+      expect(model.isPremiumFeature('shareCards'), isFalse);
+      expect(model.isPremiumFeature('healthWorkoutImport'), isFalse);
     });
 
     test('malformed features map falls back to defaults', () {
@@ -44,17 +72,25 @@ void main() {
     test('an all-basic catalog is honoured, not read as never-configured', () {
       // Collapsing this into the defaults used to resurrect advancedAnalysis
       // as premium — which now would keep enforcing a lock the admin had
-      // deliberately cleared.
+      // deliberately cleared. The catalog is spelled out in full, which is
+      // what the console actually writes, so an explicit Basic entry is what
+      // is being asserted rather than the absent-key merge.
       final model = FeatureAccessReadModel.fromMap(const {
         'features': {
           'advancedAnalysis': {'minimumTier': 'basic', 'enabled': true},
+          'aiHomeCoach': {'minimumTier': 'basic', 'enabled': true},
+          'activityFeedback': {'minimumTier': 'basic', 'enabled': true},
+          'workoutBriefing': {'minimumTier': 'basic', 'enabled': true},
           'shareRouteToFeed': {'minimumTier': 'basic', 'enabled': true},
+          'shareCards': {'minimumTier': 'basic', 'enabled': true},
+          'healthWorkoutImport': {'minimumTier': 'basic', 'enabled': true},
         },
       });
 
       expect(model.premiumFeatureKeys, isEmpty);
       expect(model.isPremiumFeature('advancedAnalysis'), isFalse);
       expect(model.isPremiumFeature('shareRouteToFeed'), isFalse);
+      expect(model.isPremiumFeature('workoutBriefing'), isFalse);
     });
 
     test('entries that cannot be parsed are skipped, not fatal', () {
@@ -66,7 +102,19 @@ void main() {
         },
       });
 
-      expect(model.premiumFeatureKeys, const ['shareCards']);
+      expect(model.isPremiumFeature('shareCards'), isTrue);
+      expect(model.isPremiumFeature('broken'), isFalse);
+      expect(model.isPremiumFeature(''), isFalse);
+      // An unparseable entry is skipped rather than counted as mentioned, so
+      // the rest of the catalog still falls back to its shipped defaults.
+      expect(model.premiumFeatureKeys, const [
+        'shareCards',
+        'advancedAnalysis',
+        'aiHomeCoach',
+        'activityFeedback',
+        'workoutBriefing',
+        'shareRouteToFeed',
+      ]);
     });
   });
 

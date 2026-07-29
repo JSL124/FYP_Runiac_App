@@ -263,7 +263,7 @@ class _HomeStageMapState extends State<HomeStageMap>
     if (stageId == null ||
         agent == null ||
         request == null ||
-        widget.guideConsentStatus != HomeGuideConsentStatus.granted) {
+        !_guideConsentSatisfied(agent)) {
       _clearGuideCycle();
       return;
     }
@@ -280,6 +280,17 @@ class _HomeStageMapState extends State<HomeStageMap>
       return;
     }
     cycle.updateSignature(signature);
+  }
+
+  /// Whether [agent] may run given the runner's personalized-guide consent.
+  ///
+  /// Only an agent that sends data to the AI provider is gated. The on-device
+  /// plan read-out composes from plan copy already on screen, so withholding
+  /// it would deny the runner their own plan over a consent that never
+  /// covered it.
+  bool _guideConsentSatisfied(HomeGuideAgent agent) {
+    return !agent.requiresDataConsent ||
+        widget.guideConsentStatus == HomeGuideConsentStatus.granted;
   }
 
   void _clearGuideCycle() {
@@ -999,9 +1010,11 @@ class _HomeStageMapState extends State<HomeStageMap>
     final maxBubbleHeight = math.max(1.0, charTopY - gap - safeTop);
 
     // Consent is collected once via the onboarding bottom sheet and managed in
-    // Account → Privacy & Safety. When it is not granted the guide is hidden
-    // entirely (the cycle is never created; see [_syncGuideBubble]).
-    if (widget.guideConsentStatus != HomeGuideConsentStatus.granted) {
+    // Account → Privacy & Safety. It governs the AI guide only: without it the
+    // AI guide is hidden entirely (the cycle is never created; see
+    // [_syncGuideBubble]), while an on-device guide still presents.
+    final agent = widget.guideAgent;
+    if (agent == null || !_guideConsentSatisfied(agent)) {
       return null;
     }
 
@@ -1113,9 +1126,7 @@ class _HomeStageMapState extends State<HomeStageMap>
                 child: GestureDetector(
                   key: const ValueKey<String>('homeGuideCharacterTapTarget'),
                   behavior: HitTestBehavior.opaque,
-                  onTap:
-                      widget.guideConsentStatus ==
-                          HomeGuideConsentStatus.granted
+                  onTap: _guideConsentSatisfied(widget.guideAgent!)
                       ? _toggleGuideBubble
                       : null,
                   child: const SizedBox.expand(),

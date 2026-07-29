@@ -66,29 +66,45 @@ class HomeGuideCycleSignature {
   int get hashCode => _encodedValue.hashCode;
 }
 
-/// Read-only local state for the Home guide's three-message cycle.
+/// Read-only local state for the Home guide's message cycle.
+///
+/// The message count comes from the resolved [content], not from a constant:
+/// the AI guide answers with a three-slot cycle and the on-device plan
+/// read-out answers with a single message, and both present here.
 @immutable
 class HomeGuideCycleState {
   const HomeGuideCycleState({
     required this.isVisible,
     required this.isLoading,
     required this.currentIndex,
-    required this.bundle,
+    required this.content,
   });
 
   final bool isVisible;
   final bool isLoading;
   final int currentIndex;
-  final HomeGuideBundle? bundle;
+  final HomeGuideContent? content;
 
-  HomeGuideMessage? get currentMessage =>
-      isLoading ? null : bundle?.messages[currentIndex];
+  List<HomeGuideMessage> get _messages =>
+      content?.messages ?? const <HomeGuideMessage>[];
+
+  HomeGuideMessage? get currentMessage {
+    if (isLoading || currentIndex >= _messages.length) {
+      return null;
+    }
+    return _messages[currentIndex];
+  }
+
+  /// Whether tapping the bubble moves to another message. Single-message
+  /// content has nowhere to advance to, so the bubble offers no tap
+  /// affordance and announces no "tap to hear" hint.
+  bool get canAdvance => !isLoading && _messages.length > 1;
 }
 
-/// Owns the local-only presentation cycle for a complete guide bundle.
+/// Owns the local-only presentation cycle for one guide answer.
 ///
 /// It makes no persistence, progression, quota, or network-policy decision.
-/// The supplied [HomeGuideAgent] remains the sole source of guide bundles.
+/// The supplied [HomeGuideAgent] remains the sole source of guide content.
 class HomeGuideCycleController extends ChangeNotifier {
   HomeGuideCycleController({
     required this.agent,
@@ -98,17 +114,17 @@ class HomeGuideCycleController extends ChangeNotifier {
   }
 
   final HomeGuideAgent agent;
-  final Map<HomeGuideCycleSignature, Future<HomeGuideBundle>> _bundleFutures =
-      <HomeGuideCycleSignature, Future<HomeGuideBundle>>{};
+  final Map<HomeGuideCycleSignature, Future<HomeGuideContent>> _bundleFutures =
+      <HomeGuideCycleSignature, Future<HomeGuideContent>>{};
 
   late HomeGuideCycleSignature _activeSignature;
-  late Future<HomeGuideBundle> _activeBundleFuture;
+  late Future<HomeGuideContent> _activeBundleFuture;
   late HomeGuideCycleState _state;
   bool _isDisposed = false;
 
   HomeGuideCycleState get state => _state;
 
-  /// Completes after the active bundle has settled, including a safe error
+  /// Completes after the active content has settled, including a safe error
   /// settlement. It exists for deterministic widget/controller coordination.
   Future<void> get settled => _activeBundleFuture.then<void>(
     (_) {},
@@ -133,7 +149,7 @@ class HomeGuideCycleController extends ChangeNotifier {
       isVisible: true,
       isLoading: _state.isLoading,
       currentIndex: _state.currentIndex,
-      bundle: _state.bundle,
+      content: _state.content,
     );
     notifyListeners();
   }
@@ -146,21 +162,23 @@ class HomeGuideCycleController extends ChangeNotifier {
       isVisible: false,
       isLoading: _state.isLoading,
       currentIndex: _state.currentIndex,
-      bundle: _state.bundle,
+      content: _state.content,
     );
     notifyListeners();
   }
 
-  /// Advances only after a complete bundle has resolved.
+  /// Advances only after content has resolved, and only when there is more
+  /// than one message to move between.
   void advance() {
-    if (!_state.isVisible || _state.currentMessage == null) {
+    if (!_state.isVisible || !_state.canAdvance) {
       return;
     }
+    final messageCount = _state.content!.messages.length;
     _state = HomeGuideCycleState(
       isVisible: _state.isVisible,
       isLoading: false,
-      currentIndex: (_state.currentIndex + 1) % 3,
-      bundle: _state.bundle,
+      currentIndex: (_state.currentIndex + 1) % messageCount,
+      content: _state.content,
     );
     notifyListeners();
   }
@@ -169,7 +187,7 @@ class HomeGuideCycleController extends ChangeNotifier {
     _activeSignature = signature;
     final bundleFuture = _bundleFutures.putIfAbsent(
       signature,
-      () => Future<HomeGuideBundle>.sync(
+      () => Future<HomeGuideContent>.sync(
         () => agent.explainTodayPlan(signature.request),
       ),
     );
@@ -178,20 +196,20 @@ class HomeGuideCycleController extends ChangeNotifier {
       isVisible: true,
       isLoading: true,
       currentIndex: 0,
-      bundle: null,
+      content: null,
     );
     notifyListeners();
     bundleFuture.then(
-      (bundle) => _settleBundle(signature, bundleFuture, bundle),
+      (content) => _settleContent(signature, bundleFuture, content),
       onError: (Object _, StackTrace _) =>
           _settleFailure(signature, bundleFuture),
     );
   }
 
-  void _settleBundle(
+  void _settleContent(
     HomeGuideCycleSignature signature,
-    Future<HomeGuideBundle> bundleFuture,
-    HomeGuideBundle bundle,
+    Future<HomeGuideContent> bundleFuture,
+    HomeGuideContent content,
   ) {
     if (!_isActive(signature, bundleFuture)) {
       return;
@@ -200,14 +218,14 @@ class HomeGuideCycleController extends ChangeNotifier {
       isVisible: _state.isVisible,
       isLoading: false,
       currentIndex: 0,
-      bundle: bundle,
+      content: content,
     );
     notifyListeners();
   }
 
   void _settleFailure(
     HomeGuideCycleSignature signature,
-    Future<HomeGuideBundle> bundleFuture,
+    Future<HomeGuideContent> bundleFuture,
   ) {
     if (!_isActive(signature, bundleFuture)) {
       return;
@@ -216,14 +234,14 @@ class HomeGuideCycleController extends ChangeNotifier {
       isVisible: _state.isVisible,
       isLoading: false,
       currentIndex: 0,
-      bundle: null,
+      content: null,
     );
     notifyListeners();
   }
 
   bool _isActive(
     HomeGuideCycleSignature signature,
-    Future<HomeGuideBundle> bundleFuture,
+    Future<HomeGuideContent> bundleFuture,
   ) =>
       !_isDisposed &&
       signature == _activeSignature &&

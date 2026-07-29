@@ -31,6 +31,10 @@ beforeEach(async () => {
     disclosureVersion: 1,
     granted: true,
   });
+  // `config/featureAccess.aiHomeCoach` defaults to Premium, so the AI guide
+  // paths below need an entitled runner. A Basic runner is covered by its own
+  // case, which owns the denial contract.
+  await setSubscription("premium");
 });
 
 describe("homeGuideAgent callable emulator surface", { skip: process.env["FIRESTORE_EMULATOR_HOST"] === undefined }, () => {
@@ -49,6 +53,19 @@ describe("homeGuideAgent callable emulator surface", { skip: process.env["FIREST
 
     assert.equal(response.status, 400);
     assert.equal(readCallableErrorStatus(body), "INVALID_ARGUMENT");
+    assert.equal((await dailyDocument()).exists, false);
+  });
+
+  it("denies a Basic runner before reserving quota or reaching the model", async () => {
+    await setSubscription("basic");
+
+    const response = await postCallable(validPayload(), USER_UID);
+    const body: unknown = await response.json();
+
+    assert.equal(response.status, 403);
+    assert.equal(readCallableErrorStatus(body), "PERMISSION_DENIED");
+    // No daily document means the model was never dispatched: the entitlement
+    // check runs before the quota reservation that precedes every dispatch.
     assert.equal((await dailyDocument()).exists, false);
   });
 
@@ -235,6 +252,10 @@ function validPayload(): Record<string, unknown> {
     steps: ["Warm up", "Run easily"],
     supportiveNote: "Keep it comfortable.",
   };
+}
+
+async function setSubscription(subscriptionStatus: "basic" | "premium"): Promise<void> {
+  await firestore.doc(`users/${USER_UID}`).set({ subscriptionStatus }, { merge: true });
 }
 
 async function clearCollection(

@@ -805,6 +805,11 @@ WeeklyWorkoutDetailSnapshot _workoutDetailFor(
     ],
     effortGuide: workout.detail.effortGuide,
     coachNotes: [...workout.detail.coachNotes, snapshot.safetyNote],
+    briefingContext: WorkoutBriefingContext(
+      planId: snapshot.id,
+      weekNumber: weekNumber,
+      weekFocus: _weekFocusFor(snapshot, weekNumber),
+    ),
     startActionLabel: canStartPlannedRun && !alreadyCompletedToday
         ? 'Start this run'
         : null,
@@ -819,6 +824,17 @@ WeeklyWorkoutDetailSnapshot _workoutDetailFor(
           )
         : null,
   );
+}
+
+/// The week's focus line, which the detail screen never renders but the AI
+/// briefing uses to say what this week is building toward.
+String? _weekFocusFor(BeginnerAdaptivePlanSnapshot snapshot, int weekNumber) {
+  for (final week in snapshot.weeks) {
+    if (week.weekNumber == weekNumber) {
+      return week.focus.trim().isEmpty ? null : week.focus;
+    }
+  }
+  return null;
 }
 
 String _preferredScheduleLabelFor(List<BeginnerAdaptiveWorkout> workouts) {

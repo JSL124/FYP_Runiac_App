@@ -573,6 +573,41 @@ is_profile_stats_visibility_path() {
   esac
 }
 
+is_workout_detail_briefing_agent_capsule_active() {
+  grep -Eq '^- Newly routed workout detail briefing agent on 2026-07-29 Asia/Singapore: `implementation/roadmap/capsules/workout-detail-briefing-agent\.md`' implementation/roadmap/CURRENT.md
+}
+
+# New source files introduced by the routed workout-detail briefing capsule.
+# `functions/package.json`, `functions/src/index.ts`, and
+# `functions/src/config/configLoader.ts` are already covered by
+# `is_historical_backend_functions_path`, but are listed for symmetry with the
+# diff-hygiene allowlist so both gates describe the same capsule surface.
+is_workout_detail_briefing_agent_path() {
+  case "$1" in
+    functions/package.json|\
+    functions/src/index.ts|\
+    functions/src/config/configLoader.ts|\
+    functions/src/agent/workoutBriefingAgent.ts|\
+    functions/src/agent/workoutBriefingAgentHandler.ts|\
+    functions/src/agent/workoutBriefingContractFields.ts|\
+    functions/src/agent/workoutBriefingContracts.ts|\
+    functions/src/agent/workoutBriefingModel.ts|\
+    functions/src/agent/workoutBriefingModelOutput.ts|\
+    functions/src/agent/workoutBriefingQuota.ts|\
+    functions/src/agent/workoutBriefingTypes.ts|\
+    functions/test/workoutBriefingAgentCallableSurface.test.ts|\
+    functions/test/workoutBriefingContracts.test.ts|\
+    functions/test/workoutBriefingModel.test.ts|\
+    functions/test/feedCallableSurface.test.ts|\
+    functions/test/configLoader.test.ts)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 # New source files introduced by the routed admin role / premium expiry capsule.
 # Only the genuinely new paths need listing here; already-tracked files this
 # capsule modifies are handled by the diff-hygiene allowlist.
@@ -853,6 +888,10 @@ is_forbidden_config_or_secret() {
   fi
 
   if is_profile_stats_visibility_path "$1" && is_profile_stats_visibility_capsule_active; then
+    return 1
+  fi
+
+  if is_workout_detail_briefing_agent_path "$1" && is_workout_detail_briefing_agent_capsule_active; then
     return 1
   fi
 

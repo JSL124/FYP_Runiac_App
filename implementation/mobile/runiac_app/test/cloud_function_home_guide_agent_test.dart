@@ -60,7 +60,8 @@ void main() {
           },
         );
 
-        final bundle = await agent.explainTodayPlan(_request());
+        final bundle =
+            await agent.explainTodayPlan(_request()) as HomeGuideBundle;
 
         expect(bundle.isFromRemoteAgent, isTrue);
         expect(bundle.planSummary.text, 'Your easy run is ready for today.');
@@ -103,7 +104,8 @@ void main() {
               _validResponse(source: 'unavailable', delivery: 'fallback'),
         );
 
-        final bundle = await agent.explainTodayPlan(_request());
+        final bundle =
+            await agent.explainTodayPlan(_request()) as HomeGuideBundle;
 
         _expectFallback(bundle);
         expect(bundle.planSummary.text, 'Your easy run is ready for today.');
@@ -115,7 +117,8 @@ void main() {
         callable: (_) async => _validResponse(delivery: 'cache'),
       );
 
-      final bundle = await agent.explainTodayPlan(_request());
+      final bundle =
+          await agent.explainTodayPlan(_request()) as HomeGuideBundle;
 
       expect(bundle.isFromRemoteAgent, isTrue);
       expect(bundle.messages, hasLength(3));
@@ -230,7 +233,9 @@ void main() {
             fallbackAgent: const RuleBasedHomeGuideAgent(),
           );
 
-          _expectFallback(await agent.explainTodayPlan(_request()));
+          _expectFallback(
+            await agent.explainTodayPlan(_request()) as HomeGuideBundle,
+          );
         },
       );
     }
@@ -240,7 +245,9 @@ void main() {
         callable: (_) async => throw StateError('network unavailable'),
       );
 
-      _expectFallback(await agent.explainTodayPlan(_request()));
+      _expectFallback(
+            await agent.explainTodayPlan(_request()) as HomeGuideBundle,
+          );
     });
 
     test(
@@ -250,9 +257,11 @@ void main() {
           callable: (_) async => throw StateError('network unavailable'),
         );
 
-        final bundle = await agent.explainTodayPlan(
-          _request(supportiveNote: 'A steady baseline is a strong start.'),
-        );
+        final bundle =
+            await agent.explainTodayPlan(
+                  _request(supportiveNote: 'A steady baseline is a strong start.'),
+                )
+                as HomeGuideBundle;
 
         _expectFallback(bundle);
         expect(
