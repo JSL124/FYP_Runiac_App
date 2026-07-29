@@ -16,6 +16,13 @@ import 'tutorial_anchor_registry.dart';
 /// pauses/resumes it around any modal route or sheet the shell presents
 /// (e.g. Home's data-consent bottom sheet).
 ///
+/// Auto-start eligibility is decided entirely by the durable per-uid
+/// [seenStore]: `armed && !completed`. This is deliberately durable-only —
+/// killing the app mid-tour must replay it from step 1 on the next launch,
+/// which only works if nothing session-scoped can veto a start the store
+/// permits. [autoStartArmed] is an optional accelerator, not a gate; see its
+/// own doc.
+///
 /// `seenStore == null` makes the tour completely inert: the overlay never
 /// builds and no store call is ever made. This keeps previews and every
 /// pre-existing shell test unaffected, since the shell defaults
@@ -33,6 +40,17 @@ class AppTourHost extends StatefulWidget {
 
   final AppTourController controller;
   final AppTourSeenStore? seenStore;
+
+  /// Optional accelerator only: when this flips from `false` to `true` while
+  /// mounted, the host re-evaluates auto-start immediately instead of
+  /// waiting for the next lifecycle/frontmost trigger (e.g. the very moment
+  /// onboarding finishes this session). The durable [seenStore] state
+  /// (`isArmed(uid) && !isCompleted(uid)`) is the sole gate — this flag can
+  /// only ever *hasten* a start the store already permits, never *prevent*
+  /// one the store permits or *cause* one the store forbids. In particular,
+  /// a process restart that resets this back to `false` (it is session-only,
+  /// never persisted) must not and does not stop a still-armed, not-yet-
+  /// completed tour from auto-starting on the fresh mount.
   final bool autoStartArmed;
   final String? ownerUid;
   final Widget child;
@@ -75,6 +93,13 @@ class _AppTourHostState extends State<AppTourHost> with WidgetsBindingObserver {
       oldWidget.controller.removeListener(_handleControllerNotify);
       widget.controller.addListener(_handleControllerNotify);
       _lastKnownRunning = widget.controller.running;
+    }
+    if (!oldWidget.autoStartArmed && widget.autoStartArmed) {
+      // Pure nudge: re-check now rather than waiting for the next
+      // lifecycle/frontmost trigger. `_maybeAutoStart` re-derives everything
+      // from the durable store, so this can only accelerate a start the
+      // store already permits — it cannot force one the store forbids.
+      unawaited(_maybeAutoStart());
     }
   }
 
@@ -208,12 +233,18 @@ class _AppTourHostState extends State<AppTourHost> with WidgetsBindingObserver {
     return completer.future;
   }
 
+  /// The durable [AppTourSeenStore] is the sole gate — `armed && !completed`
+  /// alone is both necessary and sufficient. This deliberately never
+  /// consults [AppTourHost.autoStartArmed]: that flag is session-only and
+  /// resets on every process restart, so gating on it here was exactly the
+  /// bug (a user who killed the app mid-tour never saw it again, even though
+  /// the durable `armed` flag correctly stayed `true`).
   Future<void> _maybeAutoStart() async {
     if (_autoStarted || !mounted) {
       return;
     }
     final seenStore = widget.seenStore;
-    if (seenStore == null || !widget.autoStartArmed) {
+    if (seenStore == null) {
       return;
     }
     if (widget.controller.currentTab != 0) {

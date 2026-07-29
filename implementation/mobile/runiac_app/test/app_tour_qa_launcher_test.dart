@@ -1,9 +1,20 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/features/home/presentation/stage_map/home_stage_background_sequence.dart';
 import 'package:runiac_app/features/home/presentation/stage_map/home_stage_map_model.dart';
 import 'package:runiac_app/features/tutorial/presentation/qa/app_tour_qa_launcher.dart';
 import 'package:runiac_app/features/you/presentation/adapters/generated_plan_you_display_adapter.dart';
+
+/// Advances the fake clock in explicit ticks rather than `pumpAndSettle`,
+/// matching `app_tour_flow_test.dart`'s helper of the same name: the
+/// controller's anchor poll and the host's settle-delay both wait via plain
+/// `Timer`s that do not necessarily schedule a new frame while pending.
+Future<void> _pumpTourSettle(WidgetTester tester, {int ticks = 20}) async {
+  for (var i = 0; i < ticks; i++) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+}
 
 void main() {
   group('buildAppTourQaApp', () {
@@ -53,6 +64,35 @@ void main() {
         // than the 7 day slots in a week means at least one rest day.
         expect(plan.weeks.first.workouts.length, lessThan(7));
         expect(plan.weeks.first.workouts, isNotEmpty);
+      },
+    );
+
+    testWidgets(
+      'the app tour auto-starts on the QA surface with no manual menu tap '
+      '— the surface\'s store reports armed/not-completed but '
+      'showOnboarding is false, so this only works if the durable store '
+      'alone is enough to gate auto-start',
+      (tester) async {
+        final app = buildAppTourQaApp(
+          releaseMode: false,
+          surface: appTourQaSurfaceName,
+        );
+        expect(app, isNotNull);
+
+        await tester.pumpWidget(app!);
+        await _pumpTourSettle(tester);
+
+        expect(
+          find.byKey(const ValueKey('appTourNextButton')),
+          findsOneWidget,
+        );
+        expect(
+          find.text(
+            "Hi, I'm Bolt — your running buddy. Give me 30 seconds and "
+            "I'll show you around.",
+          ),
+          findsOneWidget,
+        );
       },
     );
   });

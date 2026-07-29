@@ -227,10 +227,14 @@ class _RuniacAppState extends State<RuniacApp> {
 
   /// Whether onboarding has just finished this session and the app tour is
   /// therefore owed to this user. Forwarded to `RuniacShell` as
-  /// `appTourAutoStartArmed`; auto-start additionally requires the durable
-  /// per-uid "armed" marker to be `true` and "completed" to be `false`, so an
-  /// existing runner who reinstalls the app (skipping onboarding, with wiped
-  /// preferences) is never ambushed by the tour.
+  /// `appTourAutoStartArmed` — a session-only accelerator, not a gate: the
+  /// durable per-uid "armed"/"completed" markers in `appTourSeenStore` are
+  /// the sole authority on whether auto-start is allowed (`armed &&
+  /// !completed`), so an existing runner who reinstalls the app (skipping
+  /// onboarding, with wiped preferences, hence `armed == false`) is never
+  /// ambushed by the tour, and a runner who kills the app mid-tour (this
+  /// flag resets to `false` on every restart) still gets it replayed on the
+  /// next launch because the durable `armed` flag alone is enough.
   bool _appTourArmed = false;
   String? _authStateError;
   bool _showMissingProfileSignupPrompt = false;

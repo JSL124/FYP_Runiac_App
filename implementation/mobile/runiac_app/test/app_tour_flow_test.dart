@@ -388,6 +388,87 @@ void main() {
   });
 
   testWidgets(
+    'restart replay: a durable armed-and-not-completed store still '
+    'auto-starts the tour at step 1 with no session-arm signal at all — '
+    'exactly the state after the app is killed mid-tour and relaunched',
+    (tester) async {
+      final authRepository = FakeRuniacAuthRepository()..emitSignedIn();
+      addTearDown(authRepository.dispose);
+      final seenStore = InMemoryAppTourSeenStore();
+      await seenStore.setArmed(uid: _ownerUid, armed: true);
+
+      await tester.pumpWidget(
+        _buildHarness(
+          authRepository: authRepository,
+          seenStore: seenStore,
+          // Deliberately false: a fresh process never re-derives the
+          // session-only "onboarding just finished" signal. The durable
+          // store alone must be enough to replay the tour.
+          autoStartArmed: false,
+        ),
+      );
+      await _pumpTourSettle(tester);
+
+      expect(_stepCounter(tester), '1 of 12');
+      expect(
+        _bubbleText(tester),
+        "Hi, I'm Bolt — your running buddy. Give me 30 seconds and I'll "
+        'show you around.',
+      );
+      expect(find.byKey(const ValueKey('appTourNextButton')), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'returning user: a store that was never armed (reinstall, wiped '
+    'preferences) never auto-starts even though the session flag is true',
+    (tester) async {
+      final authRepository = FakeRuniacAuthRepository()..emitSignedIn();
+      addTearDown(authRepository.dispose);
+      final seenStore = InMemoryAppTourSeenStore();
+      // Never call setArmed: a brand-new store's armed/completed both
+      // default to false, matching a reinstall with wiped local prefs.
+
+      await tester.pumpWidget(
+        _buildHarness(
+          authRepository: authRepository,
+          seenStore: seenStore,
+          autoStartArmed: true,
+        ),
+      );
+      await _pumpTourSettle(tester);
+
+      expect(find.byKey(const ValueKey('appTourNextButton')), findsNothing);
+      expect(await seenStore.isArmed(uid: _ownerUid), isFalse);
+    },
+  );
+
+  testWidgets(
+    'already completed: a durable armed-and-completed store never '
+    'auto-starts, even with the session flag true',
+    (tester) async {
+      final authRepository = FakeRuniacAuthRepository()..emitSignedIn();
+      addTearDown(authRepository.dispose);
+      final seenStore = InMemoryAppTourSeenStore();
+      await seenStore.setArmed(uid: _ownerUid, armed: true);
+      await seenStore.markCompleted(uid: _ownerUid);
+      expect(await seenStore.isArmed(uid: _ownerUid), isTrue);
+      expect(await seenStore.isCompleted(uid: _ownerUid), isTrue);
+
+      await tester.pumpWidget(
+        _buildHarness(
+          authRepository: authRepository,
+          seenStore: seenStore,
+          autoStartArmed: true,
+        ),
+      );
+      await _pumpTourSettle(tester);
+
+      expect(find.byKey(const ValueKey('appTourNextButton')), findsNothing);
+    },
+  );
+
+  testWidgets(
     'FeedPostList tags only the first post card with feedFirstPost, at a '
     'size well under the whole-screen fallback',
     (tester) async {

@@ -121,8 +121,10 @@ class RuniacShell extends StatefulWidget {
   /// entirely: the overlay never builds and no store call is ever made.
   final AppTourSeenStore? appTourSeenStore;
 
-  /// Whether the app tour is eligible to auto-start once armed and not yet
-  /// completed. Has no effect when [appTourSeenStore] is `null`.
+  /// Session-only accelerator forwarded to `AppTourHost.autoStartArmed`; it
+  /// can hasten an auto-start the durable [appTourSeenStore] already permits
+  /// but can never gate or block one. Has no effect when [appTourSeenStore]
+  /// is `null`. See `AppTourHost.autoStartArmed` for the full contract.
   final bool appTourAutoStartArmed;
   final AdaptivePlanEstimateReadModel? adaptivePlanEstimate;
 
