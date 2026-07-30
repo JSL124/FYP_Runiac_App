@@ -1,6 +1,6 @@
 # Capsule: Review-Triage — Notification Delivery, Owner Isolation, Redaction, and Model-Spend Cap
 
-Status: implemented locally. Not committed, not deployed.
+Status: committed as `15678607`, `a3fa70ad`, `6608e5e1`, merged to `main` via PR #47 as `3e11a176`, and DEPLOYED to `runiac-fypp` on 2026-07-30 (five functions, scoped). See the deploy record in CURRENT.md.
 Routed: 2026-07-30 Asia/Singapore (explicit user request).
 Lane: Backend Guarded Lane (ADR-002 emulator-first, ADR-003). Backend changes
 are behaviour fixes to existing functions plus one operator-CLI safety guard;
