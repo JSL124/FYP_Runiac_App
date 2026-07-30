@@ -16,6 +16,7 @@ class MainActivity : FlutterActivity() {
     private val planNotificationScheduler: RuniacPlanNotificationScheduler by lazy {
         RuniacPlanNotificationScheduler(this)
     }
+    private val haptics: RuniacHaptics by lazy { RuniacHaptics(this) }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -81,6 +82,27 @@ class MainActivity : FlutterActivity() {
             flutterEngine.dartExecutor.binaryMessenger,
             PHONE_MOTION_CADENCE_EVENTS_CHANNEL,
         ).setStreamHandler(RuniacPhoneMotionCadenceStream(this))
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            HAPTICS_CHANNEL,
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                PLAY_HAPTIC_METHOD -> {
+                    val kind = RuniacHapticKind.fromWireName(call.arguments as? String)
+                    if (kind == null) {
+                        result.error(
+                            UNKNOWN_HAPTIC_KIND_CODE,
+                            "Unknown haptic kind: ${call.arguments}",
+                            null,
+                        )
+                    } else {
+                        haptics.play(kind)
+                        result.success(null)
+                    }
+                }
+                else -> result.notImplemented()
+            }
+        }
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
             RUN_FOREGROUND_SERVICE_CHANNEL,
@@ -234,6 +256,9 @@ class MainActivity : FlutterActivity() {
             "runiac/phone_motion_cadence_events"
         private const val RUN_FOREGROUND_SERVICE_CHANNEL =
             "runiac/run_foreground_service"
+        private const val HAPTICS_CHANNEL = "runiac/haptics"
+        private const val PLAY_HAPTIC_METHOD = "play"
+        private const val UNKNOWN_HAPTIC_KIND_CODE = "unknown-haptic-kind"
         private const val REQUEST_POST_NOTIFICATIONS_PERMISSION_METHOD =
             "requestPostNotificationsPermission"
         private const val PLAN_NOTIFICATIONS_REQUEST_PERMISSION_METHOD =
