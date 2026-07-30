@@ -48,7 +48,20 @@ class NotificationCenterScreen extends StatefulWidget {
     ),
   ];
 
-  static const _notificationRows = [..._beforeRunRows, ..._afterRunRows];
+  static const _socialRows = <_NotificationPreferenceRowData>[
+    _NotificationPreferenceRowData(
+      preference: NotificationPreference.socialActivity,
+      icon: Icons.favorite_border,
+      title: 'Likes and comments',
+      subtitle: 'When a friend likes or comments on your shared run.',
+    ),
+  ];
+
+  static const _notificationRows = [
+    ..._beforeRunRows,
+    ..._afterRunRows,
+    ..._socialRows,
+  ];
 
   @override
   State<NotificationCenterScreen> createState() =>
@@ -137,6 +150,17 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                       _NotificationGroup(
                         label: 'AFTER YOUR RUN',
                         rows: NotificationCenterScreen._afterRunRows,
+                        settings: _settings,
+                        onRowChanged: (preference, value) {
+                          _setSettings(
+                            _settings.withPreference(preference, value),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      _NotificationGroup(
+                        label: 'SOCIAL',
+                        rows: NotificationCenterScreen._socialRows,
                         settings: _settings,
                         onRowChanged: (preference, value) {
                           _setSettings(

@@ -1,7 +1,8 @@
 // Focused coverage for curated haptic moments: run lifecycle, XP/level-up
-// reveal, plan completion, challenge-earned ceremony, and the save-success
-// overlay. Each moment is asserted through a recording fake injected via
-// `RuniacHapticsScope`, never against the real platform channel.
+// reveal, plan completion, challenge-earned ceremony, the save-success
+// overlay, and feed like/comment engagement. Each moment is asserted through
+// a recording fake injected via `RuniacHapticsScope`, never against the real
+// platform channel.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -10,6 +11,7 @@ import 'package:runiac_app/core/haptics/runiac_haptics_scope.dart';
 import 'package:runiac_app/core/widgets/runiac_success_check_overlay.dart';
 import 'package:runiac_app/features/challenge/domain/models/challenge_enums.dart';
 import 'package:runiac_app/features/challenge/presentation/challenge_result_ceremony.dart';
+import 'package:runiac_app/features/feed/presentation/current_session_feed.dart';
 import 'package:runiac_app/features/home/presentation/plan_completion_ceremony.dart';
 import 'package:runiac_app/features/run/domain/models/xp_update_display_model.dart';
 import 'package:runiac_app/features/run/presentation/run_launch_screen.dart';
@@ -303,6 +305,100 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(recorder.calls.skip(afterPause), contains('impactLight'));
+    });
+  });
+
+  // Feed engagement runs on the static demo timeline: `feed-current-001`
+  // starts unliked and `feed-friend-001` starts liked, so both directions of
+  // the like toggle are reachable without a backend.
+  group('feed engagement', () {
+    Future<void> pumpFeed(
+      WidgetTester tester,
+      RecordingRuniacHaptics recorder,
+    ) async {
+      // Tall enough that the first two posts are both on screen and tappable.
+      tester.view
+        ..physicalSize = const Size(390, 2400)
+        ..devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        _wrap(recorder, const Scaffold(body: CurrentSessionFeed())),
+      );
+      await tester.pumpAndSettle();
+      expect(recorder.calls, isEmpty, reason: 'no haptic before any tap');
+    }
+
+    testWidgets('liking fires impactLight and unliking fires selection', (
+      tester,
+    ) async {
+      final recorder = RecordingRuniacHaptics();
+      await pumpFeed(tester, recorder);
+
+      await tester.tap(
+        find.byKey(const ValueKey('feed-like-action-feed-current-001')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(recorder.calls, <String>['impactLight']);
+
+      await tester.tap(
+        find.byKey(const ValueKey('feed-like-action-feed-friend-001')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(recorder.calls, <String>['impactLight', 'selection']);
+    });
+
+    testWidgets('opening comments fires selection and posting one fires '
+        'impactLight', (tester) async {
+      final recorder = RecordingRuniacHaptics();
+      await pumpFeed(tester, recorder);
+
+      await tester.tap(
+        find.byKey(const ValueKey('feed-comment-action-feed-current-001')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(recorder.calls, <String>['selection']);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('feed-comment-input-feed-current-001')),
+        'Nice pace!',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('feed-comment-submit-feed-current-001')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(recorder.calls, <String>['selection', 'impactLight']);
+    });
+
+    testWidgets('a rejected comment fires error instead of impactLight', (
+      tester,
+    ) async {
+      final recorder = RecordingRuniacHaptics();
+      await pumpFeed(tester, recorder);
+
+      await tester.tap(
+        find.byKey(const ValueKey('feed-comment-action-feed-current-001')),
+      );
+      await tester.pumpAndSettle();
+
+      // Whitespace-only passes the composer's non-empty enablement check but
+      // fails the trimmed 1-500 character rule.
+      await tester.enterText(
+        find.byKey(const ValueKey('feed-comment-input-feed-current-001')),
+        '   ',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('feed-comment-submit-feed-current-001')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(recorder.calls, <String>['selection', 'error']);
     });
   });
 }

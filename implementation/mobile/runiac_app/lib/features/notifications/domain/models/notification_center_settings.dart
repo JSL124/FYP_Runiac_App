@@ -3,6 +3,7 @@ enum NotificationPreference {
   todaysPlanReminder,
   missedRunNudge,
   planUpdates,
+  socialActivity,
 }
 
 class NotificationCenterSettings {
@@ -12,6 +13,7 @@ class NotificationCenterSettings {
     required this.todaysPlanReminderEnabled,
     required this.missedRunNudgeEnabled,
     required this.planUpdatesEnabled,
+    this.socialActivityEnabled = true,
   });
 
   static const defaults = NotificationCenterSettings(
@@ -20,6 +22,7 @@ class NotificationCenterSettings {
     todaysPlanReminderEnabled: true,
     missedRunNudgeEnabled: true,
     planUpdatesEnabled: true,
+    socialActivityEnabled: true,
   );
 
   final bool notificationsEnabled;
@@ -27,6 +30,7 @@ class NotificationCenterSettings {
   final bool todaysPlanReminderEnabled;
   final bool missedRunNudgeEnabled;
   final bool planUpdatesEnabled;
+  final bool socialActivityEnabled;
 
   int get enabledPreferenceCount {
     return [
@@ -34,6 +38,7 @@ class NotificationCenterSettings {
       todaysPlanReminderEnabled,
       missedRunNudgeEnabled,
       planUpdatesEnabled,
+      socialActivityEnabled,
     ].where((enabled) => enabled).length;
   }
 
@@ -43,6 +48,7 @@ class NotificationCenterSettings {
       NotificationPreference.todaysPlanReminder => todaysPlanReminderEnabled,
       NotificationPreference.missedRunNudge => missedRunNudgeEnabled,
       NotificationPreference.planUpdates => planUpdatesEnabled,
+      NotificationPreference.socialActivity => socialActivityEnabled,
     };
   }
 
@@ -52,6 +58,7 @@ class NotificationCenterSettings {
     bool? todaysPlanReminderEnabled,
     bool? missedRunNudgeEnabled,
     bool? planUpdatesEnabled,
+    bool? socialActivityEnabled,
   }) {
     return NotificationCenterSettings(
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
@@ -62,6 +69,8 @@ class NotificationCenterSettings {
       missedRunNudgeEnabled:
           missedRunNudgeEnabled ?? this.missedRunNudgeEnabled,
       planUpdatesEnabled: planUpdatesEnabled ?? this.planUpdatesEnabled,
+      socialActivityEnabled:
+          socialActivityEnabled ?? this.socialActivityEnabled,
     );
   }
 
@@ -82,6 +91,9 @@ class NotificationCenterSettings {
       NotificationPreference.planUpdates => copyWith(
         planUpdatesEnabled: enabled,
       ),
+      NotificationPreference.socialActivity => copyWith(
+        socialActivityEnabled: enabled,
+      ),
     };
   }
 
@@ -92,7 +104,8 @@ class NotificationCenterSettings {
         other.planStartReminderEnabled == planStartReminderEnabled &&
         other.todaysPlanReminderEnabled == todaysPlanReminderEnabled &&
         other.missedRunNudgeEnabled == missedRunNudgeEnabled &&
-        other.planUpdatesEnabled == planUpdatesEnabled;
+        other.planUpdatesEnabled == planUpdatesEnabled &&
+        other.socialActivityEnabled == socialActivityEnabled;
   }
 
   @override
@@ -103,6 +116,7 @@ class NotificationCenterSettings {
       todaysPlanReminderEnabled,
       missedRunNudgeEnabled,
       planUpdatesEnabled,
+      socialActivityEnabled,
     );
   }
 }

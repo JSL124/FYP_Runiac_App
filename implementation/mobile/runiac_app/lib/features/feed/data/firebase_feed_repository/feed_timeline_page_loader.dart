@@ -118,13 +118,9 @@ class FeedTimelinePagingSession {
   /// `authorLevelLabel` are all frozen at publish time, and `feedPosts` is
   /// closed to client writes, so this overlay is the only thing that shows a
   /// renamed author under their current name on posts they already published.
-  ///
-  /// Each field is overlaid independently and only when the backend resolved
-  /// a non-empty value. A post keeps its stored value when the resolver has
-  /// nothing for its author — including when the resolver itself fails, since
-  /// it swallows its own errors, and when an older backend deployment returns
-  /// no identity at all. An empty resolved value must never erase what the
-  /// post already carries.
+  /// See [FeedAuthorLevelResolver.overlay] for the never-erase-a-stored-value
+  /// contract this applies per post; a direct single-post read (feed
+  /// notification tap-through) shares that same helper.
   Future<void> _overlayAuthorLevels(
     List<FeedPostReadModel> page,
     bool Function() isDisposed,
@@ -134,27 +130,7 @@ class FeedTimelinePagingSession {
     await levelResolver.ensureResolved(authorUids);
     if (isDisposed()) return;
     for (var index = 0; index < page.length; index++) {
-      final resolved = levelResolver[page[index].authorUserId];
-      if (resolved == null) continue;
-      final levelLabel = resolved.levelLabel.trim();
-      final displayName = resolved.displayName.trim();
-      final avatarInitials = resolved.avatarInitials.trim();
-      final avatarUrl = resolved.avatarUrl.trim();
-      if (levelLabel.isEmpty &&
-          displayName.isEmpty &&
-          avatarInitials.isEmpty &&
-          avatarUrl.isEmpty) {
-        continue;
-      }
-      page[index] = page[index].copyWith(
-        authorDisplayName: displayName.isEmpty ? null : displayName,
-        authorAvatarInitials: avatarInitials.isEmpty ? null : avatarInitials,
-        authorAvatarUrl: avatarUrl.isEmpty ? null : avatarUrl,
-        authorLevelLabel: levelLabel.isEmpty ? null : levelLabel,
-        authorLevelProgressFraction: levelLabel.isEmpty
-            ? null
-            : resolved.levelProgressFraction,
-      );
+      page[index] = levelResolver.overlay(page[index]);
     }
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/haptics/runiac_haptics_scope.dart';
 import '../../../../core/theme/runiac_colors.dart';
 import '../../../../core/widgets/runiac_level_profile_badge.dart';
 import '../../../profile/presentation/widgets/runner_profile_avatar_link.dart';
@@ -119,7 +120,7 @@ class FeedPostSection extends StatelessWidget {
                 value: post.likeCountLabel,
                 highlighted: post.isLikedByViewer,
                 enabled: controller.mutationsEnabled,
-                onPressed: () => controller.toggleLike(post.postId),
+                onPressed: () => _likePressed(context),
                 actionKey: ValueKey('feed-like-action-${post.postId}'),
               ),
               const SizedBox(width: 22),
@@ -131,7 +132,7 @@ class FeedPostSection extends StatelessWidget {
                 value: post.commentCountLabel,
                 highlighted: post.hasViewerCommented,
                 enabled: controller.mutationsEnabled && post.canComment,
-                onPressed: () => controller.openComments(context, post),
+                onPressed: () => _commentPressed(context),
                 actionKey: ValueKey('feed-comment-action-${post.postId}'),
               ),
             ],
@@ -144,6 +145,27 @@ class FeedPostSection extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  /// Confirms the tap in the hand before the optimistic like lands on screen.
+  ///
+  /// Adding a like is the affirmative action, so it gets the stronger light
+  /// impact; taking one back is a quieter selection change. The haptic fires
+  /// for the tap itself, not for the server round trip, so an offline or
+  /// rolled-back like still feels answered rather than dead.
+  void _likePressed(BuildContext context) {
+    final haptics = RuniacHapticsScope.maybeOf(context);
+    if (post.isLikedByViewer) {
+      haptics?.selection();
+    } else {
+      haptics?.impactLight();
+    }
+    controller.toggleLike(post.postId);
+  }
+
+  void _commentPressed(BuildContext context) {
+    RuniacHapticsScope.maybeOf(context)?.selection();
+    controller.openComments(context, post);
   }
 }
 

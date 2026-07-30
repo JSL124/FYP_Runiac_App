@@ -1023,6 +1023,86 @@ describe('owner-owned client records', () => {
     await assertFails(updateDoc(prefs, { serverManagedTokenState: deleteField() }));
   });
 
+  it('allows owners to create and update the social activity notification toggle', async () => {
+    await assertSucceeds(
+      setDoc(doc(dbFor('alice'), 'notificationPreferences/alice'), {
+        ...notificationPrefs,
+        socialActivityEnabled: true,
+      }),
+    );
+
+    const prefs = doc(dbFor('alice'), 'notificationPreferences/alice');
+    await assertSucceeds(updateDoc(prefs, { socialActivityEnabled: false }));
+  });
+
+  it('allows the client to merge-set only ownerUid, socialActivityEnabled, and updatedAt onto an existing preferences doc', async () => {
+    await seed('notificationPreferences/alice', notificationPrefs);
+
+    await assertSucceeds(
+      setDoc(
+        doc(dbFor('alice'), 'notificationPreferences/alice'),
+        {
+          ownerUid: 'alice',
+          socialActivityEnabled: false,
+          updatedAt: 2,
+        },
+        { merge: true },
+      ),
+    );
+  });
+
+  it('allows the client to merge-set the social activity toggle onto a preferences doc that has never existed', async () => {
+    // The real first mirror write. `notificationPreferences/{uid}` has never
+    // been written by the app, so the client's merge-set lands as a rules
+    // `create` carrying only these three keys — not the full fixture the
+    // create test above sends.
+    await assertSucceeds(
+      setDoc(
+        doc(dbFor('alice'), 'notificationPreferences/alice'),
+        {
+          ownerUid: 'alice',
+          socialActivityEnabled: true,
+          updatedAt: 1,
+        },
+        { merge: true },
+      ),
+    );
+  });
+
+  it('denies non-owners from creating or updating the social activity notification toggle', async () => {
+    await assertFails(
+      setDoc(doc(dbFor('bob'), 'notificationPreferences/alice'), {
+        ...notificationPrefs,
+        socialActivityEnabled: true,
+      }),
+    );
+
+    await seed('notificationPreferences/alice', notificationPrefs);
+    await assertFails(
+      updateDoc(
+        doc(dbFor('bob'), 'notificationPreferences/alice'),
+        { socialActivityEnabled: false },
+      ),
+    );
+  });
+
+  it('denies unknown keys on notification preferences create and update', async () => {
+    await assertFails(
+      setDoc(doc(dbFor('alice'), 'notificationPreferences/alice'), {
+        ...notificationPrefs,
+        unexpectedKey: true,
+      }),
+    );
+
+    await seed('notificationPreferences/alice', notificationPrefs);
+    await assertFails(
+      updateDoc(
+        doc(dbFor('alice'), 'notificationPreferences/alice'),
+        { unexpectedKey: true },
+      ),
+    );
+  });
+
   it('allows notification inbox owners to read and list their items', async () => {
     await seed('notificationInbox/alice/items/notification-001', notificationInboxItem);
 
@@ -1055,6 +1135,34 @@ describe('owner-owned client records', () => {
         deletedAt: Timestamp.fromDate(new Date('2026-07-08T10:01:00.000Z')),
         updatedAt: Timestamp.fromDate(new Date('2026-07-08T10:01:00.000Z')),
       }),
+    );
+  });
+
+  it('pins the server-shaped notification inbox split for social activity notifications: owner read/readAt-update yes, client create no', async () => {
+    // The social activity notification the socialActivityEnabled toggle
+    // gates is delivered server-side (no clientManaged field), exactly like
+    // today's Challenge notifications. Owners must still be able to read it
+    // and mark it read, but only the Admin SDK may create it.
+    await seed('notificationInbox/alice/items/notification-001', notificationInboxItem);
+
+    const inboxItem = doc(
+      dbFor('alice'),
+      'notificationInbox/alice/items/notification-001',
+    );
+
+    await assertSucceeds(getDoc(inboxItem));
+    await assertSucceeds(
+      updateDoc(inboxItem, {
+        readAt: Timestamp.fromDate(new Date('2026-07-08T10:00:00.000Z')),
+        updatedAt: Timestamp.fromDate(new Date('2026-07-08T10:00:00.000Z')),
+      }),
+    );
+
+    await assertFails(
+      setDoc(
+        doc(dbFor('alice'), 'notificationInbox/alice/items/notification-002'),
+        notificationInboxItem,
+      ),
     );
   });
 

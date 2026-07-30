@@ -39,7 +39,9 @@ import '../../features/notifications/data/cloud_firestore_notification_inbox_doc
 import '../../features/notifications/data/cloud_functions_notification_device_callable.dart';
 import '../../features/notifications/data/firebase_messaging_push_notification_client.dart';
 import '../../features/notifications/data/firestore_notification_inbox_repository.dart';
+import '../../features/notifications/data/firestore_notification_preference_mirror.dart';
 import '../../features/notifications/domain/repositories/notification_inbox_repository.dart';
+import '../../features/notifications/domain/repositories/notification_preference_mirror.dart';
 import '../../features/notifications/domain/services/notification_registration_service.dart';
 import '../../features/paywall/data/firestore_character_access_repository.dart';
 import '../../features/paywall/data/firestore_feature_access_repository.dart';
@@ -117,6 +119,8 @@ class RuniacFirebaseBootstrap {
           feedRepository: const StaticFeedRepository(),
           notificationInboxRepository:
               const StaticNotificationInboxRepository(),
+          notificationPreferenceMirror:
+              const NoopNotificationPreferenceMirror(),
           notificationRegistrationService: null,
           challengeRepository: const StaticChallengeRepository(),
           challengeResultPresenter: null,
@@ -190,6 +194,7 @@ class RuniacFirebaseBootstrap {
           ownerUidProvider: () => authRepository.currentUser?.uid,
           documentStore: CloudFirestoreNotificationInboxDocumentStore(),
         ),
+        notificationPreferenceMirror: FirestoreNotificationPreferenceMirror(),
         notificationRegistrationService: NotificationRegistrationService(
           client: FirebaseMessagingPushNotificationClient(),
           callable: CloudFunctionsNotificationDeviceCallable(),
@@ -279,6 +284,7 @@ class RuniacFirebaseBootstrap {
         ownerUidProvider: () => authRepository.currentUser?.uid,
         documentStore: CloudFirestoreNotificationInboxDocumentStore(),
       ),
+      notificationPreferenceMirror: FirestoreNotificationPreferenceMirror(),
       notificationRegistrationService: NotificationRegistrationService(
         client: FirebaseMessagingPushNotificationClient(),
         callable: CloudFunctionsNotificationDeviceCallable(),
@@ -392,6 +398,7 @@ class RuniacFirebaseBootstrapResult {
     required this.adaptivePlanEstimateRepository,
     required this.feedRepository,
     required this.notificationInboxRepository,
+    required this.notificationPreferenceMirror,
     required this.notificationRegistrationService,
     required this.challengeRepository,
     required this.challengeResultPresenter,
@@ -441,6 +448,11 @@ class RuniacFirebaseBootstrapResult {
   final AdaptivePlanEstimateRepository adaptivePlanEstimateRepository;
   final FeedRepository feedRepository;
   final NotificationInboxRepository notificationInboxRepository;
+
+  /// Best-effort mirror of the derived Social-activity boolean into
+  /// `notificationPreferences/{uid}`. The static/no-config path supplies the
+  /// no-op implementation.
+  final NotificationPreferenceMirror notificationPreferenceMirror;
   final NotificationRegistrationService? notificationRegistrationService;
 
   /// Server-owned Challenge distance-system source. Firebase-active paths supply

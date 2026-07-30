@@ -23,6 +23,7 @@ import '../../challenge/presentation/challenge_progress_screen.dart';
 import '../../challenge/presentation/challenge_result_presentation_controller.dart';
 import '../../challenge/presentation/challenge_result_screen.dart';
 import '../../challenge/presentation/home_active_challenge_display.dart';
+import '../../feed/domain/feed_engagement_notification_routing.dart';
 import '../../notifications/domain/models/notification_inbox_item.dart';
 import '../../plan/domain/plan_completion_seen_store.dart';
 import '../../friends/data/static_friends_repository.dart';
@@ -87,6 +88,7 @@ class HomeTab extends StatefulWidget {
     this.activeRunSessionCoordinator,
     this.onNotificationSettingsChanged,
     this.onAccountProfileChanged,
+    this.onOpenFeedPostComments,
   });
 
   final RuniacAuthRepository authRepository;
@@ -158,6 +160,12 @@ class HomeTab extends StatefulWidget {
   /// Fired after the Account profile screen closes, because an edit there —
   /// a nickname above all — changes identity the shell hands to other tabs.
   final VoidCallback? onAccountProfileChanged;
+
+  /// Tapped when a feed-engagement notification (a like or comment on the
+  /// runner's own shared post) is opened from the inbox: the shell switches
+  /// to the Feed tab and requests the tapped post's comment sheet. `null`
+  /// (previews/tests) leaves such items with no destination.
+  final void Function(String postId)? onOpenFeedPostComments;
 
   @override
   State<HomeTab> createState() => _HomeTabState();
@@ -798,14 +806,34 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
   void _openNotificationInbox(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (context) {
+        builder: (routeContext) {
           return NotificationInboxPage(
             repository: widget.notificationInboxRepository,
-            onOpenItem: (item) => _openChallengeNotification(context, item),
+            onOpenItem: (item) => _openInboxNotification(routeContext, item),
           );
         },
       ),
     );
+  }
+
+  /// Routes a tapped inbox item. A feed-engagement item (a like or comment on
+  /// the runner's own shared post) is tried first: it switches to the Feed
+  /// tab and requests the tapped post's comment sheet there, popping the
+  /// inbox route first since the comment sheet opens on the root Navigator
+  /// and would otherwise render underneath it. Everything else — including
+  /// every challenge item and any unrecognised/legacy payload — falls
+  /// through unchanged to the existing challenge router.
+  Future<void> _openInboxNotification(
+    BuildContext routeContext,
+    NotificationInboxItem item,
+  ) async {
+    final feedTarget = feedEngagementNotificationTargetFor(item.data);
+    if (feedTarget != null) {
+      Navigator.of(routeContext).pop();
+      widget.onOpenFeedPostComments?.call(feedTarget.postId);
+      return;
+    }
+    await _openChallengeNotification(routeContext, item);
   }
 
   /// Routes a tapped challenge inbox item to its destination. Non-challenge

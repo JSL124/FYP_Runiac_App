@@ -1,3 +1,4 @@
+import '../../domain/models/feed_display_models.dart';
 import 'feed_data_port.dart';
 
 /// Session-scoped cache that overlays live author levels onto Feed posts and
@@ -55,4 +56,37 @@ class FeedAuthorLevelResolver {
   /// Clears every cached level. Called on pull-to-refresh so a fresh Feed
   /// load re-resolves rather than reusing a stale session cache.
   void invalidate() => _cache.clear();
+
+  /// Overlays this resolver's cached live level onto [post]'s author, the
+  /// same never-erase-a-stored-value way the timeline paging path overlays
+  /// every post it emits.
+  ///
+  /// Each field is overlaid independently and only when the backend
+  /// resolved a non-empty value; [post] is returned unchanged when nothing
+  /// is cached for its author, including when [ensureResolved] itself
+  /// swallowed a failure. An empty resolved value must never erase what
+  /// [post] already carries.
+  FeedPostReadModel overlay(FeedPostReadModel post) {
+    final resolved = lookup(post.authorUserId);
+    if (resolved == null) return post;
+    final levelLabel = resolved.levelLabel.trim();
+    final displayName = resolved.displayName.trim();
+    final avatarInitials = resolved.avatarInitials.trim();
+    final avatarUrl = resolved.avatarUrl.trim();
+    if (levelLabel.isEmpty &&
+        displayName.isEmpty &&
+        avatarInitials.isEmpty &&
+        avatarUrl.isEmpty) {
+      return post;
+    }
+    return post.copyWith(
+      authorDisplayName: displayName.isEmpty ? null : displayName,
+      authorAvatarInitials: avatarInitials.isEmpty ? null : avatarInitials,
+      authorAvatarUrl: avatarUrl.isEmpty ? null : avatarUrl,
+      authorLevelLabel: levelLabel.isEmpty ? null : levelLabel,
+      authorLevelProgressFraction: levelLabel.isEmpty
+          ? null
+          : resolved.levelProgressFraction,
+    );
+  }
 }

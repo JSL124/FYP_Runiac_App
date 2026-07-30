@@ -5,6 +5,7 @@ import '../comments/feed_comment_page_loader.dart';
 import 'feed_author_buffers.dart';
 import 'feed_author_level_resolver.dart';
 import 'feed_data_port.dart';
+import 'feed_post_display_mapper.dart';
 import 'feed_timeline_lifecycle.dart';
 import 'feed_timeline_page_loader.dart';
 import 'feed_timeline_state_mutator.dart';
@@ -191,6 +192,29 @@ class FirebaseFeedRepository
   Future<Uint8List> readThumbnail(String postId) => _lifecycle.isDisposed
       ? Future<Uint8List>.error(StateError('Feed repository is disposed.'))
       : port.readThumbnail(postId);
+
+  @override
+  Future<FeedPostReadModel?> readPost(String postId) =>
+      _lifecycle.enqueue(() => _readPost(postId));
+
+  /// Resolves [postId] directly through [FeedDataPort.readPublishedPost] —
+  /// no paging — then runs it through the exact same display mapper and
+  /// author-level overlay every paged post gets, so the result cannot be
+  /// told apart from a timeline row. Deliberately does not catch a port
+  /// failure: it propagates so [readPost]'s caller can tell "the read itself
+  /// failed" apart from "resolved to nothing", which the author-level
+  /// overlay step never needs to make since [FeedAuthorLevelResolver]
+  /// already swallows its own errors.
+  Future<FeedPostReadModel?> _readPost(String postId) async {
+    if (_lifecycle.isDisposed) return null;
+    final viewer = _viewer;
+    if (viewer == null) return null;
+    final document = await port.readPublishedPost(postId);
+    if (_lifecycle.isDisposed || document == null) return null;
+    final mapped = FeedPostDisplayMapper.map(document, viewer.currentUserId);
+    await _levelResolver.ensureResolved(<String>{mapped.authorUserId});
+    return _lifecycle.isDisposed ? null : _levelResolver.overlay(mapped);
+  }
 
   @override
   Future<FeedTimelineState> reconcileAccess() =>

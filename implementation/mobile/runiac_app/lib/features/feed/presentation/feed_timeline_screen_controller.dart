@@ -6,19 +6,42 @@ import '../domain/repositories/feed_repository.dart';
 import 'current_session_feed_fallback.dart';
 import 'current_session_feed_store.dart';
 import 'current_session_feed_timeline.dart';
+import 'feed_comment_intent_controller.dart';
 import 'widgets/feed_sheets.dart';
+
+/// Result of [FeedTimelineScreenController.openCommentsForPostId].
+enum FeedCommentOpenOutcome {
+  /// The post was found and its comment sheet was opened.
+  opened,
+
+  /// The post could not be found in the timeline, nor by a direct
+  /// [FeedTimelineRepository.readPost] lookup.
+  notFound,
+
+  /// The post could not be conclusively resolved (the direct lookup itself
+  /// failed, e.g. offline), or it was found but cannot be commented on right
+  /// now (deleted, reported, or mutations are disabled for the current
+  /// timeline source).
+  unavailable,
+}
 
 class FeedTimelineScreenController extends ChangeNotifier {
   FeedTimelineScreenController(
     this._repository,
     this._viewerContext, [
     this._currentAuthorProfile,
+    this._commentIntent,
   ]) {
     scrollController.addListener(_loadMoreNearEnd);
   }
 
   final FeedRepository _repository;
   final FeedViewerContext? _viewerContext;
+
+  /// Notification tap-through intent, cleared when the signed-in owner
+  /// changes so a stale request never auto-opens a sheet for the previous
+  /// account's post. `null` outside the composition root (previews/tests).
+  final FeedCommentIntentController? _commentIntent;
   final ScrollController scrollController = ScrollController();
   final _fallback = CurrentSessionFeedFallback();
   final Set<String> _requestedThumbnails = <String>{};
@@ -64,6 +87,7 @@ class FeedTimelineScreenController extends ChangeNotifier {
     if (nextRevision == _ownerRevision) return false;
     _ownerRevision = nextRevision;
     _fallback.clear();
+    _commentIntent?.clear();
     _notify();
     return true;
   }
@@ -188,6 +212,61 @@ class FeedTimelineScreenController extends ChangeNotifier {
   }
 
   bool get mutationsEnabled => _state?.mutationsEnabled ?? true;
+
+  /// Opens the comment sheet for [postId] the same way a normal tap on an
+  /// already-visible post does, resolving the post first when it is not
+  /// (yet) loaded.
+  ///
+  /// Resolution order: the already-loaded [posts] first (zero network);
+  /// otherwise one direct [CurrentSessionFeedTimeline.readPost] call. Paging
+  /// (`refresh`/`loadMore`) is deliberately NOT used to resolve a notified
+  /// post: the feed is ordered by post creation time, so an engagement
+  /// notification (a friend liked or commented today) can arrive for a post
+  /// arbitrarily far back — someone commenting on a run shared months ago —
+  /// which paging-until-found could never bound. Worse, this timeline fans
+  /// out one query per friend per page, so paging on a single notification
+  /// tap could cost hundreds or thousands of reads for a user with many
+  /// friends. A direct read is O(1) and `firestore.rules`-permitted, because
+  /// a feed-engagement notification is only ever delivered to the post's own
+  /// owner.
+  ///
+  /// Returns [FeedCommentOpenOutcome.notFound] when the post genuinely
+  /// cannot be resolved, [FeedCommentOpenOutcome.unavailable] when the read
+  /// itself fails (offline, etc.), when it resolves but can no longer be
+  /// commented on (deleted/reported), or when mutations are disabled for the
+  /// current timeline source, and [FeedCommentOpenOutcome.opened] once
+  /// [openComments] has been invoked for it.
+  Future<FeedCommentOpenOutcome> openCommentsForPostId(
+    BuildContext context,
+    String postId,
+  ) async {
+    var found = _findPost(postId);
+    if (found == null) {
+      try {
+        found = await _timeline.readPost(postId);
+      } catch (_) {
+        return FeedCommentOpenOutcome.unavailable;
+      }
+      if (!context.mounted) return FeedCommentOpenOutcome.notFound;
+    }
+    if (found == null) {
+      return FeedCommentOpenOutcome.notFound;
+    }
+    if (!found.canComment || !mutationsEnabled) {
+      return FeedCommentOpenOutcome.unavailable;
+    }
+    await openComments(context, found);
+    return FeedCommentOpenOutcome.opened;
+  }
+
+  FeedPostReadModel? _findPost(String postId) {
+    for (final post in posts) {
+      if (post.postId == postId) {
+        return post;
+      }
+    }
+    return null;
+  }
 
   Future<void> showOptions(BuildContext context, FeedPostReadModel post) =>
       showCurrentSessionFeedPostOptions(
