@@ -191,6 +191,131 @@ void main() {
     });
 
     test(
+      'isolates the device from the previous owner even when the remote '
+      'unregister fails',
+      () async {
+        // A sign-out while offline throws here. Before the local teardown was
+        // moved ahead of the remote call, the previous owner's message
+        // subscriptions stayed live with `_started` still true, so the next
+        // sign-in reattached to that stream and the previous account's pushes
+        // were written into the new account's inbox.
+        final client = FakePushNotificationClient(
+          permissionStatus: PushNotificationPermissionStatus.authorized,
+          token: 'initial-token',
+        );
+        final callable = FakeNotificationDeviceCallable(unregisterFails: true);
+        var uid = 'runner-1';
+        final service = NotificationRegistrationService(
+          client: client,
+          callable: callable,
+          ownerUidProvider: () => uid,
+        );
+        final received = <String>[];
+        final subscription = service.messages.listen(
+          (message) => received.add(message.id),
+        );
+
+        await service.start();
+        await expectLater(service.unregisterCurrentDevice(), throwsStateError);
+
+        // The previous owner's stream is detached: a late push for runner-1
+        // never reaches a listener.
+        client.emitForegroundMessage(
+          const PushNotificationMessage(id: 'late-for-runner-1'),
+        );
+        await pumpEventQueue();
+        expect(received, isEmpty);
+
+        // And the next owner registers normally rather than being silently
+        // skipped by an already-started service.
+        uid = 'runner-2';
+        client.token = 'next-token';
+        await service.start();
+
+        expect(
+          callable.registerCalls.map((call) => '${call.uid}:${call.token}'),
+          ['runner-1:initial-token', 'runner-2:next-token'],
+        );
+        await subscription.cancel();
+        await service.dispose();
+      },
+    );
+
+    test(
+      'does not unregister the next runner when the account switches first',
+      () async {
+        // The callable sends only the token; the server resolves the owner from
+        // request.auth.uid. An FCM token is per-device, so once runner-2 is
+        // signed in this call would disable THEIR device row, not runner-1's.
+        final client = FakePushNotificationClient(
+          permissionStatus: PushNotificationPermissionStatus.authorized,
+          token: 'shared-device-token',
+        );
+        final callable = FakeNotificationDeviceCallable();
+        var uid = 'runner-1';
+        final service = NotificationRegistrationService(
+          client: client,
+          callable: callable,
+          ownerUidProvider: () => uid,
+        );
+
+        await service.start();
+        // The switch lands while the sign-out is being processed.
+        uid = 'runner-2';
+        await service.unregisterCurrentDevice();
+
+        expect(callable.unregisterCalls, isEmpty);
+        // And runner-2 can still register: teardown left no stale started flag.
+        await service.start();
+        expect(
+          callable.registerCalls.map((call) => '${call.uid}:${call.token}'),
+          ['runner-1:shared-device-token', 'runner-2:shared-device-token'],
+        );
+        await service.dispose();
+      },
+    );
+
+    test(
+      'an in-flight start cannot resurrect a session torn down mid-registration',
+      () async {
+        // start() awaits permission, token, and the register callable. A
+        // sign-out inside that window used to be undone by the slower start()
+        // completing afterwards and re-arming _started plus the previous
+        // owner's message subscriptions.
+        final client = FakePushNotificationClient(
+          permissionStatus: PushNotificationPermissionStatus.authorized,
+          token: 'initial-token',
+        );
+        final callable = FakeNotificationDeviceCallable();
+        String? uid = 'runner-1';
+        final service = NotificationRegistrationService(
+          client: client,
+          callable: callable,
+          ownerUidProvider: () => uid,
+        );
+        final received = <String>[];
+        final subscription = service.messages.listen(
+          (message) => received.add(message.id),
+        );
+
+        // Sign out while start() is still awaiting registration.
+        final starting = service.start();
+        uid = null;
+        await service.unregisterCurrentDevice();
+        await starting;
+
+        client.emitForegroundMessage(
+          const PushNotificationMessage(id: 'late-for-runner-1'),
+        );
+        await pumpEventQueue();
+
+        expect(received, isEmpty);
+        await subscription.cancel();
+        await service.dispose();
+      },
+    );
+
+    test(
       'forwards foreground, opened, and initial messages through stream seam',
       () async {
         final client = FakePushNotificationClient(

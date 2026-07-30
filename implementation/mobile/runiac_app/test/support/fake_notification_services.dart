@@ -75,6 +75,11 @@ class FakePushNotificationClient implements PushNotificationClient {
 }
 
 class FakeNotificationDeviceCallable implements NotificationDeviceCallable {
+  FakeNotificationDeviceCallable({this.unregisterFails = false});
+
+  /// Models a sign-out performed while offline: the remote call throws.
+  bool unregisterFails;
+
   final registerCalls = <RegisterNotificationDeviceRequest>[];
   final unregisterCalls = <UnregisterNotificationDeviceRequest>[];
 
@@ -88,5 +93,8 @@ class FakeNotificationDeviceCallable implements NotificationDeviceCallable {
     UnregisterNotificationDeviceRequest request,
   ) async {
     unregisterCalls.add(request);
+    if (unregisterFails) {
+      throw StateError('unregisterDevice failed');
+    }
   }
 }

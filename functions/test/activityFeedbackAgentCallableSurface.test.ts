@@ -121,11 +121,21 @@ describe("activityFeedbackAgent callable emulator surface", { skip: process.env[
     assert.equal(first.source, "unavailable");
     assert.equal(first.delivery, "fallback");
     assert.deepEqual(second.sections, first.sections);
-    assert.equal(document.exists, false);
+    // The quota is reserved before the provider is called, so a failed
+    // generation still spends an attempt — an attempt that reached the
+    // provider and cost money is exactly what the cap is counting. What must
+    // never appear is the prompt or any generated text.
+    assert.equal(document.get("attemptCount"), 2);
+    const persisted = JSON.stringify(document.data());
+    for (const forbidden of ["prompt", "summary", "wentWell", "private provider detail", "malformed"]) {
+      assert.equal(persisted.includes(forbidden), false);
+    }
   });
 
-  it("keeps repeated development calls unlimited without writing quota state", async () => {
-    // Given
+  it("caps an entitled runner at five model calls a day", async () => {
+    // The callable passes no policy, so this exercises the default. It used to
+    // default to "unlimited-development", which let any entitled runner drive
+    // an unbounded number of paid model calls in production.
     const provider = new CountingProvider(safeOutput());
     const handler = injectableHandler(provider);
 
@@ -135,13 +145,20 @@ describe("activityFeedbackAgent callable emulator surface", { skip: process.env[
       results.push(await handler(authenticatedRequest(validRequest())));
     }
 
-    // Then
-    assert.equal(results.every((result) => result.delivery === "generated"), true);
-    assert.equal(provider.calls, 6);
-    assert.equal((await dailyDocument(BASE_NOW)).exists, false);
+    // Then: five generated, the sixth refused, and the provider is never
+    // reached for the refused attempt.
+    assert.equal(
+      results.slice(0, 5).every((result) => result.delivery === "generated"),
+      true,
+    );
+    assert.equal(results[5]?.source, "quota");
+    assert.equal(results[5]?.delivery, "quota");
+    assert.equal(results[5]?.retryAfterDate, "2026-07-11");
+    assert.equal(provider.calls, 5);
+    assert.equal((await dailyDocument(BASE_NOW)).get("attemptCount"), 5);
   });
 
-  it("does not write quota state across the Asia Singapore midnight boundary", async () => {
+  it("gives each Singapore day its own quota budget", async () => {
     // Given
     const beforeMidnight = new Date("2026-07-10T15:59:59.000Z");
     const afterMidnight = new Date("2026-07-10T16:00:00.000Z");
@@ -151,15 +168,36 @@ describe("activityFeedbackAgent callable emulator surface", { skip: process.env[
     await injectableHandler(provider, beforeMidnight)(authenticatedRequest(validRequest()));
     await injectableHandler(provider, afterMidnight)(authenticatedRequest(validRequest()));
 
-    // Then
+    // Then: the day key rolls over, so the second call spends the new day's
+    // budget rather than the previous day's.
     assert.equal(activityFeedbackSingaporeDayKey(beforeMidnight), "20260710");
     assert.equal(activityFeedbackSingaporeDayKey(afterMidnight), "20260711");
-    assert.equal((await dailyDocument(beforeMidnight)).exists, false);
-    assert.equal((await dailyDocument(afterMidnight)).exists, false);
+    assert.equal((await dailyDocument(beforeMidnight)).get("attemptCount"), 1);
+    assert.equal((await dailyDocument(afterMidnight)).get("attemptCount"), 1);
     assert.equal(provider.calls, 2);
   });
 
-  it("retains the enforced five-attempt quota for pre-release restoration", async () => {
+  it("still allows an explicitly injected development bypass", async () => {
+    // The bypass has to stay reachable for emulator drives, but only when a
+    // caller asks for it by name.
+    const reservations = [];
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      reservations.push(await reserveActivityFeedbackQuota({
+        firestore,
+        uid: USER_UID,
+        now: BASE_NOW,
+        policy: "unlimited-development",
+      }));
+    }
+
+    assert.equal(
+      reservations.every((reservation) => reservation.kind === "reserved"),
+      true,
+    );
+    assert.equal((await dailyDocument(BASE_NOW)).exists, false);
+  });
+
+  it("reserves exactly five attempts a day and stores no prompt content", async () => {
     // Given
     const reservations = [];
 
@@ -197,7 +235,7 @@ describe("activityFeedbackAgent callable emulator surface", { skip: process.env[
     }
   });
 
-  it("retains independent enforced quota state across Singapore midnight", async () => {
+  it("keeps enforced quota state independent across Singapore midnight", async () => {
     // Given
     const beforeMidnight = new Date("2026-07-10T15:59:59.000Z");
     const afterMidnight = new Date("2026-07-10T16:00:00.000Z");

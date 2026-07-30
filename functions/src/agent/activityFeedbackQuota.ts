@@ -3,8 +3,14 @@ import { Timestamp, type Firestore } from "firebase-admin/firestore";
 export const ACTIVITY_FEEDBACK_DAILY_LIMIT = 5;
 export type ActivityFeedbackQuotaPolicy = "enforced" | "unlimited-development";
 
-export const TEMPORARY_ACTIVITY_FEEDBACK_QUOTA_POLICY: ActivityFeedbackQuotaPolicy =
-  "unlimited-development";
+// The default is enforced, so an omitted policy caps model spend rather than
+// uncapping it. It used to default to "unlimited-development", which meant
+// every entitled runner could drive an unbounded number of paid model calls in
+// production — the callable never passes a policy, so the development value
+// was the only one production ever used. "unlimited-development" survives as a
+// value, but it must now be injected deliberately (tests, emulator drives).
+export const DEFAULT_ACTIVITY_FEEDBACK_QUOTA_POLICY: ActivityFeedbackQuotaPolicy =
+  "enforced";
 const SINGAPORE_UTC_OFFSET_HOURS = 8;
 
 export type ActivityFeedbackQuotaReservation =
@@ -42,7 +48,7 @@ export async function reserveActivityFeedbackQuota(input: {
   readonly now: Date;
   readonly policy?: ActivityFeedbackQuotaPolicy;
 }): Promise<ActivityFeedbackQuotaReservation> {
-  const policy = input.policy ?? TEMPORARY_ACTIVITY_FEEDBACK_QUOTA_POLICY;
+  const policy = input.policy ?? DEFAULT_ACTIVITY_FEEDBACK_QUOTA_POLICY;
   if (policy === "unlimited-development") {
     return { kind: "reserved" };
   }

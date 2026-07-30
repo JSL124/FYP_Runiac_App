@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   createInboxPayload,
   deliveryKeyFor,
+  deviceDeliveryKey,
   planNotificationDispatches,
   sendNotificationDispatches,
   type NotificationDeviceRecord,
@@ -31,6 +32,151 @@ describe("notification dispatch planner", () => {
       assert.equal(dispatches[0]?.scheduledWorkoutId, WORKOUT_ID);
       assert.equal(dispatches[0]?.deliveryKey, deliveryKeyFor(dispatches[0]));
     }
+  });
+
+  it("reaches a workout whose start minute is off the ten-minute sweep grid", () => {
+    // The sweep runs `every 10 minutes`, so it only ever asks the planner
+    // about minutes 0, 10, 20, ... An exact-minute offset match made every
+    // reminder for a 07:31 workout unreachable: the offsets seen were -119,
+    // -109, ... never -120/-60/-10. Drive a full local day of sweeps and
+    // assert each reminder is planned exactly once.
+    const seen: string[] = [];
+    for (const now of tenMinuteSweepsOverLocalDay("2026-07-10")) {
+      for (const dispatch of planNotificationDispatches(
+        planContext(now, { startTime: "07:31", streakRiskEnabled: false }),
+      )) {
+        seen.push(dispatch.kind);
+      }
+    }
+
+    // Set, not list: the window is deliberately wider than the sweep interval
+    // for scheduler-delay tolerance, so a reminder may be planned by two
+    // consecutive sweeps. Collapsing that to one SEND is the delivery layer's
+    // job, asserted separately below.
+    assert.deepEqual(
+      [...new Set(seen)],
+      [
+        "today_plan_midnight",
+        "plan_start_minus_120",
+        "plan_start_minus_60",
+        "plan_start_minus_10",
+        "missed_run_plus_60",
+        "missed_run_plus_120",
+      ],
+    );
+  });
+
+  it("still reaches a reminder when Cloud Scheduler fires late", () => {
+    // Cloud Scheduler does not fire on an exact grid. A sweep nominally due at
+    // 05:40 that actually runs at 05:42 stepped straight over a ten-minute
+    // window, which is the original defect in a narrower form.
+    for (const delayMinutes of [0, 2, 5, 11, 14]) {
+      const seen: string[] = [];
+      for (const now of tenMinuteSweepsOverLocalDay("2026-07-10", delayMinutes)) {
+        for (const dispatch of planNotificationDispatches(
+          planContext(now, { startTime: "07:31", streakRiskEnabled: false }),
+        )) {
+          seen.push(dispatch.kind);
+        }
+      }
+
+      assert.ok(
+        seen.includes("plan_start_minus_120"),
+        `a ${delayMinutes}-minute scheduler delay dropped plan_start_minus_120`,
+      );
+      assert.ok(
+        seen.includes("plan_start_minus_10"),
+        `a ${delayMinutes}-minute scheduler delay dropped plan_start_minus_10`,
+      );
+      assert.ok(
+        seen.includes("today_plan_midnight"),
+        `a ${delayMinutes}-minute scheduler delay dropped today_plan_midnight`,
+      );
+    }
+  });
+
+  it("does not let the midnight window mask an overlapping offset window", () => {
+    // A 02:05 start puts the -120 window at 00:05-00:20, overlapping the
+    // midnight window. Chaining the kinds with `??` returned midnight alone at
+    // the 00:10 sweep, and by 00:20 the -120 window had closed — so that
+    // reminder was never sent at all.
+    const seen: string[] = [];
+    for (const now of tenMinuteSweepsOverLocalDay("2026-07-10")) {
+      for (const dispatch of planNotificationDispatches(
+        planContext(now, { startTime: "02:05", streakRiskEnabled: false }),
+      )) {
+        seen.push(dispatch.kind);
+      }
+    }
+
+    assert.ok(seen.includes("today_plan_midnight"));
+    assert.ok(
+      seen.includes("plan_start_minus_120"),
+      "the midnight window swallowed the -120 reminder",
+    );
+    assert.ok(seen.includes("plan_start_minus_60"));
+    assert.ok(seen.includes("plan_start_minus_10"));
+  });
+
+  it("never matches two offset windows on the same sweep", () => {
+    // The window is wider than the sweep interval, so two consecutive sweeps
+    // can both find one reminder due — that is what the delivery dedup covers.
+    // What must never happen is one sweep matching two different OFFSETS, which
+    // would mean the windows had grown into each other. (The midnight kind may
+    // legitimately co-occur with an offset kind; it is a different reminder,
+    // not a widened window, so it is excluded here.)
+    for (const now of tenMinuteSweepsOverLocalDay("2026-07-10")) {
+      const offsetKinds = planNotificationDispatches(
+        planContext(now, { startTime: "07:31", streakRiskEnabled: false }),
+      )
+        .map((dispatch) => dispatch.kind)
+        .filter((kind) => kind !== "today_plan_midnight");
+      assert.equal(new Set(offsetKinds).size, offsetKinds.length);
+      assert.ok(
+        offsetKinds.length <= 1,
+        `${now} matched ${offsetKinds.length} offset windows`,
+      );
+    }
+  });
+
+  it("sends each reminder once even when consecutive sweeps both plan it", async () => {
+    // The delay-tolerant window means a reminder is planned more than once, so
+    // this is the assertion that actually protects the runner from a duplicate
+    // push. `sentDeliveryKeys` models the durable `notificationDeliveries`
+    // lookup the real sweep performs.
+    const devices: readonly NotificationDeviceRecord[] = [
+      { uid: USER_UID, tokenFingerprint: "fingerprint-001", fcmToken: "fcm-token-001" },
+    ];
+    const sentDeliveryKeys = new Set<string>();
+    const sends: string[] = [];
+    const adapter: NotificationSendAdapter = {
+      send: async (dispatch, device) => {
+        sends.push(dispatch.kind);
+        sentDeliveryKeys.add(deviceDeliveryKey(dispatch.deliveryKey, device.tokenFingerprint));
+        return { status: "sent" };
+      },
+      disableToken: async () => {},
+    };
+
+    let planned = 0;
+    for (const now of tenMinuteSweepsOverLocalDay("2026-07-10")) {
+      const dispatches = planNotificationDispatches(
+        planContext(now, { startTime: "07:00", streakRiskEnabled: false }),
+      );
+      planned += dispatches.length;
+      await sendNotificationDispatches({
+        dispatches,
+        devices,
+        adapter,
+        sentDeliveryKeys,
+        now,
+      });
+    }
+
+    // Planned more than once, sent exactly once per reminder kind.
+    assert.ok(planned > 6, `expected repeated planning, got ${planned}`);
+    assert.equal(sends.length, 6);
+    assert.equal(new Set(sends).size, 6);
   });
 
   it("emits streak-risk reminders only at 22:00 or 23:00 Singapore time when enabled and incomplete", () => {
@@ -115,20 +261,42 @@ describe("notification dispatch planner", () => {
 
 });
 
-function planContext(now: string) {
+/**
+ * Every instant the `every 10 minutes` sweep hands the planner across one
+ * Singapore local day, as UTC ISO strings.
+ */
+function tenMinuteSweepsOverLocalDay(
+  localDate: string,
+  delayMinutes = 0,
+): readonly string[] {
+  const startMs = Date.parse(`${localDate}T00:00:00.000+08:00`);
+  const sweeps: string[] = [];
+  for (let minute = 0; minute < 24 * 60; minute += 10) {
+    sweeps.push(new Date(startMs + (minute + delayMinutes) * 60_000).toISOString());
+  }
+  return sweeps;
+}
+
+function planContext(
+  now: string,
+  options: {
+    readonly startTime?: string;
+    readonly streakRiskEnabled?: boolean;
+  } = {},
+) {
   return {
     now,
     uid: USER_UID,
     notificationPreferences: {
       planRemindersEnabled: true,
-      streakRiskEnabled: true,
+      streakRiskEnabled: options.streakRiskEnabled ?? true,
     },
     plannedWorkouts: [
       {
         scheduledWorkoutId: WORKOUT_ID,
         title: "Easy Run",
         scheduledDate: "2026-07-10",
-        startTime: "07:00",
+        startTime: options.startTime ?? "07:00",
       },
     ],
     completedWorkoutIds: [],

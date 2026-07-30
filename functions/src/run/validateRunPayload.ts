@@ -1,4 +1,5 @@
 import { HttpsError } from "firebase-functions/v2/https";
+import { assertCompletedAtNotInFuture } from "./completedAtFreshness.js";
 import type { RawRunCompletionPayload } from "./runCompletionTypes.js";
 import { readOptionalCadenceAnalysisSeries } from "./validateCadenceAnalysisSeries.js";
 import { readOptionalRoutePreview } from "./validateRoutePreview.js";
@@ -69,7 +70,10 @@ const protectedKeys = new Set([
 
 const isoDatePattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 
-export function parseRunCompletionPayload(data: unknown): RawRunCompletionPayload {
+export function parseRunCompletionPayload(
+  data: unknown,
+  options: { readonly nowMs?: number } = {},
+): RawRunCompletionPayload {
   if (!isRecord(data)) {
     throw invalid("Payload must be an object.");
   }
@@ -94,6 +98,9 @@ export function parseRunCompletionPayload(data: unknown): RawRunCompletionPayloa
   if (Date.parse(completedAt) <= Date.parse(startedAt)) {
     throw invalid("completedAt must be after startedAt.");
   }
+
+  // startedAt needs no separate bound: it is strictly before completedAt.
+  assertCompletedAtNotInFuture(completedAt, options.nowMs);
 
   const computedElapsedWallSeconds = (Date.parse(completedAt) - Date.parse(startedAt)) / 1000;
   const elapsedWallSeconds =

@@ -196,6 +196,45 @@ describe("sanitizeMessage", () => {
     const result = sanitizeMessage(raw);
     assert.equal(result, raw);
   });
+
+  it("redacts a latitude/longitude pair", () => {
+    // A decimal point splits a coordinate into digit runs of 1-4, so the
+    // 5+-digit rule never touched it and precise GPS positions were stored in
+    // reports flagged `sanitized: true`.
+    for (const coordinate of [
+      "1.3521, 103.8198",
+      "1.352100,103.819800",
+      "(-33.86880; 151.20930)",
+    ]) {
+      const result = sanitizeMessage(`Route snap failed near ${coordinate} on retry`);
+      assert.ok(
+        !/\d\.\d{3}/.test(result),
+        `${coordinate} survived sanitisation as ${result}`,
+      );
+      assert.ok(result.includes("[redacted]"));
+    }
+  });
+
+  it("redacts a labelled coordinate, including a lone one", () => {
+    // A single labelled value carries a position just as much as a pair does,
+    // and the pair pattern cannot see one that arrives on its own.
+    for (const raw of [
+      "Snap failed latitude=1.3521 longitude=103.8198 retrying",
+      "Snap failed at lat: 1.35210 only",
+      "geo lng=103.81980 recorded",
+    ]) {
+      const result = sanitizeMessage(raw);
+      assert.ok(
+        !/\d\.\d{3}/.test(result),
+        `${raw} survived sanitisation as ${result}`,
+      );
+    }
+  });
+
+  it("leaves an ordinary number pair alone", () => {
+    const raw = "Pace drifted from 5.2 to 6.1 over segment 3";
+    assert.equal(sanitizeMessage(raw), raw);
+  });
 });
 
 describe("sanitizeFrames", () => {

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { before, beforeEach, describe, it } from "node:test";
 import { getApps, initializeApp } from "firebase-admin/app";
-import { getFirestore, type Firestore } from "firebase-admin/firestore";
+import { getFirestore, Timestamp, type Firestore } from "firebase-admin/firestore";
 import { dispatchScheduledPushNotificationsNow } from "../src/notifications/scheduledPushDispatch.js";
 
 const PROJECT_ID = "runiac-functions-test";
@@ -104,6 +104,57 @@ describe("scheduled notification dispatch", () => {
     ].sort());
     assert.equal(retry.sendsAttempted, 2);
   });
+
+  it("does not resend a delivery still pending inside its attempt lease", async () => {
+    // Only "sent" used to suppress a resend, so an attempt whose FCM response
+    // was lost sat at "pending" and was sent again on the next sweep. The
+    // due window is now wider than the sweep interval for scheduler-delay
+    // tolerance, so consecutive sweeps really do reconsider the same reminder.
+    await seedDispatchUser();
+    await seedPendingDelivery("2026-07-09T21:00:00.000Z");
+    const sentTokens: string[] = [];
+    const messaging = {
+      send: async (message: { readonly token: string }) => {
+        sentTokens.push(message.token);
+        return "message-id-resend";
+      },
+    };
+
+    const result = await dispatchScheduledPushNotificationsNow(
+      { firestore, messaging },
+      "2026-07-09T21:03:00.000Z",
+    );
+
+    assert.deepEqual(sentTokens, []);
+    assert.equal(result.sendsAttempted, 0);
+  });
+
+  it("retries a pending delivery on the next sweep that still finds it due", async () => {
+    // The lease has to expire while the planner is STILL offering this
+    // reminder, or recovery is unreachable: a lease outliving the due window
+    // expires after the planner has stopped emitting the dispatch, and the
+    // reminder is stranded rather than retried. The -120 window for a 07:00
+    // workout opens at 05:00 Singapore (21:00Z the day before) and lasts 15
+    // minutes; a crashed attempt at 21:00Z must be retried by the 21:10Z sweep,
+    // which is inside the window and past the five-minute lease.
+    await seedDispatchUser();
+    await seedPendingDelivery("2026-07-09T21:00:00.000Z");
+    const sentTokens: string[] = [];
+    const messaging = {
+      send: async (message: { readonly token: string }) => {
+        sentTokens.push(message.token);
+        return "message-id-lease-expired";
+      },
+    };
+
+    const result = await dispatchScheduledPushNotificationsNow(
+      { firestore, messaging },
+      "2026-07-09T21:10:00.000Z",
+    );
+
+    assert.deepEqual(sentTokens, [FCM_TOKEN]);
+    assert.equal(result.sendsAttempted, 1);
+  });
 });
 
 class TestMessagingError extends Error {
@@ -195,4 +246,16 @@ async function clearNotificationDevices(): Promise<void> {
       await userDocument.ref.delete();
     }),
   );
+}
+
+async function seedPendingDelivery(attemptedAt: string): Promise<void> {
+  const deliveryKey = `${USER_UID}:plan_start_minus_120:2026-07-10:${WORKOUT_ID}`;
+  await firestore.doc(`notificationDeliveries/${deliveryKey}:fingerprint-dispatch`).set({
+    ownerUid: USER_UID,
+    deliveryKey,
+    tokenFingerprint: "fingerprint-dispatch",
+    status: "pending",
+    createdAt: Timestamp.fromDate(new Date(attemptedAt)),
+    updatedAt: Timestamp.fromDate(new Date(attemptedAt)),
+  });
 }

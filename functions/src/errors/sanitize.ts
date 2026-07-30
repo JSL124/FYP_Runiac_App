@@ -21,6 +21,22 @@ const FUNCTIONS_FRAME_PATTERN = /\/functions\/(lib|src)\//;
 const NODE_MODULES_MARKER = "node_modules";
 
 const EMAIL_PATTERN = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
+// A latitude/longitude pair, e.g. "1.3521, 103.8198" or "(1.35210,103.81980)".
+// DIGIT_RUN_PATTERN below only fires on runs of 5+ digits, and a decimal point
+// breaks a coordinate into runs of 1-4, so real Singapore coordinates survived
+// every other pattern here and were persisted verbatim into an error report
+// flagged `sanitized: true`.
+//
+// The 3+ decimal places (~100m precision) is a heuristic, and it is
+// deliberately biased towards over-redaction: a non-location pair such as
+// "5.000, 6.000" is also redacted. Losing a number out of a debugging string is
+// cheap; leaking a runner's position is not.
+const COORDINATE_PAIR_PATTERN = /[-+]?\d{1,3}\.\d{3,}\s*[,;]\s*[-+]?\d{1,3}\.\d{3,}/g;
+// The labelled form, e.g. "latitude=1.3521 longitude=103.8198" or "lat: 1.3521".
+// A single labelled value carries a position just as much as a pair does, and
+// no pair pattern can catch one that arrives on its own.
+const LABELLED_COORDINATE_PATTERN =
+  /\b(?:lat|lat(?:itude)?|lon|lng|long(?:itude)?)\b\s*[=:]\s*[-+]?\d{1,3}\.\d{3,}/gi;
 // A "?" followed by non-whitespace covers URL query strings (?key=value&...).
 const QUERY_STRING_PATTERN = /\?\S+/g;
 // Coordinates, ids, and numeric tokens: any run of 5+ digits.
@@ -114,6 +130,12 @@ export function deriveSeverity(input: {
 function redactSensitiveSubstrings(value: string): string {
   return value
     .replace(EMAIL_PATTERN, REDACTED)
+    // Before the digit/token runs, which would otherwise chew a coordinate
+    // into pieces these patterns can no longer recognise. The labelled form
+    // goes first so "lat=1.3521, lon=103.8198" is redacted as two labelled
+    // values rather than being half-consumed by the pair pattern.
+    .replace(LABELLED_COORDINATE_PATTERN, REDACTED)
+    .replace(COORDINATE_PAIR_PATTERN, REDACTED)
     .replace(QUERY_STRING_PATTERN, REDACTED)
     .replace(HEX_RUN_PATTERN, REDACTED)
     .replace(LONG_TOKEN_PATTERN, REDACTED)

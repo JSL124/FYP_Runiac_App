@@ -41,6 +41,7 @@ import {
   formatTotalDistanceLabel,
 } from "./runCompletionArtifacts.js";
 import type { CompleteRunResult, PlanCompletionResult, ProgressionDisplay } from "./runCompletionTypes.js";
+import { progressionInstantFor } from "./completedAtFreshness.js";
 import { parseRunCompletionPayload } from "./validateRunPayload.js";
 type CallableRunRequest = {
   readonly auth?: {
@@ -70,8 +71,12 @@ export async function completeRunForCallable(
   const ids = deterministicIds(uid, payload.clientRunSessionId);
   const payloadFingerprint = fingerprintPayload(payload);
   const runSummary = buildRunSummary(payload);
-  const dailyCapDate = dailyCapDateForCompletedAt(payload.completedAt);
-  const monthlyPeriod = monthlyPeriodForCompletedAt(payload.completedAt);
+  // Period keys come from a server-clamped instant, never straight from the
+  // payload: a completedAt inside the accepted future allowance must not get
+  // to pick which day's cap and which month's board the run lands in.
+  const progressionInstant = progressionInstantFor(payload.completedAt);
+  const dailyCapDate = dailyCapDateForCompletedAt(progressionInstant);
+  const monthlyPeriod = monthlyPeriodForCompletedAt(progressionInstant);
   let progressionDisplay: ProgressionDisplay = deferredProgressionDisplay();
   let planCompletion: PlanCompletionResult = { completed: false };
   const progressionConfig = await loadProgressionConfig(firestore);
