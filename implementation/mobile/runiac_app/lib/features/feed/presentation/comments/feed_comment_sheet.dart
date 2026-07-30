@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/haptics/runiac_haptics_scope.dart';
 import '../../../../core/theme/runiac_colors.dart';
 import '../../../../core/widgets/runiac_level_profile_badge.dart';
 import '../../../profile/presentation/widgets/runner_profile_avatar_link.dart';
@@ -153,6 +154,7 @@ class _FeedCommentSheetState extends State<FeedCommentSheet> {
     if (!mounted) return;
     final body = _controller.text.trim();
     if (body.isEmpty || body.length > 500) {
+      RuniacHapticsScope.maybeOf(context)?.error();
       setState(() => _validationError = 'Write 1 to 500 characters.');
       return;
     }
@@ -211,6 +213,9 @@ class _FeedCommentSheetState extends State<FeedCommentSheet> {
         }
       }
       if (!mounted) return;
+      // The comment is posted (or edited) at this point, so confirm it in the
+      // hand the same way the like tap does.
+      RuniacHapticsScope.maybeOf(context)?.impactLight();
       setState(() {
         _controller.clear();
         _editingCommentId = null;
@@ -218,6 +223,7 @@ class _FeedCommentSheetState extends State<FeedCommentSheet> {
       });
     } catch (_) {
       if (mounted) {
+        RuniacHapticsScope.maybeOf(context)?.error();
         setState(() => _validationError = 'Comment could not save.');
       }
     } finally {
