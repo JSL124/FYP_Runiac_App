@@ -284,6 +284,23 @@ absent post triggers exactly one `readPost` and zero `refresh`/`loadMore`. The
 one pre-existing case that asserted the old refresh-then-page ladder was
 replaced, since it encoded the removed behaviour.
 
+## Out-of-capsule commit carried by this branch
+
+`f995513a feat(feed): confirm like and comment taps with haptics` was committed
+onto `feat/feed-engagement-notifications` by a concurrent session and is
+therefore inside PR #49, but it is **not** part of this capsule. It routes feed
+like/comment taps through the existing `RuniacHaptics` seam and touches
+`feed_post_section.dart`, `feed_comment_sheet.dart`, and
+`haptics_moments_test.dart` — none of which appear in this capsule's Exact
+Target Files.
+
+It was kept rather than rebased out, on the user's explicit decision on
+2026-07-30, because removing it would mean force-pushing another session's
+in-flight work; the same session had already switched this repository's branch
+mid-task once. It is covered by the same green hosted CI run and the same local
+`flutter test` pass recorded below. Recorded here so this capsule's routing
+history does not silently omit a commit its own branch shipped.
+
 ## Evidence recorded (2026-07-30)
 
 Automated, all run from the canonical Desktop root:
@@ -297,7 +314,7 @@ Automated, all run from the canonical Desktop root:
   (141 before this capsule; +5 preference-toggle and inbox-split tests, +1 for
   the merge-set-onto-a-never-existing-document path, which is the shape the
   real first mirror write takes and which lands as a rules `create`).
-- Flutter: `flutter analyze --no-pub` clean; `flutter test` **2574 / 2574**
+- Flutter: `flutter analyze --no-pub` clean; `flutter test` **2578 / 2578**
   (2556 before this capsule).
 - `./tools/governance-ci/run-all-checks.sh`: all 12 checks PASS, with the two
   new `functions/**` paths admitted only while this capsule's routing line is
