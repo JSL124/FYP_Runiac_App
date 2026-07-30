@@ -8,6 +8,14 @@ import {
 } from "./dispatchPlanner.js";
 import type { ScheduledPushDependencies } from "./scheduledPushFirestore.js";
 
+/**
+ * How long a "pending" delivery row suppresses a retry. Comfortably longer
+ * than one sweep interval plus its delay tolerance, so an in-flight attempt is
+ * never sent twice, and short enough that an attempt lost to a crash is
+ * retried on a later sweep rather than being stranded forever.
+ */
+const pendingAttemptLeaseMs = 30 * 60 * 1000;
+
 export function firestoreMessagingAdapter(
   dependencies: ScheduledPushDependencies,
   now: string,
@@ -26,6 +34,24 @@ export function firestoreMessagingAdapter(
         const existingDelivery = await transaction.get(deliveryRef);
         if (existingDelivery.exists && existingDelivery.get("status") === "sent") {
           return false;
+        }
+        // A "pending" row means a previous attempt reached this point and has
+        // not reported back. Only "sent" used to be skipped, so an attempt
+        // whose FCM response was lost — or two sweeps overlapping on the same
+        // reminder — sent the push again. The sweep window is now one sweep
+        // interval wide plus scheduler-delay tolerance, so consecutive sweeps
+        // can legitimately both consider the same reminder due, which makes
+        // this the load-bearing guard rather than a theoretical one. A pending
+        // row older than the lease is treated as genuinely lost and retried,
+        // so a crash between the write and the send still recovers.
+        if (existingDelivery.exists && existingDelivery.get("status") === "pending") {
+          const attemptedAtMs = millisOf(existingDelivery.get("updatedAt"));
+          if (
+            attemptedAtMs !== null &&
+            timestampNow.toMillis() - attemptedAtMs < pendingAttemptLeaseMs
+          ) {
+            return false;
+          }
         }
         transaction.set(deliveryRef, {
           ...inboxPayload,
@@ -119,4 +145,15 @@ function errorCode(error: unknown): string {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function millisOf(value: unknown): number | null {
+  if (value instanceof Timestamp) {
+    return value.toMillis();
+  }
+  if (typeof value === "string") {
+    const parsed = Date.parse(value);
+    return Number.isNaN(parsed) ? null : parsed;
+  }
+  return null;
 }

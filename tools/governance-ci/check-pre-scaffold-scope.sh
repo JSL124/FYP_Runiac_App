@@ -459,6 +459,26 @@ is_website_newsletter_subscription_capsule_active() {
   grep -Eq '^- Newly routed website newsletter subscription on 2026-07-30 Asia/Singapore: `implementation/roadmap/capsules/website-newsletter-subscription\.md`' implementation/roadmap/CURRENT.md
 }
 
+is_review_triage_notification_privacy_quota_capsule_active() {
+  grep -Eq '^- Newly routed review-triage on 2026-07-30 Asia/Singapore: `implementation/roadmap/capsules/review-triage-notification-privacy-quota\.md`' implementation/roadmap/CURRENT.md
+}
+
+# New source files introduced by the routed review-triage capsule: the shared
+# completedAt future bound and its test. Everything else this capsule touches
+# is an already-tracked file handled by the diff-hygiene allowlist.
+is_review_triage_notification_privacy_quota_path() {
+  case "$1" in
+    functions/src/run/completedAtFreshness.ts|\
+    functions/test/completedAtFreshness.test.ts|\
+    functions/package.json)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_error_reporting_pipeline_capsule_active() {
   grep -Eq '^- Newly routed error reporting pipeline on 2026-07-21 Asia/Singapore: `implementation/roadmap/capsules/error-reporting-pipeline\.md`' implementation/roadmap/CURRENT.md
 }
@@ -894,6 +914,10 @@ is_forbidden_config_or_secret() {
   fi
 
   if is_website_newsletter_subscription_path "$1" && is_website_newsletter_subscription_capsule_active; then
+    return 1
+  fi
+
+  if is_review_triage_notification_privacy_quota_path "$1" && is_review_triage_notification_privacy_quota_capsule_active; then
     return 1
   fi
 

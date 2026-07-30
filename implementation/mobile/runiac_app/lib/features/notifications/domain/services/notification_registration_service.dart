@@ -112,6 +112,13 @@ class NotificationRegistrationService {
   String? _currentUid;
   bool _started = false;
 
+  /// Bumped by every teardown. A `start()` already in flight compares the
+  /// generation it began with against this before it touches any state, so a
+  /// sign-out that lands mid-registration cannot be undone by the slower call
+  /// completing afterwards and re-arming `_started` and the previous owner's
+  /// message subscriptions.
+  int _generation = 0;
+
   Stream<PushNotificationMessage> get messages => _messageController.stream;
 
   Future<void> start() async {
@@ -119,9 +126,17 @@ class NotificationRegistrationService {
       return;
     }
 
+    final generation = _generation;
+    final startingUid = _currentOwnerUid();
     try {
       final registered = await registerCurrentDevice();
       if (!registered) {
+        return;
+      }
+      // Two awaits have elapsed (permission, token, register). If the runner
+      // signed out or switched accounts in that window, attaching here would
+      // resurrect a torn-down session under the wrong owner.
+      if (generation != _generation || _currentOwnerUid() != startingUid) {
         return;
       }
 
@@ -135,6 +150,10 @@ class NotificationRegistrationService {
         ..add(client.openedMessages.listen(_messageController.add));
 
       final initialMessage = await client.getInitialMessage();
+      if (generation != _generation) {
+        await _cancelSubscriptions();
+        return;
+      }
       if (initialMessage != null) {
         _messageController.add(initialMessage);
       }
@@ -174,24 +193,49 @@ class NotificationRegistrationService {
   }
 
   Future<void> unregisterCurrentDevice() async {
-    final uid = _currentOwnerUid() ?? _currentUid;
-    if (uid == null) {
-      return;
-    }
+    // The uid this service is actually registered under, NOT whoever
+    // `ownerUidProvider` names right now: during a sign-out that provider has
+    // already dropped to null, and during an account switch it has already
+    // moved on to the next runner.
+    final previousUid = _currentUid ?? _currentOwnerUid();
     final token = _currentToken ?? await client.getToken();
-    if (token == null || token.isEmpty) {
-      return;
-    }
 
-    await callable.unregisterDevice(
-      UnregisterNotificationDeviceRequest(uid: uid, token: token),
-    );
-    if (_currentToken == token) {
-      _currentToken = null;
-    }
+    // Local teardown happens first and unconditionally. The remote call is the
+    // part that can fail — a sign-out while offline is the ordinary case — and
+    // when it threw, the service kept the previous owner's FCM subscriptions
+    // alive with `_started` still true. The next sign-in then re-attached the
+    // app's listener to that same still-running stream while `start()` no-oped,
+    // so a push addressed to the signed-out account was written into the new
+    // account's inbox (the inbox repository resolves the owner uid at write
+    // time). Isolating the device from the previous owner must not depend on
+    // the network.
+    _generation += 1;
     _currentUid = null;
     _started = false;
+    if (token != null && _currentToken == token) {
+      _currentToken = null;
+    }
     await _cancelSubscriptions();
+
+    if (previousUid == null || token == null || token.isEmpty) {
+      return;
+    }
+    // `unregisterNotificationDevice` carries only the token: the server
+    // resolves the owner from `request.auth.uid`. So this call disables the
+    // device row of whoever is authenticated WHEN IT ARRIVES, not the runner it
+    // was issued for — and an FCM token is per-device, so a runner who has
+    // already signed in here shares it. Sending it anyway would silently
+    // unregister the NEW runner's device. Skip instead: leaving the previous
+    // owner's row enabled is recoverable (their next sign-in re-registers, and
+    // the local teardown above already stops their pushes reaching this
+    // inbox), whereas disabling the new owner's row is not.
+    final ownerNow = _currentOwnerUid();
+    if (ownerNow != null && ownerNow != previousUid) {
+      return;
+    }
+    await callable.unregisterDevice(
+      UnregisterNotificationDeviceRequest(uid: previousUid, token: token),
+    );
   }
 
   Future<void> dispose() async {

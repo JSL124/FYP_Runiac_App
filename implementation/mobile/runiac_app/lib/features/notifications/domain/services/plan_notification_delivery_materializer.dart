@@ -49,9 +49,14 @@ class PlanNotificationDeliveryMaterializer {
       for (final entry in entries) entry.id: entry,
     };
     final materialized = <String>{};
+    var ownerChanged = false;
 
     for (final delivery
         in await deliveryReader.consumeDeliveredNotifications()) {
+      if (!_stillOwnedBy(uid)) {
+        ownerChanged = true;
+        break;
+      }
       final entry = entriesById[delivery.id];
       if (entry == null || materialized.contains(entry.id)) {
         // Not one of ours, or already handled. Push notifications land here
@@ -75,6 +80,10 @@ class PlanNotificationDeliveryMaterializer {
 
     final now = clock();
     for (final entry in entries) {
+      if (ownerChanged || !_stillOwnedBy(uid)) {
+        ownerChanged = true;
+        break;
+      }
       if (materialized.contains(entry.id) || entry.scheduledAt.isAfter(now)) {
         continue;
       }
@@ -83,11 +92,26 @@ class PlanNotificationDeliveryMaterializer {
       }
     }
 
+    if (ownerChanged) {
+      debugLog?.call('materializeDeliveries stopped: owner changed');
+    }
     if (materialized.isNotEmpty) {
       debugLog?.call('materializeDeliveries wrote ${materialized.length}');
       await ledger.removeEntries(materialized);
     }
   }
+
+  /// Whether the runner who was signed in when this pass started is still the
+  /// one signed in now.
+  ///
+  /// The owner is captured once, but every write below resolves the owner
+  /// again inside the inbox repository, and the awaits between the two are
+  /// long enough to span a sign-out and a sign-in on a shared device. Without
+  /// this check, the entries drained on behalf of the previous runner landed
+  /// in the next runner's inbox. Items already written before the switch are
+  /// still dropped from the ledger below — they genuinely reached the previous
+  /// owner's inbox — and whatever is left is retried on the next pass.
+  bool _stillOwnedBy(String uid) => ownerUidProvider() == uid;
 
   /// Returns whether the item reached the inbox. A failed write leaves the
   /// ledger entry in place so the next pass retries it.

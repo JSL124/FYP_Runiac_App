@@ -1,4 +1,5 @@
 import { HttpsError } from "firebase-functions/v2/https";
+import { assertCompletedAtNotInFuture } from "./completedAtFreshness.js";
 import { rejectUnsupportedFields } from "./rejectUnsupportedFields.js";
 import type { RawCoolDownCompletionPayload } from "./runCompletionTypes.js";
 
@@ -13,18 +14,27 @@ const allowedKeys = new Set([
 
 const isoDatePattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 
-export function parseCoolDownCompletionPayload(data: unknown): RawCoolDownCompletionPayload {
+export function parseCoolDownCompletionPayload(
+  data: unknown,
+  options: { readonly nowMs?: number } = {},
+): RawCoolDownCompletionPayload {
   if (!isRecord(data)) {
     throw invalid("Payload must be an object.");
   }
 
   rejectUnsupportedFields(data, allowedKeys, "completeCoolDown payload");
 
+  // Same bound as completeRun: this callable derives its own dailyCapDate and
+  // monthlyPeriod from the client's completedAt too, so leaving it open here
+  // would leave the future-dating vector half-closed.
+  const completedAt = readIsoDateString(data, "completedAt");
+  assertCompletedAtNotInFuture(completedAt, options.nowMs);
+
   return {
     activityId: readString(data, "activityId"),
     clientRunSessionId: readString(data, "clientRunSessionId"),
     completedStretchCount: readRequiredStretchStepCount(data),
-    completedAt: readIsoDateString(data, "completedAt"),
+    completedAt,
   };
 }
 

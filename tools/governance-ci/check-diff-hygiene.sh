@@ -857,6 +857,50 @@ is_website_newsletter_subscription_path() {
   esac
 }
 
+is_review_triage_notification_privacy_quota_capsule_active() {
+  grep -Eq '^- Newly routed review-triage on 2026-07-30 Asia/Singapore: `implementation/roadmap/capsules/review-triage-notification-privacy-quota\.md`' implementation/roadmap/CURRENT.md
+}
+
+# Paths touched by the routed review-triage capsule: the scheduled push
+# planner, the seed-cleanup refresh guard, the error-report redactor, the
+# activity-feedback quota default, their tests, the two notification client
+# services and their tests, and the rules-suite wiring that had never run the
+# friends tests. The website half (apkUrl scheme allowlist) lives in the
+# separate git-ignored website/ repo and never appears here.
+is_review_triage_notification_privacy_quota_path() {
+  case "$1" in
+    implementation/roadmap/capsules/review-triage-notification-privacy-quota.md|\
+    functions/src/notifications/dispatchPlanner.ts|\
+    functions/src/leaderboard/leaderboardSeedMutation.ts|\
+    functions/src/errors/sanitize.ts|\
+    functions/src/agent/activityFeedbackQuota.ts|\
+    functions/src/run/completedAtFreshness.ts|\
+    functions/src/run/validateRunPayload.ts|\
+    functions/src/run/validateCoolDownPayload.ts|\
+    functions/src/run/completeRun.ts|\
+    functions/src/run/completeCoolDown.ts|\
+    functions/src/notifications/scheduledPushMessagingAdapter.ts|\
+    functions/test/notificationScheduledDispatch.test.ts|\
+    firebase.json|\
+    functions/package.json|\
+    functions/test/completedAtFreshness.test.ts|\
+    functions/test/notificationDispatch.test.ts|\
+    functions/test/reportAppError.test.ts|\
+    functions/test/activityFeedbackAgentCallableSurface.test.ts|\
+    implementation/mobile/runiac_app/lib/features/notifications/domain/services/notification_registration_service.dart|\
+    implementation/mobile/runiac_app/lib/features/notifications/domain/services/plan_notification_delivery_materializer.dart|\
+    implementation/mobile/runiac_app/test/notification_registration_service_test.dart|\
+    implementation/mobile/runiac_app/test/plan_notification_delivery_materializer_test.dart|\
+    implementation/mobile/runiac_app/test/support/fake_notification_services.dart|\
+    tests/firebase-rules/package.json)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_feed_author_identity_profile_entry_capsule_active() {
   grep -Eq '^- Newly routed feed author identity overlay and runner profile entry points on 2026-07-27 Asia/Singapore: `implementation/roadmap/capsules/feed-author-identity-and-profile-entry\.md`' implementation/roadmap/CURRENT.md
 }
@@ -1116,6 +1160,10 @@ is_allowed_path() {
   fi
 
   if is_website_newsletter_subscription_path "$1" && is_website_newsletter_subscription_capsule_active; then
+    return 0
+  fi
+
+  if is_review_triage_notification_privacy_quota_path "$1" && is_review_triage_notification_privacy_quota_capsule_active; then
     return 0
   fi
 
@@ -1416,6 +1464,10 @@ is_forbidden_path() {
   fi
 
   if is_website_newsletter_subscription_path "$1" && is_website_newsletter_subscription_capsule_active; then
+    return 1
+  fi
+
+  if is_review_triage_notification_privacy_quota_path "$1" && is_review_triage_notification_privacy_quota_capsule_active; then
     return 1
   fi
 

@@ -266,6 +266,46 @@ void main() {
       expect((await ledger.loadEntries()).single.id, 'fired');
     });
 
+    test(
+      'stops writing when the signed-in runner changes mid-pass',
+      () async {
+        // Given: two entries to drain, and a sign-out/sign-in that lands
+        // between the first write and the second. The inbox repository
+        // resolves the owner at write time, so without an owner re-check the
+        // second entry — drained on behalf of runner-1 — would be written into
+        // runner-2's inbox.
+        final ledger = InMemoryPlanNotificationLedger(
+          entries: [
+            _entry(id: 'first', scheduledAt: DateTime(2026, 7, 8, 7)),
+            _entry(id: 'second', scheduledAt: DateTime(2026, 7, 8, 8)),
+          ],
+        );
+        final inbox = InMemoryNotificationInboxRepository();
+        var ownerUid = 'runner-1';
+        final materializer = PlanNotificationDeliveryMaterializer(
+          ledger: ledger,
+          deliveryReader: _FakeDeliveryReader(
+            const <PlanNotificationDelivery>[],
+          ),
+          inboxRepository: _OwnerSwitchingInboxRepository(
+            inner: inbox,
+            onFirstWrite: () => ownerUid = 'runner-2',
+          ),
+          ownerUidProvider: () => ownerUid,
+          clock: () => DateTime(2026, 7, 8, 9),
+        );
+
+        // When
+        await materializer.materializeDeliveries();
+
+        // Then: only the entry written while runner-1 was still signed in
+        // reached the inbox, and the other is left for a later pass.
+        final items = await inbox.listInboxItems();
+        expect(items.map((item) => item.id), ['first']);
+        expect((await ledger.loadEntries()).single.id, 'second');
+      },
+    );
+
     test('keeps the ledger entry when the inbox write fails', () async {
       // Given
       final ledger = InMemoryPlanNotificationLedger(
@@ -378,4 +418,47 @@ class _ThrowingNotificationInboxRepository extends NotificationInboxRepository {
 
   @override
   Future<void> softDelete(String itemId) async {}
+}
+
+/// Delegates to [inner] but flips the signed-in runner on the first write, so
+/// the materializer's second write lands after an account switch.
+class _OwnerSwitchingInboxRepository implements NotificationInboxRepository {
+  _OwnerSwitchingInboxRepository({
+    required this.inner,
+    required this.onFirstWrite,
+  });
+
+  final NotificationInboxRepository inner;
+  final void Function() onFirstWrite;
+  var _writeCount = 0;
+
+  @override
+  Stream<List<NotificationInboxItem>> watchInboxItems() =>
+      inner.watchInboxItems();
+
+  @override
+  Future<List<NotificationInboxItem>> listInboxItems() =>
+      inner.listInboxItems();
+
+  @override
+  Stream<int> watchUnreadCount() => inner.watchUnreadCount();
+
+  @override
+  Future<void> saveInboxItem(NotificationInboxItem item) =>
+      inner.saveInboxItem(item);
+
+  @override
+  Future<void> recordDelivery(NotificationInboxItem item) async {
+    await inner.recordDelivery(item);
+    _writeCount += 1;
+    if (_writeCount == 1) {
+      onFirstWrite();
+    }
+  }
+
+  @override
+  Future<void> markRead(String itemId) => inner.markRead(itemId);
+
+  @override
+  Future<void> softDelete(String itemId) => inner.softDelete(itemId);
 }

@@ -31,6 +31,31 @@ const MISSED_REMINDER_OFFSETS = [
   { minutes: 120, kind: "missed_run_plus_120" },
 ] as const;
 
+// `dispatchScheduledPushNotifications` runs on an `every 10 minutes` schedule,
+// so the planner only ever sees minute values ten minutes apart. Matching a
+// reminder on its exact minute therefore made a reminder reachable only when
+// the workout's start minute happened to land on the same ten-minute grid the
+// sweep runs on: a workout starting at 07:31 produced offsets of -119, -109,
+// ... and never the exact -120/-60/-10 the offsets ask for, so it received no
+// reminder at all, ever. Each reminder is instead due for a window starting at
+// its target offset.
+//
+// The window is the sweep interval PLUS a delay tolerance, because Cloud
+// Scheduler does not fire on an exact grid — a sweep nominally due at 05:40
+// that actually runs at 05:42 would step straight over a ten-minute window and
+// drop the reminder again, which is the same defect in a narrower form. Fifteen
+// minutes stays far below the 50-minute minimum gap between two offsets, so
+// windows still cannot overlap each other.
+//
+// A window wider than the sweep interval does mean two consecutive sweeps can
+// both find the same reminder due, so the dedup below it is load-bearing, not
+// belt-and-braces: `dispatchScheduledPushNotificationsForUsers` skips any
+// dispatch whose stable `deliveryKey` already has a "sent"
+// `notificationDeliveries` document, and `firestoreMessagingAdapter` also skips
+// one whose row is "pending" inside its attempt lease, which is what stops an
+// in-flight attempt from being sent twice.
+const DISPATCH_WINDOW_MINUTES = 15;
+
 export function planNotificationDispatches(context: NotificationPlanningContext): readonly NotificationDispatch[] {
   const localTime = singaporeLocalTime(context.now);
   const completedWorkoutIds = new Set(context.completedWorkoutIds);
@@ -158,7 +183,7 @@ function streakRiskDispatch(
     !context.notificationPreferences.streakRiskEnabled ||
     context.streakState.streakCount <= 0 ||
     context.streakState.lastStreakRunDate === localTime.date ||
-    localTime.minute !== 0
+    localTime.minute >= DISPATCH_WINDOW_MINUTES
   ) {
     return null;
   }
@@ -186,7 +211,9 @@ function withDeliveryKey(dispatch: Omit<NotificationDispatch, "deliveryKey">): N
 }
 
 function midnightKind(localTime: SingaporeLocalTime): NotificationDispatchKind | null {
-  if (localTime.hour === 0 && localTime.minute === 0) {
+  // Same sweep-window reasoning as DISPATCH_WINDOW_MINUTES: an exact-minute
+  // match only fired when a sweep happened to land on 00:00 precisely.
+  if (localTime.hour === 0 && localTime.minute < DISPATCH_WINDOW_MINUTES) {
     return "today_plan_midnight";
   }
 
@@ -198,7 +225,7 @@ function reminderKindForOffset<TKind extends NotificationDispatchKind>(
   reminders: readonly { readonly minutes: number; readonly kind: TKind }[],
 ): TKind | null {
   for (const reminder of reminders) {
-    if (offset === reminder.minutes) {
+    if (offset >= reminder.minutes && offset < reminder.minutes + DISPATCH_WINDOW_MINUTES) {
       return reminder.kind;
     }
   }

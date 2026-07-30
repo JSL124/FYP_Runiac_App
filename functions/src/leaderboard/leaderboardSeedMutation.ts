@@ -4,6 +4,7 @@ import { assertInventoryFingerprint, assertVerifiedReplacementRun, currentCleanu
 import { type CleanupPreview, type InventoryIssue } from "./leaderboardSeedCommandTypes.js";
 import { type SeedDataset } from "./leaderboardSeedDataset.js";
 import { expectedSeedDocumentIds, expectedProjectionDocuments, expectedSourceDocuments, projectionDocuments, seedSourceCollections } from "./leaderboardSeedOwnership.js";
+import { currentSingaporeMonthKey } from "./monthlyLeaderboardPeriod.js";
 import { refreshMonthlyLeaderboardSnapshots } from "./monthlyLeaderboardWriter.js";
 import {
   assertAtomicSeedBatchLimit,
@@ -130,12 +131,32 @@ export async function cleanupLeaderboardSeedRun(input: {
   } finally {
     await releaseCleanupLease(input.firestore, input.seedDataset.dataset.periodKey, cleanupLeaseId);
   }
+  // Refresh the LIVE period, never the seed run's own period. Unlike the seed
+  // and refresh actions, cleanup is deliberately exempt from
+  // `assertProductionDatasetScope`, so a cleanup may legitimately name a past
+  // `--period`. `refreshMonthlyLeaderboardSnapshots` is not period-scoped in
+  // its side effects: it repoints `leaderboardPeriods/monthly_current` at
+  // whatever key it is handed and then prunes every projection outside
+  // `retainedPeriodKeys(thatKey)`. Passing a past key therefore pointed the
+  // app at a finished month and deleted the live month's snapshots and ranks
+  // — the same defect already closed in `leaderboardAdminCommand.ts`, which
+  // derives its key from `currentSingaporeMonthKey` for exactly this reason.
+  // The seed run's own projection documents are removed by the id-scoped bulk
+  // delete above, so nothing depends on re-aggregating the historical period.
+  const livePeriodKey = currentSingaporeMonthKey(new Date());
   const refresh = await refreshMonthlyLeaderboardSnapshots(
     input.firestore,
-    input.seedDataset.dataset.periodKey,
-    { buildId: `cleanup_${input.seedDataset.dataset.runId}_${input.seedDataset.dataset.periodKey}` },
+    livePeriodKey,
+    { buildId: `cleanup_${input.seedDataset.dataset.runId}_${livePeriodKey}` },
   );
-  if (refresh.status !== "completed") {
+  // `skipped_locked` is a success for this path, not a failure. Targeting the
+  // live period means this refresh now contends with the hourly
+  // `refreshLeaderboardSnapshots` schedule, which the old past-period target
+  // never did. Treating a lost lease as fatal would abort AFTER the id-scoped
+  // deletes have already committed, leaving the manifest stranded at
+  // `cleanup_pending` for a run whose documents are gone. Whoever holds the
+  // lease is aggregating the same live period and reconciles it.
+  if (refresh.status !== "completed" && refresh.status !== "skipped_locked") {
     throw new Error("cleanup refresh did not complete");
   }
   const manifestRef = input.firestore.collection("leaderboardSeedRuns").doc(input.seedDataset.dataset.runId);

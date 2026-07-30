@@ -31,6 +31,7 @@ import {
   deterministicIds,
 } from "./runCompletionArtifacts.js";
 import type { CompleteCoolDownResult, ProgressionDisplay } from "./runCompletionTypes.js";
+import { progressionInstantFor } from "./completedAtFreshness.js";
 import { parseCoolDownCompletionPayload } from "./validateCoolDownPayload.js";
 import { assertAccountNotSuspended } from "../security/accountStatus.js";
 import { withCallableErrorReporting } from "../errors/withErrorReporting.js";
@@ -68,8 +69,11 @@ export async function completeCoolDownForCallable(
   }
 
   const coolDownEventId = coolDownProgressionEventId(uid, payload.clientRunSessionId);
-  const dailyCapDate = dailyCapDateForCompletedAt(payload.completedAt);
-  const monthlyPeriod = monthlyPeriodForCompletedAt(payload.completedAt);
+  // Same clamp as completeRun: an accepted future completedAt must not choose
+  // the cap date or the leaderboard period.
+  const progressionInstant = progressionInstantFor(payload.completedAt);
+  const dailyCapDate = dailyCapDateForCompletedAt(progressionInstant);
+  const monthlyPeriod = monthlyPeriodForCompletedAt(progressionInstant);
 
   let progressionDisplay: ProgressionDisplay | undefined;
   let alreadyAwarded = false;
