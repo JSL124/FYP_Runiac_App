@@ -172,15 +172,24 @@ closed here.
   protocol-relative URL. Control characters are rejected outright and the
   relative case is now decided by resolving against a throwaway origin.
 - **`firebase.json` had no `functions.ignore` or `predeploy`** — outside this
-  capsule's original path scope, included because it is a live secret-exposure
-  path rather than a style point. `functions/.secret.local` exists on disk and
-  is only `.gitignore`d; with no `ignore` list it was uploaded in every function
-  deploy bundle. It is now excluded along with `.env*`. `predeploy` was added in
-  the same edit because the entrypoint is the git-ignored generated
-  `lib/src/index.js` with nothing forcing a rebuild, so a stale local `lib/`
-  could ship. **Neither change is retroactive: past deploy bundles already
-  contain the file, so the secrets in it should be treated as exposed and
-  rotated.**
+  capsule's original path scope, included because `functions/.secret.local`
+  (which holds `OPENAI_API_KEY`) exists on disk and, with no `ignore` list, was
+  uploaded in every function deploy bundle. It is now excluded along with
+  `.env*`. `predeploy` was added in the same edit because the entrypoint is the
+  git-ignored generated `lib/src/index.js` with nothing forcing a rebuild, so a
+  stale local `lib/` could ship.
+
+  Scope of that exposure, verified rather than assumed: the file is untracked
+  and has never appeared in git history (`git log --all` on the path is empty;
+  `.gitignore:17` matches it), and the three agent callables consume the key
+  through `defineSecret("OPENAI_API_KEY")`, so the deployed functions read
+  Secret Manager and never the bundled file — `.secret.local` is the local
+  emulator override Firebase designed it to be. The bundled copy was therefore
+  redundant, not a new disclosure: reading a deploy bundle already requires
+  project access that can read Secret Manager directly. **The key does not need
+  rotating**, and the local file must stay in place or the emulator loses its
+  secret. An earlier draft of this record said the opposite; it was written
+  before the `defineSecret` usage and the git history were checked.
 - **Capsule accuracy:** this document claimed the website half was "committed
   and deployed separately". It is uncommitted in that repository. Corrected.
 
