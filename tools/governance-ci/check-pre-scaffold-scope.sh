@@ -459,6 +459,25 @@ is_website_newsletter_subscription_capsule_active() {
   grep -Eq '^- Newly routed website newsletter subscription on 2026-07-30 Asia/Singapore: `implementation/roadmap/capsules/website-newsletter-subscription\.md`' implementation/roadmap/CURRENT.md
 }
 
+is_feed_engagement_push_capsule_active() {
+  grep -Eq '^- Newly routed feed engagement push delivery on 2026-07-31 Asia/Singapore: `implementation/roadmap/capsules/feed-engagement-push-delivery\.md`' implementation/roadmap/CURRENT.md
+}
+
+# New source files introduced by the routed feed engagement push capsule: the
+# FCM sender module and its suite. Everything else this capsule edits is
+# already tracked and handled by the diff-hygiene allowlist.
+is_feed_engagement_push_path() {
+  case "$1" in
+    functions/src/feed/engagement/engagementPush.ts|\
+    functions/test/feedEngagementPush.test.ts)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_feed_engagement_notifications_capsule_active() {
   grep -Eq '^- Newly routed feed engagement notifications on 2026-07-30 Asia/Singapore: `implementation/roadmap/capsules/feed-engagement-notifications\.md`' implementation/roadmap/CURRENT.md
 }
@@ -934,6 +953,10 @@ is_forbidden_config_or_secret() {
   fi
 
   if is_website_newsletter_subscription_path "$1" && is_website_newsletter_subscription_capsule_active; then
+    return 1
+  fi
+
+  if is_feed_engagement_push_path "$1" && is_feed_engagement_push_capsule_active; then
     return 1
   fi
 

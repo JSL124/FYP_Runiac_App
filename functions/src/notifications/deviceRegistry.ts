@@ -55,6 +55,23 @@ export async function registerNotificationDeviceForCallable(
   const fingerprint = hashNotificationToken(payload.token);
   const tokenRef = firestore.doc(`notificationDevices/${uid}/tokens/${fingerprint}`);
 
+  // An FCM token is per-device, not per-account: when a runner signs out and a
+  // different runner signs in on the same phone, the new sign-in registers the
+  // SAME token under a new uid while the previous owner's row is left
+  // `enabled: true` (the client's `unregisterCurrentDevice()` deliberately
+  // skips the remote unregister on an account switch, because it can only
+  // name the token, and the server would resolve the caller from
+  // `request.auth.uid` — i.e. the NEW owner — and disable the wrong row; see
+  // that function's comment). Left alone, that stale row keeps receiving this
+  // capsule's FCM push, so the previous owner's social activity ("X liked your
+  // run") is drawn as a banner on a lock screen someone else is now using.
+  // Registration is the only place that can safely resolve this: it is the
+  // one moment we know a specific device now belongs to a specific uid, so
+  // ownership transfers here rather than at send time. This also means every
+  // sign-in repairs the row for already-shipped clients with no app update,
+  // which is why this fix belongs in this callable and not in a client patch.
+  await releaseTokenFromOtherOwners(firestore, uid, fingerprint, payload.now);
+
   await firestore.doc(`notificationDevices/${uid}`).set(
     {
       ownerUid: uid,
@@ -106,6 +123,59 @@ export async function unregisterNotificationDeviceForCallable(
     status: "disabled",
     fingerprint,
   };
+}
+
+// Finds every `tokens` row under a DIFFERENT uid that shares this device's
+// token fingerprint and disables it, so the device's push delivery follows
+// its current owner.
+//
+// This is a single-field equality filter, not a multi-field composite query,
+// so it needs no COMPOSITE index. It mirrors the collection-group pattern
+// `friendsNicknameFanout.ts` already uses on `friends`/`friendRequests`/
+// `blockedUsers` (`.where("uid", "==", uid)`) — and per `firestore.indexes.json`,
+// those three each needed an explicit `fieldOverrides` entry enabling
+// `COLLECTION_GROUP` query scope for their filtered field before the query
+// would run in production (Firestore's automatic single-field indexes default
+// to `COLLECTION` scope only). `tokens`/`tokenFingerprint` has no such entry
+// yet, so the same override is very likely needed here too before deploy; see
+// the capsule/handoff notes for this open item — it is a `firestore.indexes.json`
+// change and out of this edit's scope.
+//
+// This must never fail the registration it is called from: an already-signed-
+// in runner losing their OWN working device row because a stale row from a
+// previous owner could not be released would be strictly worse than leaving
+// that stale row alone for one more push. So every failure here is logged and
+// swallowed, never rethrown.
+async function releaseTokenFromOtherOwners(
+  firestore: Firestore,
+  callerUid: string,
+  fingerprint: string,
+  disabledAt: string,
+): Promise<void> {
+  try {
+    const staleTokens = await firestore
+      .collectionGroup("tokens")
+      .where("tokenFingerprint", "==", fingerprint)
+      .get();
+
+    const releases = staleTokens.docs
+      .filter((document) => document.ref.parent.parent?.id !== callerUid)
+      .map((document) =>
+        document.ref.set(
+          {
+            enabled: false,
+            updatedAt: disabledAt,
+            disabledAt,
+          },
+          { merge: true },
+        ).catch((error: unknown) => {
+          console.error("[deviceRegistry] failed to release a stale token row", document.ref.path, error);
+        }));
+
+    await Promise.all(releases);
+  } catch (error) {
+    console.error("[deviceRegistry] failed to look up other owners of a registering token", fingerprint, error);
+  }
 }
 
 export function hashNotificationToken(token: string): string {

@@ -10,7 +10,26 @@ import {
 
 const PROJECT_ID = "runiac-functions-test";
 const USER_UID = "notification-runner-001";
+const OTHER_UID = "notification-runner-002";
 const FCM_TOKEN = "fcm-token-registration-secret";
+
+// Wraps a real Firestore instance so `collectionGroup(...)` throws, to prove
+// that a failure releasing a stale token row cannot fail the registration
+// that triggered it. Every other method (`doc`, `collection`, `set`, ...) is
+// forwarded to the real instance unchanged via the Proxy `get` trap.
+function firestoreWithFailingCollectionGroup(base: Firestore): Firestore {
+  return new Proxy(base, {
+    get(target, property, _receiver) {
+      if (property === "collectionGroup") {
+        return () => {
+          throw new Error("collectionGroup lookup failed");
+        };
+      }
+      const value = Reflect.get(target, property, target);
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  }) as Firestore;
+}
 
 type CallableRequest = {
   readonly auth?: {
@@ -63,6 +82,64 @@ describe("notification device callable boundary", () => {
     assert.equal(tokenDocument.get("fcmToken"), FCM_TOKEN);
     assert.equal(tokenDocument.get("enabled"), true);
     assert.equal(tokenDocument.get("disabledAt"), null);
+  });
+
+  it("transfers a token's ownership on registration: disables the previous owner's row and enables the new one", async () => {
+    const previousOwner = await registerNotificationDeviceForCallable(
+      { auth: { uid: OTHER_UID }, data: registrationPayload() },
+      firestore,
+    );
+
+    const newOwner = await registerNotificationDeviceForCallable(
+      authenticatedRequest(registrationPayload()),
+      firestore,
+    );
+
+    assert.equal(newOwner.fingerprint, previousOwner.fingerprint);
+    const previousOwnerDocument = await firestore
+      .doc(`notificationDevices/${OTHER_UID}/tokens/${previousOwner.fingerprint}`)
+      .get();
+    assert.equal(previousOwnerDocument.get("enabled"), false);
+    assert.equal(previousOwnerDocument.get("disabledAt"), registrationPayload()["now"]);
+
+    const newOwnerDocument = await firestore
+      .doc(`notificationDevices/${USER_UID}/tokens/${newOwner.fingerprint}`)
+      .get();
+    assert.equal(newOwnerDocument.get("enabled"), true);
+    assert.equal(newOwnerDocument.get("disabledAt"), null);
+  });
+
+  it("does not fail registration when releasing a stale row from another owner throws", async () => {
+    await registerNotificationDeviceForCallable(
+      { auth: { uid: OTHER_UID }, data: registrationPayload() },
+      firestore,
+    );
+    const brokenFirestore = firestoreWithFailingCollectionGroup(firestore);
+
+    const result = await registerNotificationDeviceForCallable(
+      authenticatedRequest(registrationPayload()),
+      brokenFirestore,
+    );
+
+    assert.equal(result.status, "registered");
+    const newOwnerDocument = await firestore
+      .doc(`notificationDevices/${USER_UID}/tokens/${result.fingerprint}`)
+      .get();
+    assert.equal(newOwnerDocument.get("enabled"), true);
+  });
+
+  it("registering a token nobody else holds leaves only the caller's row, unaffected", async () => {
+    const result = await registerNotificationDeviceForCallable(
+      authenticatedRequest(registrationPayload()),
+      firestore,
+    );
+
+    const tokenDocument = await firestore
+      .doc(`notificationDevices/${USER_UID}/tokens/${result.fingerprint}`)
+      .get();
+    assert.equal(tokenDocument.get("enabled"), true);
+    const otherOwnerDoc = await firestore.doc(`notificationDevices/${OTHER_UID}/tokens/${result.fingerprint}`).get();
+    assert.equal(otherOwnerDoc.exists, false);
   });
 
   it("disables a registered token on unregister", async () => {
