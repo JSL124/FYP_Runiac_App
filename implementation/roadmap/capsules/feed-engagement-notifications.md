@@ -337,14 +337,29 @@ Not yet done, and deliberately not claimed:
   `socialActivityEnabled: false` gate) has not been run as a manual scripted
   pass. Every one of those behaviours is covered by an automated test in the
   new suite, but not by a single narrative walkthrough.
-- No production `runiac-fypp` deploy. The feature is inert in production until
-  the Functions deploy and a mobile release ship, both requiring separate
-  explicit authorization.
+- **The mobile release has not shipped.** This is now the only thing standing
+  between the deployed backend and the intended experience, and it is what
+  makes the half-shipped state below visible to real runners.
+
+Production state as of the 2026-07-30 deploy (superseding the earlier "no
+production deploy" note this section carried):
+
+- **Deployed:** `firestore.rules` (carrying `socialActivityEnabled` in the
+  `notificationPreferences/{uid}` create and update allowlists) and
+  `functions:feedLikeCreated,functions:feedCommentCreated`. See the deploy
+  record bullet in `CURRENT.md`.
+- **Half-shipped, deliberately accepted:** a like or comment already writes an
+  inbox item and the Home bell badge counts it, but the shipped app predates
+  the tap-through, so tapping only marks the item read instead of opening the
+  Feed tab and comment sheet. And because `socialActivityEnabled` is absent
+  from every production preferences document while the server reader defaults
+  it to `true`, every runner is opted in with no way to turn it off until the
+  mobile release lands.
 
 ## Exit Criteria
 
 - [x] Target files completed.
 - [x] Required tests or validation completed.
 - [x] Required evidence recorded (automated; simulator QA outstanding, above).
-- [ ] Snapshot updated if state changed.
+- [x] Snapshot updated if state changed.
 - [x] CURRENT.md updated if active capsule, phase, gate status, or forbidden scope changed.
