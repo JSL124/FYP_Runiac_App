@@ -1,7 +1,10 @@
 # Capsule: Feed Engagement Notifications (like / comment)
 
-Status: implemented, locally validated, and open as PR #49 against `main` with
-hosted Governance CI and backend-emulator-tests PASS. Not merged, not deployed.
+Status: merged to `main` as `0217df1a` (PR #49) and DEPLOYED to `runiac-fypp` on
+2026-07-30 — `firestore.rules` released and `feedLikeCreated` /
+`feedCommentCreated` updated. The backend half is live; the mobile release that
+makes the tap-through and the Social activity toggle reachable has NOT shipped,
+and simulator QA has still never been performed.
 Routed: 2026-07-30 Asia/Singapore (explicit user request).
 Lane: Backend Guarded Lane (ADR-002 emulator-first, ADR-003). Extends two
 existing Firestore triggers and adds one new backend module; no new Cloud
