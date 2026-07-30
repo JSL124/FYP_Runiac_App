@@ -857,6 +857,32 @@ is_website_newsletter_subscription_path() {
   esac
 }
 
+is_feed_engagement_push_capsule_active() {
+  grep -Eq '^- Newly routed feed engagement push delivery on 2026-07-31 Asia/Singapore: `implementation/roadmap/capsules/feed-engagement-push-delivery\.md`' implementation/roadmap/CURRENT.md
+}
+
+# Backend paths touched by the routed feed engagement push capsule: the new
+# sender module and its suite, plus the emitter that calls it and the two
+# already-routed files it reuses. Explicit file list rather than a
+# `functions/src/feed/*` or `functions/src/notifications/*` glob, because both
+# directories are shared with other capsules. `functions/package.json` is
+# already unconditionally allowed below.
+is_feed_engagement_push_path() {
+  case "$1" in
+    implementation/roadmap/capsules/feed-engagement-push-delivery.md|\
+    functions/src/feed/engagement/engagementPush.ts|\
+    functions/src/feed/engagement/engagementNotifications.ts|\
+    functions/src/notifications/scheduledPushReaders.ts|\
+    functions/test/feedEngagementPush.test.ts|\
+    functions/test/feedEngagementNotifications.test.ts)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_feed_engagement_notifications_capsule_active() {
   grep -Eq '^- Newly routed feed engagement notifications on 2026-07-30 Asia/Singapore: `implementation/roadmap/capsules/feed-engagement-notifications\.md`' implementation/roadmap/CURRENT.md
 }
@@ -1194,6 +1220,10 @@ is_allowed_path() {
     return 0
   fi
 
+  if is_feed_engagement_push_path "$1" && is_feed_engagement_push_capsule_active; then
+    return 0
+  fi
+
   if is_feed_engagement_notifications_path "$1" && is_feed_engagement_notifications_capsule_active; then
     return 0
   fi
@@ -1499,6 +1529,10 @@ is_forbidden_path() {
   fi
 
   if is_website_newsletter_subscription_path "$1" && is_website_newsletter_subscription_capsule_active; then
+    return 1
+  fi
+
+  if is_feed_engagement_push_path "$1" && is_feed_engagement_push_capsule_active; then
     return 1
   fi
 

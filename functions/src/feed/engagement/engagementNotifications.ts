@@ -43,10 +43,18 @@
 //     the aggregate count is already committed by the time these run, and v2
 //     Firestore triggers do not retry by default, so swallowing here is the
 //     correct failure mode, not a shortcut.
+//   - The FCM push (see `engagementPush.ts`) is sent ONLY when `persist()`
+//     returns "written", never on "duplicate". The inbox writer's
+//     transactional create on the deterministic delivery key is already the
+//     exactly-once guard, so reusing that result keeps push dedup identical
+//     to inbox dedup instead of standing up a second ledger for the same
+//     decision.
 
 import { Timestamp, type DocumentData, type Firestore } from "firebase-admin/firestore";
+import { getMessaging } from "firebase-admin/messaging";
 import type { FeedEngagementNotificationKind } from "../../notifications/types.js";
 import { socialActivityEnabled } from "../../notifications/scheduledPushReaders.js";
+import { sendFeedEngagementPush, type FeedEngagementMessagingPort } from "./engagementPush.js";
 
 // ---------------------------------------------------------------------------
 // Allowlisted client payload
@@ -250,6 +258,7 @@ export function firestoreFeedEngagementNotificationWriter(
 
 export type FeedEngagementNotificationDeps = {
   readonly writer?: FeedEngagementNotificationWriter;
+  readonly messaging?: FeedEngagementMessagingPort;
 };
 
 // Runs an emitter body, guaranteeing it never throws to the caller. The count
@@ -328,7 +337,16 @@ export async function emitFeedLikeNotification(
       socialActivityEnabled: socialActivityEnabled(prefsSnap.data(), undefined),
     });
     if (notification === null) return;
-    await writer.persist(notification, nowMs);
+    const writeStatus = await writer.persist(notification, nowMs);
+    // Only a fresh write rings the recipient's phone; a "duplicate" means this
+    // exact (postId, kind, actorUid) event already delivered a push earlier.
+    if (writeStatus !== "written") return;
+    await sendFeedEngagementPush(
+      firestore,
+      deps.messaging ?? getMessaging(),
+      notification,
+      new Date(nowMs).toISOString(),
+    );
   });
 }
 
@@ -380,7 +398,16 @@ export async function emitFeedCommentNotification(
       socialActivityEnabled: socialActivityEnabled(prefsSnap.data(), undefined),
     });
     if (notification === null) return;
-    await writer.persist(notification, nowMs);
+    const writeStatus = await writer.persist(notification, nowMs);
+    // See the matching comment in emitFeedLikeNotification: push rides the
+    // inbox writer's exactly-once result rather than getting its own guard.
+    if (writeStatus !== "written") return;
+    await sendFeedEngagementPush(
+      firestore,
+      deps.messaging ?? getMessaging(),
+      notification,
+      new Date(nowMs).toISOString(),
+    );
   });
 }
 

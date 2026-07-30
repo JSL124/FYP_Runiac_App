@@ -25,6 +25,7 @@ import {
   truncateCommentBody,
   type FeedEngagementNotificationWriter,
 } from "../src/feed/engagement/engagementNotifications.js";
+import type { FeedEngagementMessagingPort } from "../src/feed/engagement/engagementPush.js";
 
 const PROJECT_ID = "demo-runiac-feed";
 
@@ -52,6 +53,45 @@ before(() => {
 function uniqueId(prefix: string): string {
   counter += 1;
   return `${prefix}-${Date.now()}-${counter}`;
+}
+
+// ---------------------------------------------------------------------------
+// Push wiring test helpers: a fake messaging port + a registered device
+// token, so push-send assertions never touch real FCM or the scheduled-push
+// module's own tests.
+// ---------------------------------------------------------------------------
+
+type CapturedSend = {
+  readonly token: string;
+  readonly notification: { readonly title: string; readonly body: string };
+  readonly data: Readonly<Record<string, string>>;
+};
+
+function fakeMessaging(options?: {
+  readonly shouldThrow?: boolean;
+}): { readonly port: FeedEngagementMessagingPort; readonly sent: CapturedSend[] } {
+  const sent: CapturedSend[] = [];
+  return {
+    sent,
+    port: {
+      send: async (message) => {
+        sent.push(message);
+        if (options?.shouldThrow) {
+          throw new Error("simulated FCM send failure");
+        }
+        return "message-id";
+      },
+    },
+  };
+}
+
+async function registerToken(uid: string, tokenFingerprint: string, fcmToken: string): Promise<void> {
+  await firestore
+    .collection("notificationDevices")
+    .doc(uid)
+    .collection("tokens")
+    .doc(tokenFingerprint)
+    .set({ tokenFingerprint, fcmToken, enabled: true });
 }
 
 // ---------------------------------------------------------------------------
@@ -435,6 +475,7 @@ describe("emitFeedLikeNotification (emulator)", () => {
     await deleteCollection("notificationInbox");
     await deleteCollection("userProfiles");
     await deleteCollection("notificationPreferences");
+    await deleteDevices();
   });
 
   it("writes exactly one inbox doc resolving the actor's display name from userProfiles", async () => {
@@ -509,6 +550,101 @@ describe("emitFeedLikeNotification (emulator)", () => {
 
     assert.equal((await inboxItems(authorUid)).length, 0);
   });
+
+  it("sends a push to every enabled token on a written (first) like", async () => {
+    const postId = uniqueId("post");
+    const authorUid = "emit-author-push-1";
+    const actorUid = "emit-actor-push-1";
+    await firestore.doc(`feedPosts/${postId}`).set({ authorUid, status: "published" });
+    await firestore.doc(`feedPosts/${postId}/likes/${actorUid}`).set({ userUid: actorUid });
+    await registerToken(authorUid, "fp-1", "token-1");
+    await registerToken(authorUid, "fp-2", "token-2");
+    const { port, sent } = fakeMessaging();
+
+    await emitFeedLikeNotification(firestore, { postId, actorUid }, Date.now(), { messaging: port });
+
+    assert.equal(sent.length, 2);
+    assert.deepEqual(sent.map((call) => call.token).sort(), ["token-1", "token-2"]);
+    for (const call of sent) {
+      assert.deepEqual(call.data, { kind: "feed_post_liked", route: "feedComments", postId });
+    }
+  });
+
+  it("sends nothing on a duplicate (already-notified) like", async () => {
+    const postId = uniqueId("post");
+    const authorUid = "emit-author-push-2";
+    const actorUid = "emit-actor-push-2";
+    await firestore.doc(`feedPosts/${postId}`).set({ authorUid, status: "published" });
+    await firestore.doc(`feedPosts/${postId}/likes/${actorUid}`).set({ userUid: actorUid });
+    await registerToken(authorUid, "fp-1", "token-1");
+
+    // First call writes the inbox item ("written"); the push port is a no-op
+    // stand-in here since this call is only setting up the duplicate state.
+    await emitFeedLikeNotification(firestore, { postId, actorUid }, Date.now());
+
+    const { port, sent } = fakeMessaging();
+    await emitFeedLikeNotification(firestore, { postId, actorUid }, Date.now(), { messaging: port });
+
+    assert.equal(sent.length, 0);
+  });
+
+  it("still resolves when the push send fails, and does not affect the inbox write", async () => {
+    const postId = uniqueId("post");
+    const authorUid = "emit-author-push-3";
+    const actorUid = "emit-actor-push-3";
+    await firestore.doc(`feedPosts/${postId}`).set({ authorUid, status: "published" });
+    await firestore.doc(`feedPosts/${postId}/likes/${actorUid}`).set({ userUid: actorUid });
+    await registerToken(authorUid, "fp-1", "token-1");
+    const { port } = fakeMessaging({ shouldThrow: true });
+
+    await assert.doesNotReject(() =>
+      emitFeedLikeNotification(firestore, { postId, actorUid }, Date.now(), { messaging: port }),
+    );
+
+    assert.equal((await inboxItems(authorUid)).length, 1);
+  });
+
+  it("suppresses before any device read: self-like never attempts a send even with an enabled token registered", async () => {
+    const postId = uniqueId("post");
+    const authorUid = "emit-author-push-4";
+    await firestore.doc(`feedPosts/${postId}`).set({ authorUid, status: "published" });
+    await firestore.doc(`feedPosts/${postId}/likes/${authorUid}`).set({ userUid: authorUid });
+    await registerToken(authorUid, "fp-1", "token-1");
+    const { port, sent } = fakeMessaging();
+
+    await emitFeedLikeNotification(firestore, { postId, actorUid: authorUid }, Date.now(), { messaging: port });
+
+    assert.equal(sent.length, 0);
+  });
+
+  it("suppresses before any device read when socialActivityEnabled is false", async () => {
+    const postId = uniqueId("post");
+    const authorUid = "emit-author-push-5";
+    const actorUid = "emit-actor-push-5";
+    await firestore.doc(`feedPosts/${postId}`).set({ authorUid, status: "published" });
+    await firestore.doc(`feedPosts/${postId}/likes/${actorUid}`).set({ userUid: actorUid });
+    await firestore.doc(`notificationPreferences/${authorUid}`).set({ socialActivityEnabled: false });
+    await registerToken(authorUid, "fp-1", "token-1");
+    const { port, sent } = fakeMessaging();
+
+    await emitFeedLikeNotification(firestore, { postId, actorUid }, Date.now(), { messaging: port });
+
+    assert.equal(sent.length, 0);
+  });
+
+  it("suppresses before any device read for an unpublished parent post", async () => {
+    const postId = uniqueId("post");
+    const authorUid = "emit-author-push-6";
+    const actorUid = "emit-actor-push-6";
+    await firestore.doc(`feedPosts/${postId}`).set({ authorUid, status: "deleting" });
+    await firestore.doc(`feedPosts/${postId}/likes/${actorUid}`).set({ userUid: actorUid });
+    await registerToken(authorUid, "fp-1", "token-1");
+    const { port, sent } = fakeMessaging();
+
+    await emitFeedLikeNotification(firestore, { postId, actorUid }, Date.now(), { messaging: port });
+
+    assert.equal(sent.length, 0);
+  });
 });
 
 describe("emitFeedCommentNotification (emulator)", () => {
@@ -516,6 +652,7 @@ describe("emitFeedCommentNotification (emulator)", () => {
     await deleteCollection("feedPosts");
     await deleteCollection("notificationInbox");
     await deleteCollection("notificationPreferences");
+    await deleteDevices();
   });
 
   it("writes exactly one inbox doc using the comment's own denormalised author fields", async () => {
@@ -569,6 +706,116 @@ describe("emitFeedCommentNotification (emulator)", () => {
 
     assert.equal((await inboxItems(authorUid)).length, 0);
   });
+
+  it("sends a push to every enabled token on a written (first) comment", async () => {
+    const postId = uniqueId("post");
+    const authorUid = "emit-c-author-push-1";
+    const actorUid = "emit-c-actor-push-1";
+    await firestore.doc(`feedPosts/${postId}`).set({ authorUid, status: "published" });
+    await firestore.doc(`feedPosts/${postId}/comments/comment-1`).set({
+      authorUid: actorUid,
+      authorDisplayName: "Sam",
+      body: "Great effort out there!",
+    });
+    await registerToken(authorUid, "fp-1", "token-1");
+    await registerToken(authorUid, "fp-2", "token-2");
+    const { port, sent } = fakeMessaging();
+
+    await emitFeedCommentNotification(firestore, { postId, commentId: "comment-1" }, Date.now(), {
+      messaging: port,
+    });
+
+    assert.equal(sent.length, 2);
+    assert.deepEqual(sent.map((call) => call.token).sort(), ["token-1", "token-2"]);
+    for (const call of sent) {
+      assert.equal(call.notification.title, "Sam commented on your run");
+      assert.equal(call.notification.body, '"Great effort out there!"');
+      assert.deepEqual(call.data, { kind: "feed_post_commented", route: "feedComments", postId });
+    }
+  });
+
+  it("sends nothing on a duplicate (already-notified) comment", async () => {
+    const postId = uniqueId("post");
+    const authorUid = "emit-c-author-push-2";
+    const actorUid = "emit-c-actor-push-2";
+    await firestore.doc(`feedPosts/${postId}`).set({ authorUid, status: "published" });
+    await firestore.doc(`feedPosts/${postId}/comments/comment-1`).set({
+      authorUid: actorUid,
+      authorDisplayName: "Sam",
+      body: "hello",
+    });
+    await registerToken(authorUid, "fp-1", "token-1");
+
+    await emitFeedCommentNotification(firestore, { postId, commentId: "comment-1" }, Date.now());
+
+    const { port, sent } = fakeMessaging();
+    await emitFeedCommentNotification(firestore, { postId, commentId: "comment-1" }, Date.now(), {
+      messaging: port,
+    });
+
+    assert.equal(sent.length, 0);
+  });
+
+  it("still resolves when the push send fails, and does not affect the inbox write", async () => {
+    const postId = uniqueId("post");
+    const authorUid = "emit-c-author-push-3";
+    const actorUid = "emit-c-actor-push-3";
+    await firestore.doc(`feedPosts/${postId}`).set({ authorUid, status: "published" });
+    await firestore.doc(`feedPosts/${postId}/comments/comment-1`).set({
+      authorUid: actorUid,
+      authorDisplayName: "Sam",
+      body: "hello",
+    });
+    await registerToken(authorUid, "fp-1", "token-1");
+    const { port } = fakeMessaging({ shouldThrow: true });
+
+    await assert.doesNotReject(() =>
+      emitFeedCommentNotification(firestore, { postId, commentId: "comment-1" }, Date.now(), { messaging: port }),
+    );
+
+    assert.equal((await inboxItems(authorUid)).length, 1);
+  });
+
+  it("suppresses before any device read when socialActivityEnabled is false", async () => {
+    const postId = uniqueId("post");
+    const authorUid = "emit-c-author-push-4";
+    const actorUid = "emit-c-actor-push-4";
+    await firestore.doc(`feedPosts/${postId}`).set({ authorUid, status: "published" });
+    await firestore.doc(`feedPosts/${postId}/comments/comment-1`).set({
+      authorUid: actorUid,
+      authorDisplayName: "Sam",
+      body: "hello",
+    });
+    await firestore.doc(`notificationPreferences/${authorUid}`).set({ socialActivityEnabled: false });
+    await registerToken(authorUid, "fp-1", "token-1");
+    const { port, sent } = fakeMessaging();
+
+    await emitFeedCommentNotification(firestore, { postId, commentId: "comment-1" }, Date.now(), {
+      messaging: port,
+    });
+
+    assert.equal(sent.length, 0);
+  });
+
+  it("suppresses before any device read for an unpublished parent post", async () => {
+    const postId = uniqueId("post");
+    const authorUid = "emit-c-author-push-5";
+    const actorUid = "emit-c-actor-push-5";
+    await firestore.doc(`feedPosts/${postId}`).set({ authorUid, status: "deleting" });
+    await firestore.doc(`feedPosts/${postId}/comments/comment-1`).set({
+      authorUid: actorUid,
+      authorDisplayName: "Sam",
+      body: "hello",
+    });
+    await registerToken(authorUid, "fp-1", "token-1");
+    const { port, sent } = fakeMessaging();
+
+    await emitFeedCommentNotification(firestore, { postId, commentId: "comment-1" }, Date.now(), {
+      messaging: port,
+    });
+
+    assert.equal(sent.length, 0);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -582,4 +829,15 @@ async function inboxItems(uid: string) {
 async function deleteCollection(name: string): Promise<void> {
   const snapshot = await firestore.collection(name).get();
   await Promise.all(snapshot.docs.map((doc) => doc.ref.delete()));
+}
+
+async function deleteDevices(): Promise<void> {
+  const snapshot = await firestore.collection("notificationDevices").get();
+  await Promise.all(
+    snapshot.docs.map(async (doc) => {
+      const tokens = await doc.ref.collection("tokens").get();
+      await Promise.all(tokens.docs.map((token) => token.ref.delete()));
+      await doc.ref.delete();
+    }),
+  );
 }
