@@ -122,6 +122,8 @@ Future<void> main() async {
               bootstrap.adaptivePlanEstimateRepository,
           feedRepository: bootstrap.feedRepository,
           notificationInboxRepository: bootstrap.notificationInboxRepository,
+          notificationPreferenceMirror:
+              bootstrap.notificationPreferenceMirror,
           notificationRegistrationService:
               bootstrap.notificationRegistrationService,
           showAuth: true,

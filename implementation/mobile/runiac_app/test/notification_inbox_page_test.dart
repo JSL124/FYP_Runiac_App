@@ -68,6 +68,42 @@ void main() {
     );
   });
 
+  testWidgets('onOpenItem still fires after the tap marks the item read', (
+    WidgetTester tester,
+  ) async {
+    final repository = InMemoryNotificationInboxRepository(
+      items: [
+        NotificationInboxItem(
+          id: 'item-1',
+          title: 'Run reminder',
+          body: 'Your easy run is ready.',
+          createdAt: DateTime.utc(2026, 7, 8, 5),
+        ),
+      ],
+    );
+    NotificationInboxItem? openedItem;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NotificationInboxPage(
+          repository: repository,
+          now: () => DateTime.utc(2026, 7, 8, 8),
+          onOpenItem: (item) => openedItem = item,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(openedItem, isNull);
+
+    await tester.tap(find.text('Run reminder'));
+    await tester.pumpAndSettle();
+
+    expect(openedItem?.id, 'item-1');
+    final items = await repository.listInboxItems();
+    expect(items.single.isRead, isTrue);
+  });
+
   testWidgets(
     'partial swipe reveals delete affordance and full swipe soft deletes',
     (WidgetTester tester) async {

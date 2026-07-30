@@ -204,9 +204,10 @@ void main() {
       await openNotificationCenter(tester);
 
       expect(find.text('Notification Center'), findsOneWidget);
-      expect(find.text('4 of 4 reminders on'), findsOneWidget);
+      expect(find.text('5 of 5 reminders on'), findsOneWidget);
       expect(find.text('BEFORE YOUR RUN'), findsOneWidget);
       expect(find.text('AFTER YOUR RUN'), findsOneWidget);
+      expect(find.text('SOCIAL'), findsOneWidget);
       expect(find.text('Plan-start reminder'), findsOneWidget);
       expect(
         find.text('Notifies you 2 hours, 1 hour, and 10 min before your run.'),
@@ -227,6 +228,11 @@ void main() {
       expect(find.text('Plan updates'), findsOneWidget);
       expect(
         find.text('Know when your coach adjusts an upcoming plan.'),
+        findsOneWidget,
+      );
+      expect(find.text('Likes and comments'), findsOneWidget);
+      expect(
+        find.text('When a friend likes or comments on your shared run.'),
         findsOneWidget,
       );
     },
@@ -274,12 +280,12 @@ void main() {
     await openNotificationCenter(tester);
 
     expect(find.text('Notification Center'), findsOneWidget);
-    expect(find.text('4 of 4 reminders on'), findsOneWidget);
+    expect(find.text('5 of 5 reminders on'), findsOneWidget);
 
     await tester.tap(find.byType(Switch).at(1));
     await tester.pump();
 
-    expect(find.text('3 of 4 reminders on'), findsOneWidget);
+    expect(find.text('4 of 5 reminders on'), findsOneWidget);
     expect(find.text('Plan-start reminder'), findsOneWidget);
     expect(find.text("Today's plan reminder"), findsOneWidget);
     expect(find.text('Missed run nudge'), findsOneWidget);

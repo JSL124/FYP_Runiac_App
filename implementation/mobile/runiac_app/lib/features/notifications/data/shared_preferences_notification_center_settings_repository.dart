@@ -30,6 +30,9 @@ class SharedPreferencesNotificationCenterSettingsRepository
       planUpdatesEnabled:
           preferences.getBool(_key('planUpdatesEnabled')) ??
           NotificationCenterSettings.defaults.planUpdatesEnabled,
+      socialActivityEnabled:
+          preferences.getBool(_key('socialActivityEnabled')) ??
+          NotificationCenterSettings.defaults.socialActivityEnabled,
     );
   }
 
@@ -55,6 +58,10 @@ class SharedPreferencesNotificationCenterSettingsRepository
     await preferences.setBool(
       _key('planUpdatesEnabled'),
       settings.planUpdatesEnabled,
+    );
+    await preferences.setBool(
+      _key('socialActivityEnabled'),
+      settings.socialActivityEnabled,
     );
   }
 

@@ -9,6 +9,7 @@ import '../data/static_feed_repository.dart';
 import '../domain/models/feed_display_models.dart';
 import '../domain/repositories/feed_repository.dart';
 import 'current_session_feed_store.dart';
+import 'feed_comment_intent_controller.dart';
 import 'feed_timeline_screen_controller.dart';
 import 'widgets/feed_header.dart';
 import 'widgets/feed_post_list.dart';
@@ -20,12 +21,19 @@ class CurrentSessionFeed extends StatefulWidget {
     this.repository = const StaticFeedRepository(),
     this.viewerContext,
     this.currentAuthorProfile,
+    this.commentIntent,
     super.key,
   });
 
   final FeedRepository repository;
   final FeedViewerContext? viewerContext;
   final FeedAuthorProfileSnapshot? currentAuthorProfile;
+
+  /// Notification tap-through intent. `null` (previews/tests, and the
+  /// default) means a tapped feed-engagement notification is never consumed
+  /// here — the composition root supplies the shell-owned controller in
+  /// production.
+  final FeedCommentIntentController? commentIntent;
 
   @override
   State<CurrentSessionFeed> createState() => _CurrentSessionFeedState();
@@ -34,16 +42,24 @@ class CurrentSessionFeed extends StatefulWidget {
 class _CurrentSessionFeedState extends State<CurrentSessionFeed> {
   late FeedTimelineScreenController _controller;
   CurrentSessionFeedStore? _sessionStore;
+  bool _consumingCommentIntent = false;
 
   @override
   void initState() {
     super.initState();
     _replaceController();
+    widget.commentIntent?.addListener(_maybeConsumePendingCommentIntent);
   }
 
   @override
   void didUpdateWidget(covariant CurrentSessionFeed oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.commentIntent != widget.commentIntent) {
+      oldWidget.commentIntent?.removeListener(
+        _maybeConsumePendingCommentIntent,
+      );
+      widget.commentIntent?.addListener(_maybeConsumePendingCommentIntent);
+    }
     if (oldWidget.repository != widget.repository ||
         oldWidget.viewerContext != widget.viewerContext) {
       _controller.removeListener(_rebuild);
@@ -80,6 +96,7 @@ class _CurrentSessionFeedState extends State<CurrentSessionFeed> {
 
   @override
   void dispose() {
+    widget.commentIntent?.removeListener(_maybeConsumePendingCommentIntent);
     _sessionStore?.removeListener(_onSessionChanged);
     _controller
       ..removeListener(_rebuild)
@@ -92,6 +109,7 @@ class _CurrentSessionFeedState extends State<CurrentSessionFeed> {
       widget.repository,
       widget.viewerContext,
       widget.currentAuthorProfile,
+      widget.commentIntent,
     )..addListener(_rebuild);
     _controller.attachSession(_sessionStore);
     _controller.refresh();
@@ -126,6 +144,54 @@ class _CurrentSessionFeedState extends State<CurrentSessionFeed> {
 
   void _rebuild() {
     if (mounted) setState(() {});
+    // The timeline's own load/refresh completing is the other moment (besides
+    // a fresh notification request) a pending intent can now be resolvable —
+    // tab 1 mounts lazily and its first load races the intent arriving.
+    _maybeConsumePendingCommentIntent();
+  }
+
+  /// Consumes a pending feed-engagement notification intent once the
+  /// timeline has loaded and nothing else is already mid-open. Idempotent:
+  /// the intent is cleared as soon as a consume begins, so neither this
+  /// listener nor the controller rebuild path it also runs from can ever
+  /// double-fire it.
+  void _maybeConsumePendingCommentIntent() {
+    final intent = widget.commentIntent;
+    final postId = intent?.pendingPostId;
+    if (postId == null ||
+        !mounted ||
+        _consumingCommentIntent ||
+        !_controller.hasLoaded ||
+        _controller.commentSheetOpen) {
+      return;
+    }
+    _consumingCommentIntent = true;
+    intent!.clear();
+    unawaited(_consumeCommentIntent(postId));
+  }
+
+  Future<void> _consumeCommentIntent(String postId) async {
+    try {
+      final outcome = await _controller.openCommentsForPostId(
+        context,
+        postId,
+      );
+      if (!mounted) return;
+      final message = switch (outcome) {
+        FeedCommentOpenOutcome.opened => null,
+        FeedCommentOpenOutcome.notFound =>
+          'That post is no longer in your feed.',
+        FeedCommentOpenOutcome.unavailable =>
+          'Comments are unavailable right now.',
+      };
+      if (message != null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
+      }
+    } finally {
+      _consumingCommentIntent = false;
+    }
   }
 
   void _onSessionChanged() {

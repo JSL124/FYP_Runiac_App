@@ -21,6 +21,16 @@ export type ChallengeNotificationKind =
   | "challenge_result_ready"
   | "challenge_badge_issued";
 
+// Feed engagement notification kinds (WP1: like/comment inbox pings). Kept as
+// a THIRD separate union from both `NotificationDispatchKind` (the scheduled-
+// push planner's own kind space) and `ChallengeNotificationKind` (challenge
+// state-machine events): feed engagement notifications are per-interaction,
+// Firestore-trigger-driven inbox pings raised directly off a single like/
+// comment document write, with their own allowlisted payload and suppression
+// rules, and must not enter either existing planner's kind space. Additive
+// only.
+export type FeedEngagementNotificationKind = "feed_post_liked" | "feed_post_commented";
+
 export type PlannedWorkoutReminder = {
   readonly scheduledWorkoutId: string;
   readonly title: string;

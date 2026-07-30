@@ -857,6 +857,37 @@ is_website_newsletter_subscription_path() {
   esac
 }
 
+is_feed_engagement_notifications_capsule_active() {
+  grep -Eq '^- Newly routed feed engagement notifications on 2026-07-30 Asia/Singapore: `implementation/roadmap/capsules/feed-engagement-notifications\.md`' implementation/roadmap/CURRENT.md
+}
+
+# Backend paths touched by the routed feed engagement notifications capsule: the
+# new inbox emitter module and its suite, the two feed engagement triggers it
+# hooks into, the notification kind registry, and the preference reader that
+# gains the `socialActivityEnabled` sibling. Deliberately an explicit file list
+# rather than a `functions/src/feed/*` or `functions/src/notifications/*` glob:
+# both directories are shared with other capsules. `functions/package.json`,
+# `firestore.rules`, `tests/firebase-rules/*`, `implementation/roadmap/CURRENT.md`,
+# `implementation/roadmap/snapshots/latest.md`, and every
+# `implementation/mobile/runiac_app/*` path this capsule touches are already
+# unconditionally allowed below and are not repeated here.
+is_feed_engagement_notifications_path() {
+  case "$1" in
+    implementation/roadmap/capsules/feed-engagement-notifications.md|\
+    functions/src/feed/engagement/engagementNotifications.ts|\
+    functions/src/feed/engagement/engagement.ts|\
+    functions/src/notifications/types.ts|\
+    functions/src/notifications/scheduledPushReaders.ts|\
+    functions/test/feedEngagementNotifications.test.ts|\
+    functions/test/feedEngagement.test.ts)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_review_triage_notification_privacy_quota_capsule_active() {
   grep -Eq '^- Newly routed review-triage on 2026-07-30 Asia/Singapore: `implementation/roadmap/capsules/review-triage-notification-privacy-quota\.md`' implementation/roadmap/CURRENT.md
 }
@@ -1163,6 +1194,10 @@ is_allowed_path() {
     return 0
   fi
 
+  if is_feed_engagement_notifications_path "$1" && is_feed_engagement_notifications_capsule_active; then
+    return 0
+  fi
+
   if is_review_triage_notification_privacy_quota_path "$1" && is_review_triage_notification_privacy_quota_capsule_active; then
     return 0
   fi
@@ -1464,6 +1499,10 @@ is_forbidden_path() {
   fi
 
   if is_website_newsletter_subscription_path "$1" && is_website_newsletter_subscription_capsule_active; then
+    return 1
+  fi
+
+  if is_feed_engagement_notifications_path "$1" && is_feed_engagement_notifications_capsule_active; then
     return 1
   fi
 

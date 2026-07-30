@@ -34,6 +34,26 @@ export function notificationPreferences(
   };
 }
 
+// Sibling of `notificationPreferences()` above, kept as its own reader rather
+// than a new key folded into that function's return object: dispatchPlanner.ts
+// and notificationDispatch.test.ts construct/consume that shape literally, and
+// widening it would break both. Feed engagement (like/comment) notifications
+// gate on this single boolean instead. Same legacy fallback as
+// `notificationPreferences()`: a `userProfiles/{uid}.notificationPreferences`
+// map is honoured when no `notificationPreferences/{uid}` document exists yet.
+// Defaults to `true` when the key is absent or not a boolean, so existing
+// users are opted in before their client ever mirrors this preference.
+export function socialActivityEnabled(
+  preferenceData: DocumentData | undefined,
+  profileData: DocumentData | undefined,
+): boolean {
+  const legacyProfilePrefs = isRecord(profileData?.["notificationPreferences"])
+    ? profileData["notificationPreferences"]
+    : {};
+  const value = preferenceData ?? legacyProfilePrefs;
+  return readBoolean(value["socialActivityEnabled"]) ?? true;
+}
+
 export function streakState(data: DocumentData | undefined) {
   return {
     streakCount: readInteger(data?.["streakCount"]) ?? 0,

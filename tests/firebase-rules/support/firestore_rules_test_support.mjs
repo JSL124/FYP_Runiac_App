@@ -53,6 +53,7 @@ export const notificationPrefs = {
   runReminderEnabled: true,
   restReminderEnabled: true,
   streakRiskEnabled: false,
+  socialActivityEnabled: true,
   reminderTime: '07:00',
   quietHoursStart: '22:00',
   quietHoursEnd: '06:00',
