@@ -104,10 +104,26 @@ class FirebaseFeedDataPort implements FeedDataPort {
     );
   });
 
+  /// Reads one published post by id, server-only.
+  ///
+  /// `Source.server` is deliberate, not incidental. Firestore's default
+  /// `get()` falls back to the local cache when the network is unreachable and
+  /// does NOT throw, and unlike `pagePublishedPosts` — which propagates
+  /// `snapshot.metadata.isFromCache` into `FeedTimelineSource.cachedOffline`
+  /// and thereby turns `mutationsEnabled` off — a single document read has no
+  /// provenance channel back to the timeline state. A cached hit here would
+  /// therefore resolve a post whose stale snapshot still says
+  /// `status == 'published'` and `canComment`, while the timeline's older
+  /// server-backed state still reports mutations enabled, and the comment
+  /// sheet would open on a post that may already be deleted or unpublished.
+  /// Failing loudly instead lets the caller report "unavailable".
   @override
   Future<FeedPostDocument?> readPublishedPost(String postId) async {
     try {
-      final document = await _firestore.collection('feedPosts').doc(postId).get();
+      final document = await _firestore
+          .collection('feedPosts')
+          .doc(postId)
+          .get(const GetOptions(source: Source.server));
       final data = document.data();
       if (!document.exists || data == null || data['status'] != 'published') {
         return null;
@@ -116,14 +132,21 @@ class FirebaseFeedDataPort implements FeedDataPort {
       // A feed-engagement notification is only ever delivered to a post's
       // owner, so the viewer resolving it here is always that author. Reuse
       // the exact per-viewer like/comment probe `pagePublishedPosts` runs,
-      // scoped to the author's own uid.
+      // scoped to the author's own uid — and hold it to the same server-only
+      // rule, or the probe could serve stale liked/commented flags from cache
+      // even though the post document itself came from the server.
       return await FirebaseFeedPostMapper.mapReference(
         document.reference,
         post,
         post.authorUid,
+        source: Source.server,
       );
     } on FirebaseException catch (error) {
       if (error.code == 'permission-denied') return null;
+      // Everything else — notably `unavailable` from the server-only read
+      // while offline — propagates, so the controller can distinguish "the
+      // post is genuinely gone" from "we could not check" and keep the
+      // comment sheet shut in the second case.
       rethrow;
     } on FormatException {
       // A malformed document is indistinguishable from "not there" to the

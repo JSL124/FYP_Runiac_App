@@ -22,18 +22,28 @@ class FirebaseFeedPostMapper {
   /// id, outside any query) only has a plain `DocumentReference`, so this is
   /// factored out for both to share — the per-viewer probe must stay
   /// identical however the post document was obtained.
+  ///
+  /// [source] defaults to Firestore's own default, which serves the local
+  /// cache when the network is unreachable. Paging depends on that: an
+  /// offline timeline is read from cache and marked `cachedOffline`, which is
+  /// what disables mutations for it. A caller that has no such provenance
+  /// channel — the direct read below — passes [Source.server] so an offline
+  /// probe fails loudly instead of silently returning stale liked/commented
+  /// flags.
   static Future<FeedPostDocument> mapReference(
     DocumentReference<Map<String, Object?>> reference,
     FeedPostDocument post,
-    String viewerUid,
-  ) async {
+    String viewerUid, {
+    Source source = Source.serverAndCache,
+  }) async {
+    final options = GetOptions(source: source);
     final (liked, comments) = await (
-      reference.collection('likes').doc(viewerUid).get(),
+      reference.collection('likes').doc(viewerUid).get(options),
       reference
           .collection('comments')
           .where('authorUid', isEqualTo: viewerUid)
           .limit(1)
-          .get(),
+          .get(options),
     ).wait;
     return FeedPostDocument(
       postId: post.postId,

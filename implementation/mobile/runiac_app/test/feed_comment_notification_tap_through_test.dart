@@ -170,6 +170,56 @@ void main() {
     },
   );
 
+  testWidgets(
+    'a notification intent whose direct read fails offline shows the '
+    'unavailable message rather than claiming the post left the feed',
+    (WidgetTester tester) async {
+      // The direct read is server-only, so offline it throws instead of
+      // quietly resolving a stale cached post with commenting still enabled.
+      // The user must not be told the post is gone — we simply could not
+      // check.
+      final repository = _FakeFeedTimelineRepository(
+        initialPosts: [_post('other-post')],
+        readPostThrows: true,
+      );
+      final intent = FeedCommentIntentController();
+      addTearDown(intent.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CurrentSessionFeed(
+              repository: repository,
+              viewerContext: const FeedViewerContext(
+                currentUserId: 'runner-current',
+                acceptedFriendUserIds: <String>{},
+              ),
+              commentIntent: intent,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      intent.request('notified-post');
+      await tester.pumpAndSettle();
+
+      expect(repository.readPostCalls, <String>['notified-post']);
+      expect(repository.refreshCalls, 0);
+      expect(repository.loadMoreCalls, 0);
+      expect(
+        find.text('Comments are unavailable right now.'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('That post is no longer in your feed.'),
+        findsNothing,
+      );
+      expect(find.text('Comments'), findsNothing);
+      expect(intent.pendingPostId, isNull);
+    },
+  );
+
   test(
     'a pending intent is cleared when the signed-in owner changes, so it '
     'cannot auto-open a sheet for the previous account\'s post',
@@ -232,6 +282,7 @@ class _FakeFeedTimelineRepository implements FeedTimelineRepository {
   _FakeFeedTimelineRepository({
     required List<FeedPostReadModel> initialPosts,
     List<FeedPostReadModel> readablePosts = const [],
+    this.readPostThrows = false,
   }) : _posts = List<FeedPostReadModel>.of(initialPosts),
        _readablePosts = {
          for (final post in readablePosts) post.postId: post,
@@ -239,6 +290,11 @@ class _FakeFeedTimelineRepository implements FeedTimelineRepository {
 
   final List<FeedPostReadModel> _posts;
   final Map<String, FeedPostReadModel> _readablePosts;
+
+  /// Simulates the server-only direct read failing, which is what happens
+  /// offline: `readPublishedPost` uses `Source.server` precisely so a cached
+  /// hit cannot resolve a stale post, so being offline throws instead.
+  final bool readPostThrows;
   int refreshCalls = 0;
   int loadMoreCalls = 0;
   final List<String> readPostCalls = <String>[];
@@ -305,6 +361,12 @@ class _FakeFeedTimelineRepository implements FeedTimelineRepository {
   @override
   Future<FeedPostReadModel?> readPost(String postId) async {
     readPostCalls.add(postId);
+    if (readPostThrows) {
+      // Stands in for the `unavailable` FirebaseException a server-only read
+      // raises offline. The controller catches anything, so a plain exception
+      // exercises the same path without dragging Firebase into this suite.
+      throw Exception('unavailable');
+    }
     return _readablePosts[postId];
   }
 
