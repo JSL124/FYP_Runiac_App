@@ -178,7 +178,10 @@ than the platform seam.
   `runiac/haptics` with method `play` and the matching wire name, and
   `SystemChannels.platform` receives nothing.
 - Same file: a missing native handler falls back to the framework channel with
-  the correct `HapticFeedbackType`.
+  the correct `HapticFeedbackType`. The mock handler throws
+  `MissingPluginException` rather than being cleared, because clearing it left
+  the message to the test engine's unimplemented path, whose timing differs per
+  host — that version passed locally and failed on the Linux CI runner.
 - Same file, off-Android group: the framework mapping is unchanged and the
   Android channel stays untouched.
 - Both groups: disabled fires nothing, and no call throws when the channel
@@ -220,6 +223,13 @@ than the platform seam.
   merge and the full Android build. The three Java 8 source/target warnings are
   pre-existing plugin noise, unrelated to this capsule.
 - `./tools/governance-ci/run-all-checks.sh` — all checks PASS.
+- Hosted Governance CI failed once on `12e72f0a`: the fallback test passed on
+  macOS and failed on the Linux runner (2581 passed, 1 failed) because it
+  depended on the test engine's unimplemented-message timing. Fixed by making
+  the mock handler throw `MissingPluginException`, which is deterministic; the
+  test then also asserts the vibrator channel is attempted before the fallback
+  runs. `backend-emulator-tests` passed on that same run and is untouched by
+  this capsule.
 - **Not produced:** physical Android device confirmation. It cannot be
   generated from the host and remains user-owned.
 

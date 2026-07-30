@@ -110,8 +110,18 @@ void main() {
     test(
       'falls back to the framework channel when the native handler is missing',
       () async {
+        // Throwing MissingPluginException from the mock handler is what makes
+        // `send` resolve to null, which is exactly how a channel with no
+        // native handler surfaces. Clearing the handler instead would leave
+        // the message to the test engine's unimplemented path, whose timing
+        // differs per host and made this assertion flaky on CI.
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-            .setMockMethodCallHandler(runiacAndroidHapticsChannel, null);
+            .setMockMethodCallHandler(runiacAndroidHapticsChannel, (
+              call,
+            ) async {
+              androidCalls.add(call);
+              throw MissingPluginException('No implementation registered');
+            });
         final haptics = SystemRuniacHaptics();
 
         haptics.impactMedium();
@@ -119,7 +129,10 @@ void main() {
         // drain the queue rather than a single microtask turn.
         await pumpEventQueue();
 
-        expect(androidCalls, isEmpty);
+        // The vibrator channel is still attempted first; only after it reports
+        // no implementation does the framework path run.
+        expect(androidCalls, hasLength(1));
+        expect(androidCalls.single.arguments, runiacAndroidHapticMediumImpact);
         expect(frameworkCalls, hasLength(1));
         expect(frameworkCalls.single.method, 'HapticFeedback.vibrate');
         expect(
