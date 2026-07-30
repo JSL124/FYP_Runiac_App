@@ -69,6 +69,22 @@ describe("subscribeNewsletter callable", () => {
     assert.equal(port.confirmationMails.length, 1);
   });
 
+  it("re-arms createdAt (the sweep's retention clock) on every re-subscribe of an existing document, not just a brand-new one", async () => {
+    // Regression: the daily sweep deletes `pending` docs whose `createdAt`
+    // is older than 30 days. If a returner's re-subscribe kept the
+    // ORIGINAL createdAt, a fresh 7-day confirm token could be minted onto a
+    // record the sweep is about to delete out from under it. createdAt must
+    // always mean "start of the current pending window".
+    const port = fixture();
+    const subscriberId = subscriberIdForEmail("runner@example.com");
+    port.subscribers.set(subscriberId, { status: "unsubscribed" });
+
+    await subscribeNewsletterForCallable(requestFor({ email: "runner@example.com" }), port);
+
+    assert.equal(port.upserts.length, 1);
+    assert.equal(port.upserts[0]?.fields["createdAt"], "server-timestamp");
+  });
+
   it("reuses the existing unsubscribe token across a re-subscribe, but always re-arms the confirm token", async () => {
     const port = fixture();
     const subscriberId = subscriberIdForEmail("runner@example.com");
@@ -89,6 +105,9 @@ describe("subscribeNewsletter callable", () => {
     assert.equal(port.upserts[1]?.fields["unsubscribeTokenHash"], firstUnsubscribeHash);
     assert.equal(port.upserts[1]?.fields["unsubscribeTokenRaw"], firstUnsubscribeRaw);
     assert.notEqual(port.upserts[1]?.fields["confirmTokenHash"], firstConfirmHash);
+    // createdAt (the sweep's retention clock) is re-armed every time, unlike
+    // the unsubscribe token.
+    assert.equal(port.upserts[1]?.fields["createdAt"], "server-timestamp");
   });
 
   it("performs no reads or writes at all when the honeypot field is filled", async () => {

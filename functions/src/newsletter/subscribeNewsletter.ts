@@ -136,7 +136,20 @@ export async function subscribeNewsletterForCallable(
     ipHash,
     sendFailureCount: 0,
     updatedAt: port.serverTimestamp(),
-    ...(existing === null ? { createdAt: port.serverTimestamp() } : {}),
+    // `createdAt` here means "start of the current pending window", not
+    // "when this document was first created" — it is the sweep's clock
+    // (sweepUnconfirmedSubscribers.ts deletes `pending` docs whose
+    // `createdAt` is older than 30 days). It is ALWAYS re-armed to now on
+    // every (re-)subscribe, including for an existing document, not just a
+    // brand-new one. Without this, a subscriber who unsubscribes (or never
+    // confirms) and then returns after 30+ days gets a fresh 7-day confirm
+    // token, but the sweep — reading the ORIGINAL createdAt — could delete
+    // the record before that new token is ever clicked. A separate
+    // `pendingSince` field would express the same intent more literally, but
+    // would require a new composite index alongside the existing deployed
+    // status+createdAt one (see firestore.indexes.json); reusing `createdAt`
+    // as the sweep's clock avoids that index change entirely.
+    createdAt: port.serverTimestamp(),
   };
   await port.upsertSubscriber(subscriberId, fields);
   await port.sendConfirmationMail({ to: email, subscriberId, rawToken: rawConfirmToken });

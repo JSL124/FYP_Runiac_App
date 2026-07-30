@@ -844,6 +844,7 @@ is_website_newsletter_subscription_path() {
     firestore.indexes.json|\
     functions/src/newsletter/*|\
     functions/test/newsletter*.ts|\
+    functions/test/feedCallableSurface.test.ts|\
     functions/src/index.ts|\
     functions/package.json|\
     tests/firebase-rules/newsletter.firestore.rules.test.mjs|\

@@ -45,11 +45,55 @@ import {
 // verifies the expected status, before any mail is sent. By the time a
 // retry re-reads the document, status is already "sending"/"draft" (or
 // later "sent"/"failed"), never still "queued"/"testQueued", and the claim
-// is refused. A test send flipping straight to "draft" (rather than some
+// is refused (unless the "sending" lease below has gone stale — see next
+// paragraph). A test send flipping straight to "draft" (rather than some
 // intermediate "testSending") is deliberate: "draft" is not an ENTER target
 // this trigger ever acts on, so it cannot re-trigger itself, and it is also
 // the correct terminal state for a test send per spec.
+//
+// LEASE + CURSOR (resumable fan-out): a real send can span many pages of
+// PAGE_SIZE subscribers, and the function can crash, time out, or be killed
+// mid fan-out. Without a recovery path, that strands the campaign at
+// "sending" forever — the delivery locks in tryLockDelivery/recordDelivery
+// already make re-sending any given recipient safe (ALREADY_EXISTS = skip),
+// but nothing was resuming the walk. Each claim now carries a lease
+// (leaseExpiresAt, an epoch-ms deadline) and a cursor (sendCursor, the last
+// fully processed subscriberId): claimCampaign accepts EITHER status
+// "queued" (a fresh send) OR status "sending" with a leaseExpiresAt in the
+// past (a stale lease — the prior run is presumed dead), and after every
+// page, persistProgress writes the new cursor, the running counters, and a
+// renewed lease in one merge so a reclaim resumes exactly where the dead run
+// left off rather than re-walking from the start. finishSend clears the
+// lease/cursor once the run reaches "sent" or "failed" so a later re-queue
+// starts fresh. Absence of leaseExpiresAt/sendCursor on an already-deployed
+// campaign document (written before this mechanism existed) is treated as
+// NOT reclaimable unless status is plainly "queued" — a "sending" document
+// with no lease at all could be a genuinely still-running invocation from
+// before this deploy, and guessing it is dead would risk a duplicate
+// concurrent walk.
+//
+// IMPORTANT LIMITATION: the lease makes recovery POSSIBLE, not automatic.
+// Cloud Functions v2 Firestore triggers are at-least-once but not
+// indefinitely retried — this file does not, by itself, conjure a retry out
+// of nothing. What the lease buys is that ANY later delivery of a queue
+// event for this document (a genuine platform retry of the original write,
+// or a future admin action that re-writes status to "queued") is safe to
+// resume from, instead of either double-sending from scratch or refusing to
+// act because the document is stuck at "sending". Recovering a campaign that
+// never receives another write to this document at all is still out of
+// scope here.
 const PAGE_SIZE = 200;
+
+// Must comfortably exceed the worst-case time to process and persist-
+// progress-for one page (a Cloud Function's own execution timeout is the
+// real backstop against a page that hangs forever, not this constant), while
+// not stranding automatic recovery for hours if a run legitimately dies.
+// Firebase Functions' default timeout is 60s, so even a page that runs right
+// up against that limit completes (or the whole invocation is killed) well
+// inside a single lease; 10 minutes leaves a wide safety margin above any
+// live run without leaving a genuinely dead run unreclaimable for an
+// unreasonable time.
+export const LEASE_MS = 10 * 60 * 1000;
 
 export type CampaignSnapshot = {
   readonly subject: string;
@@ -63,12 +107,38 @@ export type RecipientRecord = {
   readonly unsubscribeTokenRaw: string;
 };
 
+// What a "send" claim resumes from: the cursor and counters persisted by the
+// last completed page of a prior (possibly dead) run, or all-empty for a
+// brand-new "queued" claim. Unused (all-empty) for a "test" claim.
+export type CampaignClaimResume = {
+  readonly cursor: string | null;
+  readonly recipientCount: number;
+  readonly deliveredCount: number;
+  readonly failedCount: number;
+};
+
+export type CampaignClaim = {
+  readonly snapshot: CampaignSnapshot;
+  readonly resume: CampaignClaimResume;
+};
+
+export type CampaignProgress = {
+  readonly cursor: string;
+  readonly recipientCount: number;
+  readonly deliveredCount: number;
+  readonly failedCount: number;
+};
+
 export type NewsletterCampaignPort = {
+  // Injected rather than read from Date.now() inside the port so the claim's
+  // staleness/lease-renewal math is unit-testable with a controllable clock.
+  readonly now: () => number;
   // Null means the claim did not apply — either the campaign does not
-  // exist, or its status was no longer the expected one by the time the
-  // transaction ran (already claimed by an earlier delivery of this same
-  // event, or moved on by an unrelated write).
-  readonly claimCampaign: (campaignId: string, mode: "send" | "test") => Promise<CampaignSnapshot | null>;
+  // exist, or its status was neither the expected fresh-queue status nor a
+  // "sending" status with an expired lease by the time the transaction ran
+  // (already claimed by an earlier delivery of this same event, claimed by a
+  // still-live prior run, or moved on by an unrelated write).
+  readonly claimCampaign: (campaignId: string, mode: "send" | "test") => Promise<CampaignClaim | null>;
   readonly listConfirmedSubscriberPage: (
     afterSubscriberId: string | null,
   ) => Promise<{ readonly recipients: readonly RecipientRecord[]; readonly hasMore: boolean }>;
@@ -81,6 +151,12 @@ export type NewsletterCampaignPort = {
     outcome: { readonly status: "sent" | "failed"; readonly mailDocId?: string; readonly error?: string },
   ) => Promise<void>;
   readonly enqueueMail: (mail: MailDocument) => Promise<string>;
+  // Called after EACH page of a real send: persists the resume cursor, the
+  // running counters, and a renewed lease in one merge write. These
+  // "sending" -> "sending" writes are already ignored by the ENTER-transition
+  // check in handleNewsletterCampaignWrite (status does not change), so they
+  // cannot re-trigger this function.
+  readonly persistProgress: (campaignId: string, progress: CampaignProgress) => Promise<void>;
   readonly finishSend: (
     campaignId: string,
     result: {
@@ -113,27 +189,24 @@ export async function handleNewsletterCampaignWrite(
   }
 
   const mode = enteringQueued ? "send" : "test";
-  const claimed = await port.claimCampaign(campaignId, mode);
-  if (claimed === null) {
+  const claim = await port.claimCampaign(campaignId, mode);
+  if (claim === null) {
     return;
   }
 
   if (mode === "test") {
-    await sendTestCampaign(campaignId, claimed, port);
+    await sendTestCampaign(campaignId, claim.snapshot, port);
   } else {
-    await sendRealCampaign(campaignId, claimed, port);
+    await sendRealCampaign(campaignId, claim, port);
   }
 }
 
-async function sendRealCampaign(
-  campaignId: string,
-  campaign: CampaignSnapshot,
-  port: NewsletterCampaignPort,
-): Promise<void> {
-  let recipientCount = 0;
-  let deliveredCount = 0;
-  let failedCount = 0;
-  let cursor: string | null = null;
+async function sendRealCampaign(campaignId: string, claim: CampaignClaim, port: NewsletterCampaignPort): Promise<void> {
+  const campaign = claim.snapshot;
+  let recipientCount = claim.resume.recipientCount;
+  let deliveredCount = claim.resume.deliveredCount;
+  let failedCount = claim.resume.failedCount;
+  let cursor: string | null = claim.resume.cursor;
 
   try {
     for (;;) {
@@ -149,10 +222,16 @@ async function sendRealCampaign(
       }
 
       const last = page.recipients[page.recipients.length - 1];
+      if (last !== undefined) {
+        cursor = last.subscriberId;
+        // Persist progress after EVERY page (not just the last one) so a
+        // crash between pages resumes from here rather than from the start.
+        await port.persistProgress(campaignId, { cursor, recipientCount, deliveredCount, failedCount });
+      }
+
       if (!page.hasMore || last === undefined) {
         break;
       }
-      cursor = last.subscriberId;
     }
 
     await port.finishSend(campaignId, { status: "sent", recipientCount, deliveredCount, failedCount });
@@ -263,10 +342,25 @@ function readStatus(data: DocumentData | undefined): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
+function readCampaignSnapshot(data: DocumentData): CampaignSnapshot {
+  const testRecipients = data["testRecipients"];
+  return {
+    subject: typeof data["subject"] === "string" ? data["subject"] : "",
+    bodyMarkdown: typeof data["bodyMarkdown"] === "string" ? data["bodyMarkdown"] : "",
+    testRecipients: Array.isArray(testRecipients)
+      ? testRecipients.filter((value): value is string => typeof value === "string")
+      : [],
+  };
+}
+
+const EMPTY_RESUME: CampaignClaimResume = { cursor: null, recipientCount: 0, deliveredCount: 0, failedCount: 0 };
+
 function firebaseNewsletterCampaignPort(firestore: Firestore): NewsletterCampaignPort {
   const campaigns = firestore.collection(NEWSLETTER_CAMPAIGNS_COLLECTION);
+  const now = (): number => Date.now();
 
   return {
+    now,
     generateToken: generateRawToken,
     claimCampaign: async (campaignId, mode) => {
       const ref = campaigns.doc(campaignId);
@@ -277,25 +371,50 @@ function firebaseNewsletterCampaignPort(firestore: Firestore): NewsletterCampaig
         }
         const data = snapshot.data() ?? {};
         const status = typeof data["status"] === "string" ? data["status"] : undefined;
-        const expectedStatus = mode === "send" ? "queued" : "testQueued";
-        if (status !== expectedStatus) {
+
+        if (mode === "test") {
+          if (status !== "testQueued") {
+            return null;
+          }
+          // Claim is single-winner: the status write happens right here,
+          // inside the same transaction that just verified the expected
+          // status, before any mail is sent. A test send has no
+          // intermediate "sending" state, so it goes straight to its
+          // terminal "draft" — see the file-header comment for why that is
+          // safe.
+          transaction.update(ref, { status: "draft" });
+          return { snapshot: readCampaignSnapshot(data), resume: EMPTY_RESUME };
+        }
+
+        // "send" mode: claimable either as a fresh queue action (status
+        // "queued") or as a stale-lease reclaim of a dead prior run (status
+        // "sending" with leaseExpiresAt in the past). Absence of
+        // leaseExpiresAt (an already-deployed campaign document written
+        // before this mechanism existed) is deliberately NOT reclaimable —
+        // see the file-header comment.
+        const leaseExpiresAt = typeof data["leaseExpiresAt"] === "number" ? data["leaseExpiresAt"] : undefined;
+        const nowMs = now();
+        const isFreshQueue = status === "queued";
+        const isStaleLeaseReclaim = status === "sending" && leaseExpiresAt !== undefined && leaseExpiresAt < nowMs;
+        if (!isFreshQueue && !isStaleLeaseReclaim) {
           return null;
         }
 
-        // Claim is single-winner for BOTH modes: the status write happens
-        // right here, inside the same transaction that just verified the
-        // expected status, before any mail is sent. A test send has no
-        // intermediate "sending" state, so it goes straight to its terminal
-        // "draft" — see the file-header comment for why that is safe.
-        transaction.update(ref, { status: mode === "send" ? "sending" : "draft" });
+        const sendCursor = typeof data["sendCursor"] === "string" ? data["sendCursor"] : null;
+        const recipientCount = typeof data["recipientCount"] === "number" ? data["recipientCount"] : 0;
+        const deliveredCount = typeof data["deliveredCount"] === "number" ? data["deliveredCount"] : 0;
+        const failedCount = typeof data["failedCount"] === "number" ? data["failedCount"] : 0;
 
-        const testRecipients = data["testRecipients"];
+        // Claim is single-winner here too: the status/lease write happens
+        // inside the same transaction that just verified claimability,
+        // before any mail is sent — a concurrent claim attempt (another
+        // redelivered event, or a second stale-lease reclaim) re-reads this
+        // same write and is refused.
+        transaction.update(ref, { status: "sending", leaseExpiresAt: nowMs + LEASE_MS });
+
         return {
-          subject: typeof data["subject"] === "string" ? data["subject"] : "",
-          bodyMarkdown: typeof data["bodyMarkdown"] === "string" ? data["bodyMarkdown"] : "",
-          testRecipients: Array.isArray(testRecipients)
-            ? testRecipients.filter((value): value is string => typeof value === "string")
-            : [],
+          snapshot: readCampaignSnapshot(data),
+          resume: { cursor: sendCursor, recipientCount, deliveredCount, failedCount },
         };
       });
     },
@@ -348,6 +467,21 @@ function firebaseNewsletterCampaignPort(firestore: Firestore): NewsletterCampaig
       const ref = await firestore.collection(MAIL_COLLECTION).add(mail);
       return ref.id;
     },
+    persistProgress: async (campaignId, progress) => {
+      await campaigns.doc(campaignId).set(
+        {
+          sendCursor: progress.cursor,
+          recipientCount: progress.recipientCount,
+          deliveredCount: progress.deliveredCount,
+          failedCount: progress.failedCount,
+          // Renew the lease so a run that is still alive and steadily
+          // making page-by-page progress never has its own lease go stale
+          // out from under it.
+          leaseExpiresAt: now() + LEASE_MS,
+        },
+        { merge: true },
+      );
+    },
     finishSend: async (campaignId, result) => {
       await campaigns.doc(campaignId).set(
         {
@@ -356,6 +490,16 @@ function firebaseNewsletterCampaignPort(firestore: Firestore): NewsletterCampaig
           deliveredCount: result.deliveredCount,
           failedCount: result.failedCount,
           sentAt: FieldValue.serverTimestamp(),
+          // Clear the lease/cursor now that the run has reached a terminal
+          // state ("sent" or "failed"). null (rather than
+          // FieldValue.delete()) keeps the fields visibly present on the
+          // document — "cleared", not "never existed" — which reads clearly
+          // both in the console and in claimCampaign's plain `typeof ===
+          // "number"` / `typeof === "string"` checks, and means a later
+          // re-queue of this same campaign starts its resume state from a
+          // known null/zero baseline rather than a missing field.
+          leaseExpiresAt: null,
+          sendCursor: null,
           ...(result.error === undefined ? {} : { error: result.error }),
         },
         { merge: true },
