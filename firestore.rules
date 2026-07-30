@@ -1196,6 +1196,32 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // newsletterSubscribers, newsletterCampaigns (and its deliveries
+    // subcollection), newsletterRateLimits, and mail are written and read
+    // only by Cloud Functions (subscribeNewsletter, confirmNewsletterSubscription,
+    // unsubscribeNewsletter, newsletterCampaignQueued, sweepUnconfirmedSubscribers)
+    // and the Trigger Email extension via the Admin SDK; clients get no
+    // direct access of any kind, including the public subscribe/confirm/
+    // unsubscribe endpoints themselves, which never touch the client SDK.
+    match /newsletterSubscribers/{subscriberId} {
+      allow read, write: if false;
+    }
+
+    match /newsletterCampaigns/{campaignId} {
+      allow read, write: if false;
+      match /deliveries/{subscriberId} {
+        allow read, write: if false;
+      }
+    }
+
+    match /newsletterRateLimits/{ipHash} {
+      allow read, write: if false;
+    }
+
+    match /mail/{mailId} {
+      allow read, write: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
