@@ -74,8 +74,12 @@ iOS remains out of scope and would need its own Tier 1 capsule.
 - Letting a send failure affect the trigger. The emitters are already wrapped so
   they cannot throw, and the count recompute has already committed by then —
   that must stay true.
-- Any new exported Cloud Function, collection, index, `firestore.rules` change,
+- Any new exported Cloud Function, collection, `firestore.rules` change,
   dependency, or secret.
+- Any `firestore.indexes.json` change **except** the single
+  `tokens.tokenFingerprint` `COLLECTION_GROUP` field override this capsule's
+  review follow-up added — see below for why that exception is load-bearing
+  rather than convenient.
 - Any `notificationDeliveries` ledger row for this path (the inbox create is the
   guard; a second ledger would double the write cost for no added guarantee).
 - Any production deploy, commit, push, or PR without separate explicit user
@@ -92,6 +96,9 @@ iOS remains out of scope and would need its own Tier 1 capsule.
 - `functions/test/feedEngagementPush.test.ts` (new)
 - `functions/test/feedEngagementNotifications.test.ts` (assert the send is not
   attempted on `"duplicate"` and that a send failure cannot escape)
+- `functions/src/notifications/deviceRegistry.ts` (added by Codex review: on
+  register, release the same FCM token from any other uid before claiming it)
+- `functions/test/notificationDevices.test.ts` (ownership-transfer coverage)
 - `functions/package.json` (the new suite joins `test:feed`)
 - this capsule document, its `CURRENT.md` routing line, and the governance-CI
   predicates registering the new files
@@ -125,7 +132,64 @@ iOS remains out of scope and would need its own Tier 1 capsule.
   and an observed banner on an Android device, with the Cloud Run log for the
   trigger showing no `emit failed` line.
 
-## Accepted debt
+## Codex review follow-up (2026-07-31, PR #51)
+
+Three findings, all verified real against the code.
+
+**P1 — a stale token row leaked identity to another account's device.**
+`unregisterCurrentDevice()` deliberately leaves the previous owner's token row
+enabled, and its own comment argues that is recoverable because "the local
+teardown above already stops their pushes reaching this inbox". That reasoning
+held only while every push was anonymous: local teardown stops the *app* writing
+to the wrong inbox, but the server row stays enabled, so FCM still delivers to
+the device and the OS still draws the banner. Plan reminders say "Comfortable
+Run starts in 10 min" and leak nothing; this capsule's banner says
+"Runnest liked your run". So this change converted an accepted trade-off into a
+real disclosure of a previous user's social activity on a lock screen now used
+by someone else. Fixed at registration rather than at send time: when a device
+registers a token, any row holding the same `tokenFingerprint` under a different
+uid is disabled first, so ownership transfers with the device. Registration runs
+on every sign-in, so this also repairs already-shipped clients without an app
+update.
+
+**P2 — a failed disable write could drop the other devices' pushes.** The
+invalid-token disable write was awaited inside the per-device catch but had no
+guard of its own, so a transient Firestore failure rejected that device's
+promise, rejected the surrounding `Promise.all`, and returned from the outer
+function while the remaining sends were still in flight — which Cloud Functions
+may then freeze. Now the disable write has its own catch and the fan-out uses
+settled semantics, so per-device isolation is real rather than intended.
+
+**P2 — duplicate inbox rows, NOT fixed here.** `_saveReceivedPushNotification`
+in `lib/app.dart` writes an inbox document keyed by the FCM `messageId` whenever
+a push arrives, so a server-persisted notification lands twice and can
+re-increment the badge after a tap. The payload cannot carry the fix: the client
+keys off `message.id`, which is FCM-assigned, so no backend value can make the
+two ids agree. This needs a client change (ignore server-persisted messages, or
+key off a supplied `deliveryKey`) and therefore a mobile release. It is recorded
+in Rollback Conditions and must be resolved before or with the push deploy, or
+every runner sees each like twice.
+
+## Index exception (added 2026-07-31, overriding this capsule's own Forbidden Scope)
+
+The P1 fix runs
+`collectionGroup("tokens").where("tokenFingerprint", "==", fingerprint)`. That
+needs no *composite* index, and it passes in the emulator — but Firestore's
+automatic single-field indexes default to `COLLECTION` query scope, so a
+collection-group query needs `COLLECTION_GROUP` scope enabled explicitly, and
+**the emulator does not enforce that while production does**. This repository
+already carries exactly that precedent: `firestore.indexes.json` has
+`fieldOverrides` enabling `COLLECTION_GROUP` for `friends.uid`,
+`friendRequests.uid`, and `blockedUsers.uid`, because
+`friendsNicknameFanout.ts` runs the identical query shape.
+
+Without the override the query would fail in production, the best-effort catch
+around it would swallow the failure, the stale token row would never be
+released, and **the privacy leak this fix exists to close would stay open — with
+every test green**. So the override is not a convenience; omitting it would make
+the P1 fix a no-op exactly where it matters. One `fieldOverrides` entry for
+`tokens.tokenFingerprint` was added, mirroring the three existing ones, and it
+must be deployed with the functions.
 
 `enabledDevices()` was reused as intended, but the invalid-token error-code
 check and the `enabled: false` disable write ended up **duplicated** as small

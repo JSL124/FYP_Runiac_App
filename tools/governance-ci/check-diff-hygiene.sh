@@ -874,7 +874,9 @@ is_feed_engagement_push_path() {
     functions/src/feed/engagement/engagementNotifications.ts|\
     functions/src/notifications/scheduledPushReaders.ts|\
     functions/test/feedEngagementPush.test.ts|\
-    functions/test/feedEngagementNotifications.test.ts)
+    functions/test/feedEngagementNotifications.test.ts|\
+    functions/src/notifications/deviceRegistry.ts|\
+    functions/test/notificationDevices.test.ts)
       return 0
       ;;
     *)
@@ -1191,7 +1193,30 @@ is_profile_photo_avatar_path() {
   esac
 }
 
+is_android_native_haptics_capsule_active() {
+  grep -Eq '^- Newly routed Android native haptics on 2026-07-31 Asia/Singapore: `implementation/roadmap/capsules/android-native-haptics\.md`' implementation/roadmap/CURRENT.md
+}
+
+# Client-only capsule: its only allowlisted path is its own capsule markdown.
+# implementation/mobile/runiac_app/* — including the Kotlin channel handler, the
+# manifest permission, and the JVM unit test — is already unconditionally
+# allowed below and is deliberately not repeated here.
+is_android_native_haptics_path() {
+  case "$1" in
+    implementation/roadmap/capsules/android-native-haptics.md)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_allowed_path() {
+  if is_android_native_haptics_path "$1" && is_android_native_haptics_capsule_active; then
+    return 0
+  fi
+
   if is_eight_bit_png_encoding_path "$1" && is_eight_bit_png_encoding_capsule_active; then
     return 0
   fi

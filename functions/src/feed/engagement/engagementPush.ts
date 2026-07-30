@@ -77,7 +77,15 @@ export async function sendFeedEngagementPush(
       postId: notification.payload.postId,
     };
 
-    await Promise.all(
+    // `allSettled`, not `all`, is deliberate belt-and-braces on top of the
+    // per-device try/catch inside `sendToOneDevice`: the stated guarantee is
+    // that one device's failure can never affect another, so the fan-out
+    // itself must not depend on every promise resolving. If some future edit
+    // ever adds a throw path inside `sendToOneDevice` that isn't caught, an
+    // `all` here would still let one rejection cut off devices whose sends are
+    // still in flight (the exact P2 regression this settled semantics is
+    // guarding against).
+    await Promise.allSettled(
       devices.map((device) => sendToOneDevice(firestore, messaging, device, notification, data, nowIso)),
     );
   } catch (error) {
@@ -103,12 +111,24 @@ async function sendToOneDevice(
     });
   } catch (error) {
     if (isInvalidTokenError(error)) {
-      await disableInvalidToken(firestore, device, nowIso);
+      // The disable write gets its own try/catch, separate from the one
+      // guarding `messaging.send` above: without this, a transient Firestore
+      // failure here would reject this device's promise, which — before the
+      // `allSettled` fan-out above — used to reject the whole `Promise.all`
+      // and return from the caller while the other devices' sends were still
+      // in flight, and Cloud Functions may then freeze the instance and lose
+      // them. A disable write that itself fails is logged and dropped; the
+      // token stays enabled and gets another (harmless) attempt at the next
+      // engagement event.
+      try {
+        await disableInvalidToken(firestore, device, nowIso);
+      } catch (disableError) {
+        console.error("[engagementPush] failed to disable invalid token", device.tokenFingerprint, disableError);
+      }
       return;
     }
     // Any other send error (transient FCM failure, rate limit, ...) is logged
-    // and swallowed here, per-device, so it cannot stop the remaining sends
-    // in the `Promise.all` above.
+    // and swallowed here, per-device, so it cannot stop the remaining sends.
     console.error("[engagementPush] token send failed", device.tokenFingerprint, error);
   }
 }

@@ -4,7 +4,12 @@
 import assert from "node:assert/strict";
 import { before, beforeEach, describe, it } from "node:test";
 import { getApps, initializeApp } from "firebase-admin/app";
-import { getFirestore, type Firestore } from "firebase-admin/firestore";
+import {
+  getFirestore,
+  type CollectionReference,
+  type DocumentReference,
+  type Firestore,
+} from "firebase-admin/firestore";
 
 import {
   sendFeedEngagementPush,
@@ -75,6 +80,51 @@ async function registerToken(
 
 async function tokenDoc(uid: string, tokenFingerprint: string) {
   return firestore.collection("notificationDevices").doc(uid).collection("tokens").doc(tokenFingerprint).get();
+}
+
+// Wraps a real Firestore instance so a `.set()` call on exactly one document
+// path throws, while every other operation (including the `.where(...).get()`
+// token lookup at the top of `sendFeedEngagementPush`) is forwarded to the
+// real instance unchanged. This is the regression guard for the P2 fix: a
+// failing invalid-token disable write must not be able to take down the
+// other devices' sends in the same `Promise.allSettled` fan-out.
+function firestoreThatFailsToWrite(base: Firestore, failingPath: string): Firestore {
+  function wrapDocRef(docRef: DocumentReference): DocumentReference {
+    return new Proxy(docRef, {
+      get(target, property, _receiver) {
+        if (property === "set" && target.path === failingPath) {
+          return () => Promise.reject(new Error("disable write failed"));
+        }
+        if (property === "collection") {
+          return (id: string) => wrapCollectionRef(target.collection(id));
+        }
+        const value = Reflect.get(target, property, target);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    }) as DocumentReference;
+  }
+
+  function wrapCollectionRef(collectionRef: CollectionReference): CollectionReference {
+    return new Proxy(collectionRef, {
+      get(target, property, _receiver) {
+        if (property === "doc") {
+          return (id?: string) => wrapDocRef(id === undefined ? target.doc() : target.doc(id));
+        }
+        const value = Reflect.get(target, property, target);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    }) as CollectionReference;
+  }
+
+  return new Proxy(base, {
+    get(target, property, _receiver) {
+      if (property === "collection") {
+        return (id: string) => wrapCollectionRef(target.collection(id));
+      }
+      const value = Reflect.get(target, property, target);
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  }) as Firestore;
 }
 
 function sampleNotification(ownerUid: string): FeedEngagementNotification {
@@ -175,6 +225,30 @@ describe("sendFeedEngagementPush (emulator)", () => {
     // A non-invalid-token error must not disable the token document.
     const flakyDoc = await tokenDoc(ownerUid, "fp-flaky");
     assert.equal(flakyDoc.get("enabled"), true);
+  });
+
+  it("an invalid-token disable write that throws still lets the other device's send complete", async () => {
+    const ownerUid = uniqueId("owner-disable-fails");
+    await registerToken(ownerUid, "fp-bad", "token-bad");
+    await registerToken(ownerUid, "fp-good", "token-good");
+    const { port, sent } = fakeMessaging({ invalidTokens: new Set(["token-bad"]) });
+    const failingPath = `notificationDevices/${ownerUid}/tokens/fp-bad`;
+    const brokenFirestore = firestoreThatFailsToWrite(firestore, failingPath);
+
+    await assert.doesNotReject(() =>
+      sendFeedEngagementPush(brokenFirestore, port, sampleNotification(ownerUid), "2026-07-31T00:00:00.000Z"),
+    );
+
+    // This is the regression guard: before the disable write got its own
+    // try/catch and the fan-out moved to `allSettled`, a throwing disable
+    // write here would have rejected the whole `Promise.all` and the good
+    // device's send could be lost. Assert it actually went out.
+    const tokensSent = sent.map((call) => call.token).sort();
+    assert.deepEqual(tokensSent, ["token-bad", "token-good"]);
+    // The bad token's row could not be disabled (the write itself failed), so
+    // it is left as still enabled rather than silently marked disabled.
+    const badDoc = await tokenDoc(ownerUid, "fp-bad");
+    assert.equal(badDoc.get("enabled"), true);
   });
 
   it("never throws even when the messaging port itself is broken", async () => {
