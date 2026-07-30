@@ -148,14 +148,18 @@ closed here.
   assumed Cloud Scheduler fires on an exact grid; a sweep due at 05:40 that ran
   at 05:42 stepped over it and dropped the reminder — the original defect in a
   narrower form. The window is now the sweep interval plus tolerance (15 min),
-  still far inside the 50-minute minimum gap between offsets.
+  still far inside the 50-minute minimum gap between offsets. Widening it also
+  made the midnight window overlap an offset window, which the third round
+  below had to fix.
 - **The dedup that made the wider window safe did not actually hold.** The
   first round's comment claimed duplicate sends were impossible. Only `"sent"`
   suppressed a resend, so an attempt whose FCM response was lost sat at
   `"pending"` and was sent again — and a window wider than the sweep interval
   means consecutive sweeps really do reconsider the same reminder. A pending row
-  now suppresses a resend inside a 30-minute attempt lease, and is retried after
-  it so a crash between the write and the send still recovers.
+  now suppresses a resend inside an attempt lease, and is retried after it so a
+  crash between the write and the send still recovers. (The lease length chosen
+  here was wrong — 30 minutes outlived the due window and made recovery
+  unreachable. Corrected in the third round below.)
 - **The six-hour future allowance let the client pick the accounting period.**
   Accepting a future `completedAt` is the right call for a misconfigured device
   clock, but it must not also choose which day's cap and which month's board the
@@ -192,6 +196,39 @@ closed here.
   before the `defineSecret` usage and the git history were checked.
 - **Capsule accuracy:** this document claimed the website half was "committed
   and deployed separately". It is uncommitted in that repository. Corrected.
+
+## Third round (PR #47 Codex review)
+
+The PR review raised three P2s, all against the follow-up round's own fixes.
+All three were verified real and are closed.
+
+- **The pending-delivery lease outlived the planning window, so recovery was
+  unreachable.** A 30-minute lease against a 15-minute due window meant that by
+  the time the lease expired the planner had stopped emitting the dispatch — an
+  attempt lost to a crash was stranded permanently, not retried. Worse, the test
+  that claimed to cover recovery used an hour-old pending row, which is not a
+  path any sweep can reach, so it asserted a guarantee that did not exist. The
+  lease is now five minutes (under the ten-minute sweep interval) and the test
+  drives the real recovery: a crash at 21:00Z is retried by the in-window 21:10Z
+  sweep. The residual limit — an attempt dying late in the window has no
+  in-window sweep left — is documented at the constant rather than papered over.
+- **The widened midnight window masked overlapping offset windows.**
+  `planWorkoutDispatches` chained the kinds with `??` and returned only the
+  first, so for a 02:05 start the 00:10 sweep emitted `today_plan_midnight`
+  alone and the -120 window had closed by 00:20 — that reminder was never sent.
+  Widening the midnight window to a full sweep interval is what made the overlap
+  reachable. All independently due kinds are now emitted; they carry different
+  delivery keys, so this is deduplicated per reminder rather than doubled.
+- **Regression: treating a contended refresh lease as success could report
+  `cleaned` with mock rows still live.** When the seed covers the live period,
+  the hourly aggregation holding the lease may already have read the synthetic
+  contributions before the deletes committed, and can republish exactly the rows
+  the cleanup removed — it does not reconcile the deletion, which is what the
+  follow-up round's comment assumed. `skipped_locked` is fatal again. The
+  premise behind that change was also wrong: throwing after the deletes commit
+  is not a stranded state, because `cleanup_pending` is an explicitly resumable
+  status (`cleanupIssues` and `hasSafeCleanupCandidateIds` both accept it) and
+  the deletes are id-scoped and idempotent, so re-running finishes the refresh.
 
 ## Path scope
 

@@ -95,17 +95,47 @@ describe("notification dispatch planner", () => {
     }
   });
 
-  it("keeps every reminder window inside the gap to the next offset", () => {
+  it("does not let the midnight window mask an overlapping offset window", () => {
+    // A 02:05 start puts the -120 window at 00:05-00:20, overlapping the
+    // midnight window. Chaining the kinds with `??` returned midnight alone at
+    // the 00:10 sweep, and by 00:20 the -120 window had closed — so that
+    // reminder was never sent at all.
+    const seen: string[] = [];
+    for (const now of tenMinuteSweepsOverLocalDay("2026-07-10")) {
+      for (const dispatch of planNotificationDispatches(
+        planContext(now, { startTime: "02:05", streakRiskEnabled: false }),
+      )) {
+        seen.push(dispatch.kind);
+      }
+    }
+
+    assert.ok(seen.includes("today_plan_midnight"));
+    assert.ok(
+      seen.includes("plan_start_minus_120"),
+      "the midnight window swallowed the -120 reminder",
+    );
+    assert.ok(seen.includes("plan_start_minus_60"));
+    assert.ok(seen.includes("plan_start_minus_10"));
+  });
+
+  it("never matches two offset windows on the same sweep", () => {
     // The window is wider than the sweep interval, so two consecutive sweeps
     // can both find one reminder due — that is what the delivery dedup covers.
-    // What must never happen is one sweep matching TWO different offsets, which
-    // would mean the windows had grown into each other.
+    // What must never happen is one sweep matching two different OFFSETS, which
+    // would mean the windows had grown into each other. (The midnight kind may
+    // legitimately co-occur with an offset kind; it is a different reminder,
+    // not a widened window, so it is excluded here.)
     for (const now of tenMinuteSweepsOverLocalDay("2026-07-10")) {
-      const kinds = planNotificationDispatches(
+      const offsetKinds = planNotificationDispatches(
         planContext(now, { startTime: "07:31", streakRiskEnabled: false }),
-      ).map((dispatch) => dispatch.kind);
-      assert.deepEqual(new Set(kinds).size, kinds.length);
-      assert.ok(kinds.length <= 1, `${now} planned ${kinds.length} reminders`);
+      )
+        .map((dispatch) => dispatch.kind)
+        .filter((kind) => kind !== "today_plan_midnight");
+      assert.equal(new Set(offsetKinds).size, offsetKinds.length);
+      assert.ok(
+        offsetKinds.length <= 1,
+        `${now} matched ${offsetKinds.length} offset windows`,
+      );
     }
   });
 

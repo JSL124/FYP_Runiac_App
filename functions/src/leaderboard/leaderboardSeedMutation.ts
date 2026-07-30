@@ -149,15 +149,23 @@ export async function cleanupLeaderboardSeedRun(input: {
     livePeriodKey,
     { buildId: `cleanup_${input.seedDataset.dataset.runId}_${livePeriodKey}` },
   );
-  // `skipped_locked` is a success for this path, not a failure. Targeting the
-  // live period means this refresh now contends with the hourly
-  // `refreshLeaderboardSnapshots` schedule, which the old past-period target
-  // never did. Treating a lost lease as fatal would abort AFTER the id-scoped
-  // deletes have already committed, leaving the manifest stranded at
-  // `cleanup_pending` for a run whose documents are gone. Whoever holds the
-  // lease is aggregating the same live period and reconciles it.
-  if (refresh.status !== "completed" && refresh.status !== "skipped_locked") {
-    throw new Error("cleanup refresh did not complete");
+  // A lost lease is a FAILURE here, deliberately. Targeting the live period
+  // means this refresh contends with the hourly `refreshLeaderboardSnapshots`
+  // schedule, and when the seed itself covers the live period that holder may
+  // already have read the synthetic contributions before the deletes above
+  // committed — so it can republish the very rows this cleanup removed. It does
+  // not reconcile the deletion, and reporting `cleaned` while mock rows are
+  // still visible in live snapshots is the worst available outcome.
+  //
+  // Throwing after the deletes have committed is not a stranded state: the
+  // manifest is left at `cleanup_pending`, which `cleanupIssues` and
+  // `hasSafeCleanupCandidateIds` explicitly accept as a resumable status, and
+  // the deletes are id-scoped and idempotent. Re-running the cleanup finishes
+  // the refresh and marks it `cleaned`.
+  if (refresh.status !== "completed") {
+    throw new Error(
+      `cleanup refresh did not complete (status: ${refresh.status}); re-run cleanup to finish it`,
+    );
   }
   const manifestRef = input.firestore.collection("leaderboardSeedRuns").doc(input.seedDataset.dataset.runId);
   const expectedCounts = candidateDocumentCounts(expectedSeedDocumentIds(input.seedDataset));

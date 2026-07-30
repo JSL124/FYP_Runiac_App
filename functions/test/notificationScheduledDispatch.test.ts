@@ -122,18 +122,23 @@ describe("scheduled notification dispatch", () => {
 
     const result = await dispatchScheduledPushNotificationsNow(
       { firestore, messaging },
-      "2026-07-09T21:05:00.000Z",
+      "2026-07-09T21:03:00.000Z",
     );
 
     assert.deepEqual(sentTokens, []);
     assert.equal(result.sendsAttempted, 0);
   });
 
-  it("retries a pending delivery once its attempt lease has expired", async () => {
-    // The lease must not strand a notification forever: an attempt lost to a
-    // crash between the delivery write and the send has to recover.
+  it("retries a pending delivery on the next sweep that still finds it due", async () => {
+    // The lease has to expire while the planner is STILL offering this
+    // reminder, or recovery is unreachable: a lease outliving the due window
+    // expires after the planner has stopped emitting the dispatch, and the
+    // reminder is stranded rather than retried. The -120 window for a 07:00
+    // workout opens at 05:00 Singapore (21:00Z the day before) and lasts 15
+    // minutes; a crashed attempt at 21:00Z must be retried by the 21:10Z sweep,
+    // which is inside the window and past the five-minute lease.
     await seedDispatchUser();
-    await seedPendingDelivery("2026-07-09T20:00:00.000Z");
+    await seedPendingDelivery("2026-07-09T21:00:00.000Z");
     const sentTokens: string[] = [];
     const messaging = {
       send: async (message: { readonly token: string }) => {
@@ -144,7 +149,7 @@ describe("scheduled notification dispatch", () => {
 
     const result = await dispatchScheduledPushNotificationsNow(
       { firestore, messaging },
-      "2026-07-09T21:00:00.000Z",
+      "2026-07-09T21:10:00.000Z",
     );
 
     assert.deepEqual(sentTokens, [FCM_TOKEN]);

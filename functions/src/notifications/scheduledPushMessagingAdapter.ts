@@ -9,12 +9,24 @@ import {
 import type { ScheduledPushDependencies } from "./scheduledPushFirestore.js";
 
 /**
- * How long a "pending" delivery row suppresses a retry. Comfortably longer
- * than one sweep interval plus its delay tolerance, so an in-flight attempt is
- * never sent twice, and short enough that an attempt lost to a crash is
- * retried on a later sweep rather than being stranded forever.
+ * How long a "pending" delivery row suppresses a retry.
+ *
+ * This has to be SHORTER than the sweep interval, not longer. The planner only
+ * offers a reminder for its due window, so the retry has to arrive on a sweep
+ * that still considers it due — a lease outliving the window means the lease
+ * expires after the planner has stopped emitting the dispatch, and the
+ * reminder is stranded permanently rather than retried. Five minutes is well
+ * under the ten-minute sweep interval, while still far longer than the seconds
+ * an FCM send actually takes, so a genuinely in-flight attempt is never sent
+ * twice.
+ *
+ * Known limit: recovery needs one more in-window sweep after the lease
+ * expires. An attempt that dies late in the due window has no such sweep left
+ * and that one reminder is dropped. Closing that would mean retrying pending
+ * deliveries independently of the planner's window, which is a larger change
+ * than this capsule carries.
  */
-const pendingAttemptLeaseMs = 30 * 60 * 1000;
+const pendingAttemptLeaseMs = 5 * 60 * 1000;
 
 export function firestoreMessagingAdapter(
   dependencies: ScheduledPushDependencies,

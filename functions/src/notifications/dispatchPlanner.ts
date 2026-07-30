@@ -154,16 +154,22 @@ function planWorkoutDispatches(
 
   const localMinutes = localTime.hour * 60 + localTime.minute;
   const startMinutes = startTimeMinutes(workout.startTime);
-  const kind =
-    midnightKind(localTime) ??
-    reminderKindForOffset(localMinutes - startMinutes, START_REMINDER_OFFSETS) ??
-    reminderKindForOffset(localMinutes - startMinutes, MISSED_REMINDER_OFFSETS);
+  const offset = localMinutes - startMinutes;
+  // Every independently due kind is emitted, not just the first match. These
+  // used to be chained with `??`, so the midnight window masked any offset
+  // window it overlapped — and widening the midnight window to a whole sweep
+  // interval made that overlap reachable. A workout starting at 02:05 has its
+  // -120 window at 00:05-00:20; the 00:10 sweep matched midnight first and
+  // returned only that, and by the 00:20 sweep the -120 window had closed, so
+  // that reminder was never sent at all. The kinds carry different delivery
+  // keys, so emitting both is deduplicated per reminder rather than doubled.
+  const kinds = [
+    midnightKind(localTime),
+    reminderKindForOffset(offset, START_REMINDER_OFFSETS),
+    reminderKindForOffset(offset, MISSED_REMINDER_OFFSETS),
+  ].filter((kind): kind is NotificationDispatchKind => kind !== null);
 
-  if (kind === null) {
-    return [];
-  }
-
-  return [
+  return kinds.map((kind) =>
     withDeliveryKey({
       uid,
       kind,
@@ -172,7 +178,7 @@ function planWorkoutDispatches(
       title: titleFor(kind, workout.title),
       body: bodyFor(kind, workout.title),
     }),
-  ];
+  );
 }
 
 function streakRiskDispatch(
