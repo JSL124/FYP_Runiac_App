@@ -14,6 +14,7 @@ import '../challenge/presentation/challenge_result_presentation_controller.dart'
 import '../feed/domain/models/feed_display_models.dart';
 import '../feed/domain/repositories/feed_repository.dart';
 import '../feed/presentation/current_session_feed.dart';
+import '../feed/presentation/feed_comment_intent_controller.dart';
 import '../friends/data/static_friends_repository.dart';
 import '../friends/domain/repositories/friends_repository.dart';
 import '../home/domain/guide/home_guide_agent.dart';
@@ -30,7 +31,9 @@ import '../notifications/data/shared_preferences_notification_inbox_cleanup_stor
 import '../notifications/data/shared_preferences_plan_notification_ledger.dart';
 import '../notifications/domain/models/plan_notification_schedule.dart';
 import '../notifications/domain/repositories/notification_inbox_repository.dart';
+import '../notifications/domain/repositories/notification_preference_mirror.dart';
 import '../notifications/domain/services/notification_inbox_legacy_cleanup.dart';
+import '../notifications/domain/services/notification_preference_mirror_service.dart';
 import '../notifications/domain/services/plan_notification_delivery_materializer.dart';
 import '../notifications/domain/services/plan_notification_sync_service.dart';
 import '../plan/domain/models/adaptive_plan_estimate_read_model.dart';
@@ -75,6 +78,8 @@ class RuniacShell extends StatefulWidget {
         const NoopGeneratedPlanPersistenceRepository(),
     this.notificationInboxRepository =
         const StaticNotificationInboxRepository(),
+    this.notificationPreferenceMirror =
+        const NoopNotificationPreferenceMirror(),
     this.planProgress,
     this.planCompletionSeenStore,
     this.appTourSeenStore,
@@ -110,6 +115,11 @@ class RuniacShell extends StatefulWidget {
   final UserProfilePersistenceRepository profilePersistenceRepository;
   final GeneratedPlanPersistenceRepository generatedPlanPersistenceRepository;
   final NotificationInboxRepository notificationInboxRepository;
+
+  /// Best-effort mirror of the derived Social-activity boolean into
+  /// `notificationPreferences/{uid}`. Defaults to a no-op so previews/tests
+  /// need no Firestore.
+  final NotificationPreferenceMirror notificationPreferenceMirror;
   final PlanProgressReadModel? planProgress;
 
   /// One-shot marker forwarded to [HomeTab] for the plan-completion ceremony.
@@ -174,6 +184,12 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
   late final AppTourController _appTourController = AppTourController(
     onRequestTab: _selectTab,
   );
+
+  /// Owns the "open this post's comment sheet" request a tapped feed-
+  /// engagement notification makes. Requested from [HomeTab] via
+  /// [_openFeedPostComments], consumed by the Feed tab's `CurrentSessionFeed`.
+  final FeedCommentIntentController _feedCommentIntent =
+      FeedCommentIntentController();
   BeginnerAdaptivePlanSnapshot? _pendingPlanNotificationPlan;
   GeneratedPlanProgressDisplay? _pendingPlanNotificationProgress;
   late Future<FeedAuthorProfileSnapshot> _feedAuthorProfileFuture;
@@ -216,6 +232,13 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
             ? _logLocalNotificationDebug
             : null,
       );
+  late final NotificationPreferenceMirrorService
+  _notificationPreferenceMirrorService = NotificationPreferenceMirrorService(
+    settingsRepository: const SharedPreferencesNotificationCenterSettingsRepository(),
+    mirror: widget.notificationPreferenceMirror,
+    ownerUidProvider: _notificationOwnerUid,
+  );
+  String? _socialActivityMirrorOwnerUid;
 
   String? _notificationOwnerUid() => widget.authRepository.currentUser?.uid;
 
@@ -240,6 +263,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
       _planNotificationScheduler.onDelivered = _handlePlanNotificationDelivered;
     }
     _scheduleNotificationInboxMaintenance();
+    _scheduleSocialActivityMirrorSync();
   }
 
   void _handlePlanNotificationDelivered() {
@@ -268,6 +292,21 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
       }
       unawaited(_runNotificationInboxMaintenance(cleanFirst: true));
     });
+  }
+
+  /// Reconciles the Firestore Social-activity mirror once per signed-in
+  /// owner, so a pre-existing install (or an offline toggle that never made
+  /// it out) catches up on the next cold start rather than staying stale
+  /// until the user happens to revisit Notification Center.
+  void _scheduleSocialActivityMirrorSync() {
+    final ownerUid = _notificationOwnerUid();
+    if (ownerUid == null ||
+        ownerUid.isEmpty ||
+        ownerUid == _socialActivityMirrorOwnerUid) {
+      return;
+    }
+    _socialActivityMirrorOwnerUid = ownerUid;
+    unawaited(_notificationPreferenceMirrorService.syncSocialActivity());
   }
 
   Future<void> _runNotificationInboxMaintenance({
@@ -406,6 +445,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
       _activeRunSessionCoordinator.dispose();
     }
     _appTourController.dispose();
+    _feedCommentIntent.dispose();
     super.dispose();
   }
 
@@ -491,6 +531,15 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
       _selectedIndex = index;
       _visitedTabIndexes.add(index);
     });
+  }
+
+  /// Switches to the Feed tab and requests [postId]'s comment sheet. Goes
+  /// through [_selectTab], never [_handleNavigationTap] — the latter is
+  /// wired to launch a run for index 2 and asserts against it, neither of
+  /// which applies here.
+  void _openFeedPostComments(String postId) {
+    _selectTab(1);
+    _feedCommentIntent.request(postId);
   }
 
   void _openInitialRunIntent() {
@@ -601,6 +650,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
       force: false,
     );
     _scheduleNotificationInboxMaintenance();
+    _scheduleSocialActivityMirrorSync();
     final feedAuthorProfile =
         _lastFeedAuthorProfile ??
         FeedAuthorProfileSnapshot.fallback(
@@ -644,7 +694,9 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
               userProgressStore: userProgressStore,
               force: true,
             );
+            unawaited(_notificationPreferenceMirrorService.syncSocialActivity());
           },
+          onOpenFeedPostComments: _openFeedPostComments,
         ),
       if (_visitedTabIndexes.contains(1))
         1: CurrentSessionFeed(
@@ -652,6 +704,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
           repository: widget.feedRepository,
           viewerContext: _feedViewerContext,
           currentAuthorProfile: feedAuthorProfile,
+          commentIntent: _feedCommentIntent,
         ),
       if (_visitedTabIndexes.contains(3))
         3: LeaderboardTab(

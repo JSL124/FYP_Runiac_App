@@ -20,6 +20,7 @@ void main() {
           todaysPlanReminderEnabled: true,
           missedRunNudgeEnabled: false,
           planUpdatesEnabled: true,
+          socialActivityEnabled: false,
         );
 
         // When
@@ -46,6 +47,31 @@ void main() {
 
         // Then
         expect(restored, NotificationCenterSettings.defaults);
+      },
+    );
+
+    test(
+      'defaults socialActivityEnabled to true when the key is absent, even '
+      'for a pre-existing install that only saved the other toggles',
+      () async {
+        // Given: an install that saved settings before the Social toggle
+        // existed, so its key was never written.
+        SharedPreferences.setMockInitialValues(<String, Object>{
+          'test.legacyNotifications.notificationsEnabled': true,
+          'test.legacyNotifications.planStartReminderEnabled': false,
+        });
+        const repository =
+            SharedPreferencesNotificationCenterSettingsRepository(
+              keyPrefix: 'test.legacyNotifications',
+            );
+
+        // When
+        final restored = await repository.loadSettings();
+
+        // Then
+        expect(restored.socialActivityEnabled, isTrue);
+        expect(restored.notificationsEnabled, isTrue);
+        expect(restored.planStartReminderEnabled, isFalse);
       },
     );
   });

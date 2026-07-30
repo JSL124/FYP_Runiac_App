@@ -459,6 +459,26 @@ is_website_newsletter_subscription_capsule_active() {
   grep -Eq '^- Newly routed website newsletter subscription on 2026-07-30 Asia/Singapore: `implementation/roadmap/capsules/website-newsletter-subscription\.md`' implementation/roadmap/CURRENT.md
 }
 
+is_feed_engagement_notifications_capsule_active() {
+  grep -Eq '^- Newly routed feed engagement notifications on 2026-07-30 Asia/Singapore: `implementation/roadmap/capsules/feed-engagement-notifications\.md`' implementation/roadmap/CURRENT.md
+}
+
+# New source files introduced by the routed feed engagement notifications
+# capsule: the inbox emitter module and its suite. Every other backend file this
+# capsule edits is already tracked and handled by the diff-hygiene allowlist, and
+# its new Flutter files sit under the approved scaffold prefix.
+is_feed_engagement_notifications_path() {
+  case "$1" in
+    functions/src/feed/engagement/engagementNotifications.ts|\
+    functions/test/feedEngagementNotifications.test.ts)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_review_triage_notification_privacy_quota_capsule_active() {
   grep -Eq '^- Newly routed review-triage on 2026-07-30 Asia/Singapore: `implementation/roadmap/capsules/review-triage-notification-privacy-quota\.md`' implementation/roadmap/CURRENT.md
 }
@@ -914,6 +934,10 @@ is_forbidden_config_or_secret() {
   fi
 
   if is_website_newsletter_subscription_path "$1" && is_website_newsletter_subscription_capsule_active; then
+    return 1
+  fi
+
+  if is_feed_engagement_notifications_path "$1" && is_feed_engagement_notifications_capsule_active; then
     return 1
   fi
 

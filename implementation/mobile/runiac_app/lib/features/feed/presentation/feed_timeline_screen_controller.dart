@@ -6,19 +6,40 @@ import '../domain/repositories/feed_repository.dart';
 import 'current_session_feed_fallback.dart';
 import 'current_session_feed_store.dart';
 import 'current_session_feed_timeline.dart';
+import 'feed_comment_intent_controller.dart';
 import 'widgets/feed_sheets.dart';
+
+/// Result of [FeedTimelineScreenController.openCommentsForPostId].
+enum FeedCommentOpenOutcome {
+  /// The post was found and its comment sheet was opened.
+  opened,
+
+  /// The post could not be found in the timeline even after a refresh and
+  /// (in production) paging further.
+  notFound,
+
+  /// The post was found but cannot be commented on right now (deleted,
+  /// reported, or mutations are disabled for the current timeline source).
+  unavailable,
+}
 
 class FeedTimelineScreenController extends ChangeNotifier {
   FeedTimelineScreenController(
     this._repository,
     this._viewerContext, [
     this._currentAuthorProfile,
+    this._commentIntent,
   ]) {
     scrollController.addListener(_loadMoreNearEnd);
   }
 
   final FeedRepository _repository;
   final FeedViewerContext? _viewerContext;
+
+  /// Notification tap-through intent, cleared when the signed-in owner
+  /// changes so a stale request never auto-opens a sheet for the previous
+  /// account's post. `null` outside the composition root (previews/tests).
+  final FeedCommentIntentController? _commentIntent;
   final ScrollController scrollController = ScrollController();
   final _fallback = CurrentSessionFeedFallback();
   final Set<String> _requestedThumbnails = <String>{};
@@ -64,6 +85,7 @@ class FeedTimelineScreenController extends ChangeNotifier {
     if (nextRevision == _ownerRevision) return false;
     _ownerRevision = nextRevision;
     _fallback.clear();
+    _commentIntent?.clear();
     _notify();
     return true;
   }
@@ -188,6 +210,58 @@ class FeedTimelineScreenController extends ChangeNotifier {
   }
 
   bool get mutationsEnabled => _state?.mutationsEnabled ?? true;
+
+  /// Opens the comment sheet for [postId] the same way a normal tap on an
+  /// already-visible post does, resolving the post first when it is not
+  /// (yet) loaded.
+  ///
+  /// Resolution order: the already-loaded [posts]; then a [refresh]; then,
+  /// only for the production timeline and only while it is not exhausted,
+  /// up to [maxAdditionalPages] calls to [loadMore], re-checking after each.
+  /// Returns [FeedCommentOpenOutcome.notFound] when the post never turns up,
+  /// [FeedCommentOpenOutcome.unavailable] when it is found but can no longer
+  /// be commented on (deleted/reported, or mutations disabled), and
+  /// [FeedCommentOpenOutcome.opened] once [openComments] has been invoked for
+  /// it.
+  Future<FeedCommentOpenOutcome> openCommentsForPostId(
+    BuildContext context,
+    String postId, {
+    int maxAdditionalPages = 2,
+  }) async {
+    var found = _findPost(postId);
+    if (found == null) {
+      await refresh();
+      if (!context.mounted) return FeedCommentOpenOutcome.notFound;
+      found = _findPost(postId);
+    }
+    var pagesLoaded = 0;
+    while (found == null &&
+        isProduction &&
+        !(_state?.exhausted ?? true) &&
+        pagesLoaded < maxAdditionalPages) {
+      await loadMore();
+      if (!context.mounted) return FeedCommentOpenOutcome.notFound;
+      pagesLoaded += 1;
+      found = _findPost(postId);
+    }
+    if (found == null) {
+      return FeedCommentOpenOutcome.notFound;
+    }
+    if (!found.canComment || !mutationsEnabled) {
+      return FeedCommentOpenOutcome.unavailable;
+    }
+    await openComments(context, found);
+    return FeedCommentOpenOutcome.opened;
+  }
+
+  FeedPostReadModel? _findPost(String postId) {
+    for (final post in posts) {
+      if (post.postId == postId) {
+        return post;
+      }
+    }
+    return null;
+  }
 
   Future<void> showOptions(BuildContext context, FeedPostReadModel post) =>
       showCurrentSessionFeedPostOptions(

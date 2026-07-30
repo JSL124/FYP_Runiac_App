@@ -36,6 +36,7 @@ import 'features/home/domain/guide/rule_based_home_guide_agent.dart';
 import 'features/onboarding/domain/models/local_onboarding_draft.dart';
 import 'features/notifications/domain/models/notification_inbox_item.dart';
 import 'features/notifications/domain/repositories/notification_inbox_repository.dart';
+import 'features/notifications/domain/repositories/notification_preference_mirror.dart';
 import 'features/notifications/domain/services/notification_registration_service.dart';
 import 'features/paywall/domain/repositories/character_access_repository.dart';
 import 'features/paywall/domain/repositories/feature_access_repository.dart';
@@ -111,6 +112,8 @@ class RuniacApp extends StatefulWidget {
         const NoopAdaptivePlanEstimateRepository(),
     this.notificationInboxRepository =
         const StaticNotificationInboxRepository(),
+    this.notificationPreferenceMirror =
+        const NoopNotificationPreferenceMirror(),
     this.notificationRegistrationService,
     this.homeGuideAgent = const RuleBasedHomeGuideAgent(),
     this.homeGuideConsentRepository =
@@ -182,6 +185,10 @@ class RuniacApp extends StatefulWidget {
   final AppTourSeenStore? appTourSeenStore;
   final AdaptivePlanEstimateRepository adaptivePlanEstimateRepository;
   final NotificationInboxRepository notificationInboxRepository;
+
+  /// Best-effort mirror of the derived Social-activity boolean into
+  /// `notificationPreferences/{uid}`, forwarded to `RuniacShell`.
+  final NotificationPreferenceMirror notificationPreferenceMirror;
   final NotificationRegistrationService? notificationRegistrationService;
 
   /// Guide seam forwarded down to `HomeTab`'s stage-map speech bubble.
@@ -810,6 +817,7 @@ class _RuniacAppState extends State<RuniacApp> {
           generatedPlanPersistenceRepository:
               widget.generatedPlanPersistenceRepository,
           notificationInboxRepository: widget.notificationInboxRepository,
+          notificationPreferenceMirror: widget.notificationPreferenceMirror,
           planProgress: _planProgress,
           planCompletionSeenStore: widget.planCompletionSeenStore,
           appTourSeenStore: widget.appTourSeenStore,

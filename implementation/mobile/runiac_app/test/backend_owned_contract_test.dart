@@ -341,6 +341,8 @@ void main() {
         'lib/features/plan/data/firestore_plan_progress_repository.dart',
         'lib/features/notifications/data/'
             'cloud_firestore_notification_inbox_document_store.dart',
+        'lib/features/notifications/data/'
+            'firestore_notification_preference_mirror.dart',
         'lib/features/leaderboard/data/firestore_leaderboard_repository.dart',
         'lib/features/you/data/firestore_activity_history_repository.dart',
         'lib/features/you/data/firestore_user_progress_repository.dart',

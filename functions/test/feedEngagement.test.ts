@@ -10,6 +10,11 @@ import {
   type EngagementRecomputeResult,
   type EngagementUpdate,
 } from "../src/feed/engagement/engagement.js";
+import type {
+  FeedEngagementNotification,
+  FeedEngagementNotificationWriteStatus,
+  FeedEngagementNotificationWriter,
+} from "../src/feed/engagement/engagementNotifications.js";
 
 type ParentState = "published" | "deleting" | "deleted" | "missing";
 
@@ -135,6 +140,178 @@ describe("Feed engagement aggregation", () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// Notification wiring: feedLikeCreated/feedCommentCreated call the injected
+// emitter only when the recompute reports `updated`; the other three
+// triggers never notify. Uses the real Firestore emulator (already
+// initialized by an earlier file in the `test:feed` run) because the
+// gating check lives inside `firestoreEngagementAggregationPort`'s own
+// transaction, which the pure `FakeEngagementPort` above does not exercise.
+// ---------------------------------------------------------------------------
+
+describe("createFeedEngagementTriggers notification wiring", () => {
+  const firestore = getFirestore();
+
+  it("feedLikeCreated notifies through the injected writer when the parent is published", async () => {
+    const postId = uniqueId("wiring-like-post");
+    await seedPublishedPost(firestore, postId, "wiring-author");
+    await firestore.doc(`feedPosts/${postId}/likes/wiring-liker`).set({ userUid: "wiring-liker" });
+    const writer = new RecordingWriter();
+    const triggers = createFeedEngagementTriggers({
+      firestore,
+      updatedAt: () => FieldValue.serverTimestamp(),
+      notifications: { writer },
+    });
+
+    await runFirestoreTrigger(triggers.feedLikeCreated, { postId, uid: "wiring-liker" });
+
+    assert.equal(writer.persisted.length, 1);
+    assert.equal(writer.persisted[0]!.payload.postId, postId);
+    assert.equal(writer.persisted[0]!.payload.kind, "feed_post_liked");
+  });
+
+  it("feedCommentCreated notifies through the injected writer when the parent is published", async () => {
+    const postId = uniqueId("wiring-comment-post");
+    await seedPublishedPost(firestore, postId, "wiring-author");
+    await firestore.doc(`feedPosts/${postId}/comments/wiring-comment`).set({
+      authorUid: "wiring-commenter",
+      authorDisplayName: "Wiring Commenter",
+      body: "Nice run!",
+    });
+    const writer = new RecordingWriter();
+    const triggers = createFeedEngagementTriggers({
+      firestore,
+      updatedAt: () => FieldValue.serverTimestamp(),
+      notifications: { writer },
+    });
+
+    await runFirestoreTrigger(triggers.feedCommentCreated, { postId, commentId: "wiring-comment" });
+
+    assert.equal(writer.persisted.length, 1);
+    assert.equal(writer.persisted[0]!.payload.kind, "feed_post_commented");
+  });
+
+  it("feedCommentUpdated never notifies", async () => {
+    const postId = uniqueId("wiring-update-post");
+    await seedPublishedPost(firestore, postId, "wiring-author");
+    await firestore.doc(`feedPosts/${postId}/comments/wiring-comment`).set({
+      authorUid: "wiring-commenter",
+      authorDisplayName: "Wiring Commenter",
+      body: "edited",
+    });
+    const writer = new RecordingWriter();
+    const triggers = createFeedEngagementTriggers({
+      firestore,
+      updatedAt: () => FieldValue.serverTimestamp(),
+      notifications: { writer },
+    });
+
+    await runFirestoreTrigger(triggers.feedCommentUpdated, { postId, commentId: "wiring-comment" });
+
+    assert.equal(writer.persisted.length, 0);
+  });
+
+  it("feedLikeDeleted and feedCommentDeleted never notify", async () => {
+    const postId = uniqueId("wiring-delete-post");
+    await seedPublishedPost(firestore, postId, "wiring-author");
+    const writer = new RecordingWriter();
+    const triggers = createFeedEngagementTriggers({
+      firestore,
+      updatedAt: () => FieldValue.serverTimestamp(),
+      notifications: { writer },
+    });
+
+    await runFirestoreTrigger(triggers.feedLikeDeleted, { postId, uid: "wiring-liker" });
+    await runFirestoreTrigger(triggers.feedCommentDeleted, { postId, commentId: "wiring-comment" });
+
+    assert.equal(writer.persisted.length, 0);
+  });
+
+  it("a parent_not_published recompute short-circuits before the emitter ever runs", async () => {
+    const postId = uniqueId("wiring-missing-post");
+    // No feedPosts/{postId} doc at all -> recompute reports parent_not_published.
+    await firestore.doc(`feedPosts/${postId}/likes/wiring-liker`).set({ userUid: "wiring-liker" });
+    const writer = new RecordingWriter();
+    const triggers = createFeedEngagementTriggers({
+      firestore,
+      updatedAt: () => FieldValue.serverTimestamp(),
+      notifications: { writer },
+    });
+
+    await runFirestoreTrigger(triggers.feedLikeCreated, { postId, uid: "wiring-liker" });
+
+    assert.equal(writer.persisted.length, 0);
+    assert.equal((await firestore.collection("feedPosts").doc(postId).get()).exists, false);
+  });
+
+  it("the aggregate count still updates when the injected notifier throws", async () => {
+    const postId = uniqueId("wiring-throw-post");
+    await seedPublishedPost(firestore, postId, "wiring-author");
+    await firestore.doc(`feedPosts/${postId}/likes/wiring-liker`).set({ userUid: "wiring-liker" });
+    const throwingWriter: FeedEngagementNotificationWriter = {
+      persist: async () => {
+        throw new Error("simulated notify failure");
+      },
+    };
+    const triggers = createFeedEngagementTriggers({
+      firestore,
+      updatedAt: () => FieldValue.serverTimestamp(),
+      notifications: { writer: throwingWriter },
+    });
+
+    await assert.doesNotReject(() => runFirestoreTrigger(triggers.feedLikeCreated, { postId, uid: "wiring-liker" }));
+
+    assert.equal((await firestore.collection("feedPosts").doc(postId).get()).get("likeCount"), 1);
+  });
+});
+
+class RecordingWriter implements FeedEngagementNotificationWriter {
+  readonly persisted: FeedEngagementNotification[] = [];
+
+  async persist(
+    notification: FeedEngagementNotification,
+    _nowMs: number,
+  ): Promise<FeedEngagementNotificationWriteStatus> {
+    this.persisted.push(notification);
+    return "written";
+  }
+}
+
+let wiringCounter = 0;
+function uniqueId(prefix: string): string {
+  wiringCounter += 1;
+  return `${prefix}-${Date.now()}-${wiringCounter}`;
+}
+
+async function seedPublishedPost(
+  firestore: ReturnType<typeof getFirestore>,
+  postId: string,
+  authorUid: string,
+): Promise<void> {
+  await firestore.collection("feedPosts").doc(postId).set({
+    authorUid,
+    status: "published",
+    likeCount: 0,
+    commentCount: 0,
+  });
+}
+
+// Every v2 Cloud Function exposes `.run()` as a direct pass-through to its
+// wrapped handler, bypassing raw-CloudEvent unmarshalling — the same
+// unit-testing entry point already used for callables elsewhere in this
+// suite (see `getRunnerPublicProfileCallable.run(...)` in
+// runnerPublicProfileEmulatorIntegration.test.ts). The handlers under test
+// here only ever read `event.params`, so a minimal params-only fake event is
+// sufficient.
+async function runFirestoreTrigger(
+  trigger: unknown,
+  params: Record<string, string>,
+): Promise<void> {
+  await (trigger as { run: (event: { params: Record<string, string> }) => Promise<void> }).run({
+    params,
+  });
+}
 
 class FakeEngagementPort implements EngagementAggregationPort<string> {
   readonly updates: EngagementUpdate<string>[] = [];

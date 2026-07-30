@@ -10,8 +10,15 @@ import {
   onDocumentUpdated,
 } from "firebase-functions/v2/firestore";
 import { withTriggerErrorReporting } from "../../errors/withErrorReporting.js";
+import {
+  emitFeedCommentNotification,
+  emitFeedLikeNotification,
+  type FeedEngagementNotificationWriter,
+} from "./engagementNotifications.js";
 
 type FeedPostEvent = { readonly params: { readonly postId: string } };
+type FeedLikeEvent = { readonly params: { readonly postId: string; readonly uid: string } };
+type FeedCommentEvent = { readonly params: { readonly postId: string; readonly commentId: string } };
 
 export const engagementKinds = ["like", "comment"] as const;
 
@@ -94,19 +101,38 @@ export function firestoreEngagementAggregationPort(
 export function createFeedEngagementTriggers(dependencies: {
   readonly firestore: Firestore;
   readonly updatedAt: () => FieldValue;
+  // Optional: injectable clock + notification writer for tests. Both default
+  // to the real thing, so every existing call site (including the production
+  // wiring below) keeps compiling and behaving unchanged.
+  readonly now?: () => number;
+  readonly notifications?: { readonly writer?: FeedEngagementNotificationWriter };
 }) {
   const handlers = createFeedEngagementHandlers({
     port: firestoreEngagementAggregationPort(dependencies.firestore),
     updatedAt: dependencies.updatedAt,
   });
+  const now = dependencies.now ?? Date.now;
+  const notificationWriter = dependencies.notifications?.writer;
+  const notificationDeps = notificationWriter === undefined ? {} : { writer: notificationWriter };
   return {
     feedLikeCreated: onDocumentCreated(
       {
         document: "feedPosts/{postId}/likes/{uid}",
         region: "asia-southeast1",
       },
-      withTriggerErrorReporting("feedLikeCreated", async (event: FeedPostEvent) => {
-        await handlers.onLikeCreated(event.params.postId);
+      withTriggerErrorReporting("feedLikeCreated", async (event: FeedLikeEvent) => {
+        const result = await handlers.onLikeCreated(event.params.postId);
+        // Gating on `result.kind` reuses the single `status === 'published'`
+        // check already made inside `firestoreEngagementAggregationPort` at
+        // zero extra reads — a not-yet/no-longer-published parent never
+        // reaches the notification emitter.
+        if (result.kind !== "updated") return;
+        await emitFeedLikeNotification(
+          dependencies.firestore,
+          { postId: event.params.postId, actorUid: event.params.uid },
+          now(),
+          notificationDeps,
+        );
       }),
     ),
     feedLikeDeleted: onDocumentDeleted(
@@ -123,8 +149,15 @@ export function createFeedEngagementTriggers(dependencies: {
         document: "feedPosts/{postId}/comments/{commentId}",
         region: "asia-southeast1",
       },
-      withTriggerErrorReporting("feedCommentCreated", async (event: FeedPostEvent) => {
-        await handlers.onCommentCreated(event.params.postId);
+      withTriggerErrorReporting("feedCommentCreated", async (event: FeedCommentEvent) => {
+        const result = await handlers.onCommentCreated(event.params.postId);
+        if (result.kind !== "updated") return;
+        await emitFeedCommentNotification(
+          dependencies.firestore,
+          { postId: event.params.postId, commentId: event.params.commentId },
+          now(),
+          notificationDeps,
+        );
       }),
     ),
     feedCommentUpdated: onDocumentUpdated(
