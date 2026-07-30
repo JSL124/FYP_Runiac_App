@@ -1,9 +1,11 @@
 # Capsule: Android Native Haptics
 
-Status: implemented on branch `feat/android-native-haptics`; NOT committed, NOT
-pushed, and NOT verified on a physical Android device. Real-device QA is the
-one piece of evidence this capsule cannot produce from the host and it remains
-user-owned.
+Status: implemented and committed as `12e72f0a` on branch
+`feat/android-native-haptics`, pushed, and open as PR #52 against `main`. NOT
+merged, NOT released, and NOT verified on a physical Android device.
+Real-device QA is the one piece of evidence this capsule cannot produce from
+the host; it remains user-owned and is the only thing standing between this
+capsule and its exit criteria.
 Routed: 2026-07-31 Asia/Singapore (explicit user request, option A of the
 triage below).
 Lane: Mobile Client Lane. Client-only. No Firebase, no Cloud Function, no
@@ -232,7 +234,12 @@ than the platform seam.
 
 ## Exit Criteria
 
-- All validation above PASS.
-- Real-device confirmation recorded by the user.
-- Ready for manual commit. No staging, commit, push, or release is authorized
-  by this capsule.
+- All validation above PASS. **Met** — see Evidence recorded.
+- Committed, pushed, and opened as a PR. **Met** — `12e72f0a`, PR #52. The
+  commit, push, and PR were explicitly authorized by the user on 2026-07-31,
+  superseding the earlier "ready for manual commit" stop state.
+- Hosted Governance CI and `backend-emulator-tests` PASS on PR #52. **Open** —
+  both were still pending at the time of writing.
+- Real-device confirmation recorded by the user. **Open** — never performed.
+- Merge and mobile release remain separate and are NOT authorized by this
+  capsule.
