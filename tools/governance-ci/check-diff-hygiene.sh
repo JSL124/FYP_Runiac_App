@@ -830,6 +830,32 @@ is_user_feedback_pipeline_path() {
   esac
 }
 
+is_website_newsletter_subscription_capsule_active() {
+  grep -Eq '^- Newly routed website newsletter subscription on 2026-07-30 Asia/Singapore: `implementation/roadmap/capsules/website-newsletter-subscription\.md`' implementation/roadmap/CURRENT.md
+}
+
+# Backend paths touched by the routed website newsletter subscription capsule.
+# The website half (hero form, status pages, /admin/newsletter console) lives
+# in the separate git-ignored website/ repo and never appears here.
+is_website_newsletter_subscription_path() {
+  case "$1" in
+    implementation/roadmap/capsules/website-newsletter-subscription.md|\
+    firestore.rules|\
+    firestore.indexes.json|\
+    functions/src/newsletter/*|\
+    functions/test/newsletter*.ts|\
+    functions/src/index.ts|\
+    functions/package.json|\
+    tests/firebase-rules/newsletter.firestore.rules.test.mjs|\
+    tests/firebase-rules/package.json)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_feed_author_identity_profile_entry_capsule_active() {
   grep -Eq '^- Newly routed feed author identity overlay and runner profile entry points on 2026-07-27 Asia/Singapore: `implementation/roadmap/capsules/feed-author-identity-and-profile-entry\.md`' implementation/roadmap/CURRENT.md
 }
@@ -1085,6 +1111,10 @@ is_allowed_path() {
   fi
 
   if is_user_feedback_pipeline_path "$1" && is_user_feedback_pipeline_capsule_active; then
+    return 0
+  fi
+
+  if is_website_newsletter_subscription_path "$1" && is_website_newsletter_subscription_capsule_active; then
     return 0
   fi
 
@@ -1381,6 +1411,10 @@ is_forbidden_path() {
   fi
 
   if is_user_feedback_pipeline_path "$1" && is_user_feedback_pipeline_capsule_active; then
+    return 1
+  fi
+
+  if is_website_newsletter_subscription_path "$1" && is_website_newsletter_subscription_capsule_active; then
     return 1
   fi
 

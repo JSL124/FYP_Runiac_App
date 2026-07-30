@@ -455,6 +455,10 @@ is_user_feedback_pipeline_capsule_active() {
   grep -Eq '^- Newly routed user feedback pipeline on 2026-07-19 Asia/Singapore: `implementation/roadmap/capsules/user-feedback-pipeline\.md`' implementation/roadmap/CURRENT.md
 }
 
+is_website_newsletter_subscription_capsule_active() {
+  grep -Eq '^- Newly routed website newsletter subscription on 2026-07-30 Asia/Singapore: `implementation/roadmap/capsules/website-newsletter-subscription\.md`' implementation/roadmap/CURRENT.md
+}
+
 is_error_reporting_pipeline_capsule_active() {
   grep -Eq '^- Newly routed error reporting pipeline on 2026-07-21 Asia/Singapore: `implementation/roadmap/capsules/error-reporting-pipeline\.md`' implementation/roadmap/CURRENT.md
 }
@@ -641,6 +645,28 @@ is_user_feedback_pipeline_path() {
     functions/src/index.ts|\
     functions/package.json|\
     tests/firebase-rules/feedback.firestore.rules.test.mjs|\
+    tests/firebase-rules/package.json)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+# Backend paths introduced by the routed website newsletter subscription
+# capsule. The website half (hero form, status pages, /admin/newsletter
+# console) lives in the separate git-ignored website/ repo and never
+# appears here.
+is_website_newsletter_subscription_path() {
+  case "$1" in
+    firestore.rules|\
+    firestore.indexes.json|\
+    functions/src/newsletter/*|\
+    functions/test/newsletter*.ts|\
+    functions/src/index.ts|\
+    functions/package.json|\
+    tests/firebase-rules/newsletter.firestore.rules.test.mjs|\
     tests/firebase-rules/package.json)
       return 0
       ;;
@@ -864,6 +890,10 @@ is_forbidden_config_or_secret() {
   fi
 
   if is_user_feedback_pipeline_path "$1" && is_user_feedback_pipeline_capsule_active; then
+    return 1
+  fi
+
+  if is_website_newsletter_subscription_path "$1" && is_website_newsletter_subscription_capsule_active; then
     return 1
   fi
 
