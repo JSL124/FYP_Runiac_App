@@ -5,6 +5,9 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
+    <!-- Required by RuniacHaptics.kt, which drives the vibrator directly so
+         Runiac's five haptic levels are actually felt on Android hardware. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
         android:label="runiac_app"

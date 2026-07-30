@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 /// Central seam for haptic feedback across the app.
@@ -30,7 +31,50 @@ abstract class RuniacHaptics {
   void setEnabled(bool enabled);
 }
 
-/// [RuniacHaptics] implementation backed by the platform's [HapticFeedback]
+/// Channel that plays Runiac's haptics through `RuniacHaptics.kt` on Android.
+///
+/// Flutter's own `HapticFeedback` maps every level onto
+/// `View.performHapticFeedback` touch-tick constants on Android, which are the
+/// same class of effect the software keyboard uses: barely perceptible on an
+/// LRA device and frequently a no-op on rotational (ERM) motors. Driving the
+/// platform vibrator instead is what makes the levels distinguishable on real
+/// Android hardware. iOS keeps using the framework path, where the levels
+/// already map onto the distinct `UIFeedbackGenerator` classes.
+@visibleForTesting
+const MethodChannel runiacAndroidHapticsChannel = MethodChannel(
+  'runiac/haptics',
+);
+
+/// Method invoked on [runiacAndroidHapticsChannel]; the argument is one of the
+/// wire names below.
+@visibleForTesting
+const String runiacAndroidHapticsPlayMethod = 'play';
+
+/// Wire names accepted by the Android channel. These must stay in sync with
+/// `RuniacHapticKind` in `RuniacHaptics.kt`.
+@visibleForTesting
+const String runiacAndroidHapticSelection = 'selection';
+
+/// See [runiacAndroidHapticSelection].
+@visibleForTesting
+const String runiacAndroidHapticLightImpact = 'lightImpact';
+
+/// See [runiacAndroidHapticSelection].
+@visibleForTesting
+const String runiacAndroidHapticMediumImpact = 'mediumImpact';
+
+/// See [runiacAndroidHapticSelection].
+@visibleForTesting
+const String runiacAndroidHapticHeavyImpact = 'heavyImpact';
+
+/// See [runiacAndroidHapticSelection].
+@visibleForTesting
+const String runiacAndroidHapticError = 'error';
+
+/// [RuniacHaptics] implementation backed by the platform.
+///
+/// On Android every level is played through [runiacAndroidHapticsChannel]; on
+/// every other platform it goes through the framework's [HapticFeedback]
 /// channel.
 ///
 /// Haptics are a non-critical comfort feature, so every call here is
@@ -48,6 +92,13 @@ class SystemRuniacHaptics implements RuniacHaptics {
   /// Whether haptic feedback is currently enabled.
   bool get enabled => _enabled;
 
+  /// Whether this instance routes through the Android vibrator channel.
+  ///
+  /// Read per call (rather than cached) so a test can flip
+  /// `debugDefaultTargetPlatformOverride` between platforms.
+  bool get _usesAndroidChannel =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+
   @override
   void setEnabled(bool enabled) {
     _enabled = enabled;
@@ -55,42 +106,55 @@ class SystemRuniacHaptics implements RuniacHaptics {
 
   @override
   void selection() {
-    if (!_enabled) {
-      return;
-    }
-    _fire(() => HapticFeedback.selectionClick());
+    _dispatch(runiacAndroidHapticSelection, HapticFeedback.selectionClick);
   }
 
   @override
   void impactLight() {
-    if (!_enabled) {
-      return;
-    }
-    _fire(() => HapticFeedback.lightImpact());
+    _dispatch(runiacAndroidHapticLightImpact, HapticFeedback.lightImpact);
   }
 
   @override
   void impactMedium() {
-    if (!_enabled) {
-      return;
-    }
-    _fire(() => HapticFeedback.mediumImpact());
+    _dispatch(runiacAndroidHapticMediumImpact, HapticFeedback.mediumImpact);
   }
 
   @override
   void impactHeavy() {
-    if (!_enabled) {
-      return;
-    }
-    _fire(() => HapticFeedback.heavyImpact());
+    _dispatch(runiacAndroidHapticHeavyImpact, HapticFeedback.heavyImpact);
   }
 
   @override
   void error() {
+    _dispatch(runiacAndroidHapticError, HapticFeedback.vibrate);
+  }
+
+  /// Plays [androidKind] on Android and [frameworkFallback] elsewhere.
+  ///
+  /// The fallback is also used when Android reports the channel as
+  /// unimplemented, so an engine without the native handler registered keeps
+  /// the previous (weak but present) behaviour instead of going silent.
+  void _dispatch(
+    String androidKind,
+    Future<void> Function() frameworkFallback,
+  ) {
     if (!_enabled) {
       return;
     }
-    _fire(() => HapticFeedback.vibrate());
+    if (!_usesAndroidChannel) {
+      _fire(frameworkFallback);
+      return;
+    }
+    _fire(() async {
+      try {
+        await runiacAndroidHapticsChannel.invokeMethod<void>(
+          runiacAndroidHapticsPlayMethod,
+          androidKind,
+        );
+      } on MissingPluginException {
+        await frameworkFallback();
+      }
+    });
   }
 
   /// Fires a platform haptic call, guarding both the synchronous call site
