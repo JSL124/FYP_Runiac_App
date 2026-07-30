@@ -14,12 +14,14 @@ enum FeedCommentOpenOutcome {
   /// The post was found and its comment sheet was opened.
   opened,
 
-  /// The post could not be found in the timeline even after a refresh and
-  /// (in production) paging further.
+  /// The post could not be found in the timeline, nor by a direct
+  /// [FeedTimelineRepository.readPost] lookup.
   notFound,
 
-  /// The post was found but cannot be commented on right now (deleted,
-  /// reported, or mutations are disabled for the current timeline source).
+  /// The post could not be conclusively resolved (the direct lookup itself
+  /// failed, e.g. offline), or it was found but cannot be commented on right
+  /// now (deleted, reported, or mutations are disabled for the current
+  /// timeline source).
   unavailable,
 }
 
@@ -215,34 +217,37 @@ class FeedTimelineScreenController extends ChangeNotifier {
   /// already-visible post does, resolving the post first when it is not
   /// (yet) loaded.
   ///
-  /// Resolution order: the already-loaded [posts]; then a [refresh]; then,
-  /// only for the production timeline and only while it is not exhausted,
-  /// up to [maxAdditionalPages] calls to [loadMore], re-checking after each.
-  /// Returns [FeedCommentOpenOutcome.notFound] when the post never turns up,
-  /// [FeedCommentOpenOutcome.unavailable] when it is found but can no longer
-  /// be commented on (deleted/reported, or mutations disabled), and
-  /// [FeedCommentOpenOutcome.opened] once [openComments] has been invoked for
-  /// it.
+  /// Resolution order: the already-loaded [posts] first (zero network);
+  /// otherwise one direct [CurrentSessionFeedTimeline.readPost] call. Paging
+  /// (`refresh`/`loadMore`) is deliberately NOT used to resolve a notified
+  /// post: the feed is ordered by post creation time, so an engagement
+  /// notification (a friend liked or commented today) can arrive for a post
+  /// arbitrarily far back — someone commenting on a run shared months ago —
+  /// which paging-until-found could never bound. Worse, this timeline fans
+  /// out one query per friend per page, so paging on a single notification
+  /// tap could cost hundreds or thousands of reads for a user with many
+  /// friends. A direct read is O(1) and `firestore.rules`-permitted, because
+  /// a feed-engagement notification is only ever delivered to the post's own
+  /// owner.
+  ///
+  /// Returns [FeedCommentOpenOutcome.notFound] when the post genuinely
+  /// cannot be resolved, [FeedCommentOpenOutcome.unavailable] when the read
+  /// itself fails (offline, etc.), when it resolves but can no longer be
+  /// commented on (deleted/reported), or when mutations are disabled for the
+  /// current timeline source, and [FeedCommentOpenOutcome.opened] once
+  /// [openComments] has been invoked for it.
   Future<FeedCommentOpenOutcome> openCommentsForPostId(
     BuildContext context,
-    String postId, {
-    int maxAdditionalPages = 2,
-  }) async {
+    String postId,
+  ) async {
     var found = _findPost(postId);
     if (found == null) {
-      await refresh();
+      try {
+        found = await _timeline.readPost(postId);
+      } catch (_) {
+        return FeedCommentOpenOutcome.unavailable;
+      }
       if (!context.mounted) return FeedCommentOpenOutcome.notFound;
-      found = _findPost(postId);
-    }
-    var pagesLoaded = 0;
-    while (found == null &&
-        isProduction &&
-        !(_state?.exhausted ?? true) &&
-        pagesLoaded < maxAdditionalPages) {
-      await loadMore();
-      if (!context.mounted) return FeedCommentOpenOutcome.notFound;
-      pagesLoaded += 1;
-      found = _findPost(postId);
     }
     if (found == null) {
       return FeedCommentOpenOutcome.notFound;

@@ -1,6 +1,7 @@
 # Capsule: Feed Engagement Notifications (like / comment)
 
-Status: implemented and locally validated. Not committed, not deployed.
+Status: implemented, locally validated, and open as PR #49 against `main` with
+hosted Governance CI and backend-emulator-tests PASS. Not merged, not deployed.
 Routed: 2026-07-30 Asia/Singapore (explicit user request).
 Lane: Backend Guarded Lane (ADR-002 emulator-first, ADR-003). Extends two
 existing Firestore triggers and adds one new backend module; no new Cloud
@@ -151,6 +152,19 @@ Flutter (edited):
 - `implementation/mobile/runiac_app/lib/core/firebase/runiac_firebase_bootstrap.dart`
 - `implementation/mobile/runiac_app/lib/main.dart`
 
+Flutter (added by the Codex review follow-up — direct resolution of a notified
+post, replacing the bounded paging ladder):
+
+- `implementation/mobile/runiac_app/lib/features/feed/data/firebase_feed_repository/feed_data_port.dart`
+- `implementation/mobile/runiac_app/lib/features/feed/data/firebase_feed_repository/firebase_feed_data_port.dart`
+- `implementation/mobile/runiac_app/lib/features/feed/data/firebase_feed_repository/firebase_feed_post_mapper.dart`
+- `implementation/mobile/runiac_app/lib/features/feed/data/firebase_feed_repository/feed_test_data_port.dart`
+- `implementation/mobile/runiac_app/lib/features/feed/data/firebase_feed_repository/feed_author_level_resolver.dart`
+- `implementation/mobile/runiac_app/lib/features/feed/data/firebase_feed_repository/feed_timeline_page_loader.dart`
+- `implementation/mobile/runiac_app/lib/features/feed/domain/repositories/feed_repository.dart`
+- `implementation/mobile/runiac_app/lib/features/feed/data/firebase_feed_repository/firebase_feed_repository.dart`
+- `implementation/mobile/runiac_app/lib/features/feed/presentation/current_session_feed_timeline.dart`
+
 Flutter tests:
 
 - `implementation/mobile/runiac_app/test/notification_preference_mirror_service_test.dart` (new)
@@ -237,6 +251,39 @@ Governance:
   out to be required — stop and re-route rather than widening scope.
 - Any governance-CI allowlist would have to be weakened to pass.
 
+## Codex review follow-up (2026-07-30, PR #49)
+
+One P2 finding, verified real and fixed. `openCommentsForPostId` resolved a
+notified post by searching the loaded timeline, then `refresh()`, then at most
+two `loadMore()` calls — about 60 entries. But the feed is ordered by **post
+creation time** while an engagement notification arrives for engagement that
+happened *now*, so a comment on a run shared months ago produced a false "That
+post is no longer in your feed." The bound was a design error in this capsule's
+own plan, not an implementation slip.
+
+Paging until exhausted was rejected as the fix: the timeline fans out one query
+per friend per page, so a single notification tap could cost hundreds or
+thousands of reads. Instead the post is now resolved with **one direct
+`feedPosts/{postId}` document read** — O(1), needing no index, and permitted by
+`firestore.rules` because a feed-engagement notification is only ever delivered
+to the post's own owner, making `canReadFeedAuthor` trivially true. That is
+strictly cheaper than the `refresh()` it replaced, so `maxAdditionalPages` and
+the paging loop were deleted outright.
+
+Supporting changes kept the mapping honest rather than duplicating it:
+`firebase_feed_post_mapper.dart` grew a shared `mapReference()` carrying the
+per-viewer like/comment probe, and `feed_author_level_resolver.dart` grew a
+shared `overlay()` that the paging loader now also calls. `readPost` propagates
+a read failure instead of swallowing it, so the controller can distinguish
+"resolved to nothing" (→ `notFound`) from "the read failed, e.g. offline"
+(→ `unavailable`); the controller catches and converts.
+
+Regression guard: the tap-through suite now asserts **call counts** — an
+already-loaded post triggers zero `readPost`/`refresh`/`loadMore`, and an
+absent post triggers exactly one `readPost` and zero `refresh`/`loadMore`. The
+one pre-existing case that asserted the old refresh-then-page ladder was
+replaced, since it encoded the removed behaviour.
+
 ## Evidence recorded (2026-07-30)
 
 Automated, all run from the canonical Desktop root:
@@ -250,7 +297,7 @@ Automated, all run from the canonical Desktop root:
   (141 before this capsule; +5 preference-toggle and inbox-split tests, +1 for
   the merge-set-onto-a-never-existing-document path, which is the shape the
   real first mirror write takes and which lands as a rules `create`).
-- Flutter: `flutter analyze --no-pub` clean; `flutter test` **2572 / 2572**
+- Flutter: `flutter analyze --no-pub` clean; `flutter test` **2574 / 2574**
   (2556 before this capsule).
 - `./tools/governance-ci/run-all-checks.sh`: all 12 checks PASS, with the two
   new `functions/**` paths admitted only while this capsule's routing line is

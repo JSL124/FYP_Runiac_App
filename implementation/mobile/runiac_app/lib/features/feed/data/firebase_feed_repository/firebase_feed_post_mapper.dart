@@ -8,9 +8,25 @@ class FirebaseFeedPostMapper {
   static Future<FeedPostDocument> map(
     QueryDocumentSnapshot<Map<String, Object?>> document,
     String viewerUid,
+  ) => mapReference(
+    document.reference,
+    fromData(document.id, document.data()),
+    viewerUid,
+  );
+
+  /// Runs the same per-viewer like/comment probe as [map], against an
+  /// already-decoded [post] and its own [reference].
+  ///
+  /// [map] can only be called from a `QueryDocumentSnapshot`, which paging
+  /// always has. A direct single-document read (a notified post resolved by
+  /// id, outside any query) only has a plain `DocumentReference`, so this is
+  /// factored out for both to share — the per-viewer probe must stay
+  /// identical however the post document was obtained.
+  static Future<FeedPostDocument> mapReference(
+    DocumentReference<Map<String, Object?>> reference,
+    FeedPostDocument post,
+    String viewerUid,
   ) async {
-    final post = fromData(document.id, document.data());
-    final reference = document.reference;
     final (liked, comments) = await (
       reference.collection('likes').doc(viewerUid).get(),
       reference

@@ -11,7 +11,7 @@ import 'package:runiac_app/features/feed/presentation/feed_timeline_screen_contr
 void main() {
   testWidgets(
     'a notification intent for an already-loaded post opens its comment '
-    'sheet without refreshing or paging',
+    'sheet without a direct read, refresh, or paging',
     (WidgetTester tester) async {
       final repository = _FakeFeedTimelineRepository(
         initialPosts: [_post('visible-post')],
@@ -39,6 +39,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Comments'), findsOneWidget);
+      expect(repository.readPostCalls, isEmpty);
       expect(repository.refreshCalls, 0);
       expect(repository.loadMoreCalls, 0);
       expect(intent.pendingPostId, isNull);
@@ -46,8 +47,49 @@ void main() {
   );
 
   testWidgets(
-    'a notification intent for an unresolved post refreshes then pages '
-    'before showing the not-found message and opening no sheet',
+    'a notification intent for a post absent from the loaded page is '
+    'resolved by exactly one direct read, with no refresh or paging',
+    (WidgetTester tester) async {
+      final repository = _FakeFeedTimelineRepository(
+        initialPosts: [_post('other-post')],
+        readablePosts: [_post('notified-post')],
+      );
+      final intent = FeedCommentIntentController();
+      addTearDown(intent.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CurrentSessionFeed(
+              repository: repository,
+              viewerContext: const FeedViewerContext(
+                currentUserId: 'runner-current',
+                acceptedFriendUserIds: <String>{},
+              ),
+              commentIntent: intent,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      intent.request('notified-post');
+      await tester.pumpAndSettle();
+
+      expect(find.text('Comments'), findsOneWidget);
+      // This is the regression guard for the Codex-found defect: resolving a
+      // notified post that fell out of the loaded page must cost exactly one
+      // direct read, never a refresh or any amount of paging.
+      expect(repository.readPostCalls, <String>['notified-post']);
+      expect(repository.refreshCalls, 0);
+      expect(repository.loadMoreCalls, 0);
+      expect(intent.pendingPostId, isNull);
+    },
+  );
+
+  testWidgets(
+    'a notification intent whose direct read resolves to nothing shows the '
+    'not-found message and opens no sheet',
     (WidgetTester tester) async {
       final repository = _FakeFeedTimelineRepository(
         initialPosts: [_post('other-post')],
@@ -74,10 +116,53 @@ void main() {
       intent.request('missing-post');
       await tester.pumpAndSettle();
 
-      expect(repository.refreshCalls, 1);
-      expect(repository.loadMoreCalls, 2);
+      expect(repository.readPostCalls, <String>['missing-post']);
+      expect(repository.refreshCalls, 0);
+      expect(repository.loadMoreCalls, 0);
       expect(
         find.text('That post is no longer in your feed.'),
+        findsOneWidget,
+      );
+      expect(find.text('Comments'), findsNothing);
+      expect(intent.pendingPostId, isNull);
+    },
+  );
+
+  testWidgets(
+    'a notification intent whose direct read resolves to a post that can no '
+    'longer be commented on shows the unavailable message and opens no sheet',
+    (WidgetTester tester) async {
+      final repository = _FakeFeedTimelineRepository(
+        initialPosts: [_post('other-post')],
+        readablePosts: [_post('notified-post', canComment: false)],
+      );
+      final intent = FeedCommentIntentController();
+      addTearDown(intent.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CurrentSessionFeed(
+              repository: repository,
+              viewerContext: const FeedViewerContext(
+                currentUserId: 'runner-current',
+                acceptedFriendUserIds: <String>{},
+              ),
+              commentIntent: intent,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      intent.request('notified-post');
+      await tester.pumpAndSettle();
+
+      expect(repository.readPostCalls, <String>['notified-post']);
+      expect(repository.refreshCalls, 0);
+      expect(repository.loadMoreCalls, 0);
+      expect(
+        find.text('Comments are unavailable right now.'),
         findsOneWidget,
       );
       expect(find.text('Comments'), findsNothing);
@@ -114,47 +199,56 @@ void main() {
   );
 }
 
-FeedPostReadModel _post(String postId) => FeedPostReadModel(
-  postId: postId,
-  authorUserId: 'friend',
-  authorDisplayName: 'Friend Runner',
-  authorAvatarInitials: 'FR',
-  authorLevelLabel: 'Level 3',
-  relativeTimeLabel: 'Now',
-  distanceLabel: '2.0 km',
-  paceLabel: '7:00 / km',
-  durationLabel: '14 min',
-  likeCount: 0,
-  commentCount: 0,
-  isLikedByViewer: false,
-  hasViewerCommented: false,
-  canComment: true,
-  showsOwnerMenu: false,
-  routeThumbnail: const FeedRouteThumbnailReadModel(
-    thumbnailKey: 'notification-tap-through',
-    accessibilityLabel: 'Private route preview',
-  ),
-);
+FeedPostReadModel _post(String postId, {bool canComment = true}) =>
+    FeedPostReadModel(
+      postId: postId,
+      authorUserId: 'friend',
+      authorDisplayName: 'Friend Runner',
+      authorAvatarInitials: 'FR',
+      authorLevelLabel: 'Level 3',
+      relativeTimeLabel: 'Now',
+      distanceLabel: '2.0 km',
+      paceLabel: '7:00 / km',
+      durationLabel: '14 min',
+      likeCount: 0,
+      commentCount: 0,
+      isLikedByViewer: false,
+      hasViewerCommented: false,
+      canComment: canComment,
+      showsOwnerMenu: false,
+      routeThumbnail: const FeedRouteThumbnailReadModel(
+        thumbnailKey: 'notification-tap-through',
+        accessibilityLabel: 'Private route preview',
+      ),
+    );
 
-/// A minimal production-shaped [FeedTimelineRepository] that never actually
-/// grows its post list on `loadMore`, so an unresolved postId stays
-/// unresolved after paging — used to exercise the refresh-then-page-then-
-/// give-up resolution order in [FeedTimelineScreenController.openCommentsForPostId].
+/// A minimal production-shaped [FeedTimelineRepository] whose [readPost]
+/// resolves only from [readablePosts] — a stand-in for a post that fell out
+/// of the loaded page but is still directly readable by id, the way a feed
+/// engagement notification's own post always is. `loadMore`/`refresh` are
+/// counted so every test above can assert the paging ladder this defect fix
+/// removed is never exercised again.
 class _FakeFeedTimelineRepository implements FeedTimelineRepository {
-  _FakeFeedTimelineRepository({required List<FeedPostReadModel> initialPosts})
-    : _posts = List<FeedPostReadModel>.of(initialPosts);
+  _FakeFeedTimelineRepository({
+    required List<FeedPostReadModel> initialPosts,
+    List<FeedPostReadModel> readablePosts = const [],
+  }) : _posts = List<FeedPostReadModel>.of(initialPosts),
+       _readablePosts = {
+         for (final post in readablePosts) post.postId: post,
+       };
 
   final List<FeedPostReadModel> _posts;
-  bool _exhausted = false;
+  final Map<String, FeedPostReadModel> _readablePosts;
   int refreshCalls = 0;
   int loadMoreCalls = 0;
+  final List<String> readPostCalls = <String>[];
 
   @override
   FeedTimelineState get currentState => FeedTimelineState(
     posts: _posts,
     source: FeedTimelineSource.server,
     refreshing: false,
-    exhausted: _exhausted,
+    exhausted: false,
   );
 
   @override
@@ -175,12 +269,6 @@ class _FakeFeedTimelineRepository implements FeedTimelineRepository {
   @override
   Future<FeedTimelineState> loadMore() async {
     loadMoreCalls += 1;
-    // Exhaust after two pages so the controller's maxAdditionalPages bound
-    // (rather than exhaustion) is what the first test below observes, while
-    // still proving the loop terminates instead of paging forever.
-    if (loadMoreCalls >= 2) {
-      _exhausted = true;
-    }
     return currentState;
   }
 
@@ -213,6 +301,12 @@ class _FakeFeedTimelineRepository implements FeedTimelineRepository {
 
   @override
   Future<Uint8List> readThumbnail(String postId) async => Uint8List(0);
+
+  @override
+  Future<FeedPostReadModel?> readPost(String postId) async {
+    readPostCalls.add(postId);
+    return _readablePosts[postId];
+  }
 
   @override
   void dispose() {}

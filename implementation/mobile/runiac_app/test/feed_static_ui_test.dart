@@ -455,6 +455,14 @@ class _ControlledTimelineRepository implements FeedTimelineRepository {
   Future<Uint8List> readThumbnail(String postId) async => Uint8List(0);
 
   @override
+  Future<FeedPostReadModel?> readPost(String postId) async {
+    for (final post in _state.posts) {
+      if (post.postId == postId) return post;
+    }
+    return null;
+  }
+
+  @override
   void dispose() {}
 }
 

@@ -13,6 +13,14 @@ abstract interface class FeedTimelineRepository implements FeedRepository {
   Future<FeedTimelineState> loadMore();
   Future<FeedTimelineState> refresh();
   Future<FeedTimelineState> reconcileAccess();
+
+  /// Resolves [postId] directly, without paging, for a post that may not be
+  /// (or may no longer be) in [currentState]. Returns the same shape of
+  /// [FeedPostReadModel] the timeline itself would produce for it — same
+  /// author-level overlay, same thumbnail seam — or `null` when the post
+  /// cannot be found. May throw when the read itself fails (e.g. offline);
+  /// callers distinguish that from a genuine not-found result.
+  Future<FeedPostReadModel?> readPost(String postId);
   Future<void> setLike({required String postId, required bool isLiked});
   Future<void> createComment(FeedCommentMutation mutation);
   Future<void> updateComment(FeedCommentMutation mutation);

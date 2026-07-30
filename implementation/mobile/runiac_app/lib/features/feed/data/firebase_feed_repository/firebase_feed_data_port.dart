@@ -105,6 +105,34 @@ class FirebaseFeedDataPort implements FeedDataPort {
   });
 
   @override
+  Future<FeedPostDocument?> readPublishedPost(String postId) async {
+    try {
+      final document = await _firestore.collection('feedPosts').doc(postId).get();
+      final data = document.data();
+      if (!document.exists || data == null || data['status'] != 'published') {
+        return null;
+      }
+      final post = FirebaseFeedPostMapper.fromData(document.id, data);
+      // A feed-engagement notification is only ever delivered to a post's
+      // owner, so the viewer resolving it here is always that author. Reuse
+      // the exact per-viewer like/comment probe `pagePublishedPosts` runs,
+      // scoped to the author's own uid.
+      return await FirebaseFeedPostMapper.mapReference(
+        document.reference,
+        post,
+        post.authorUid,
+      );
+    } on FirebaseException catch (error) {
+      if (error.code == 'permission-denied') return null;
+      rethrow;
+    } on FormatException {
+      // A malformed document is indistinguishable from "not there" to the
+      // caller, and both resolve to the same not-found outcome.
+      return null;
+    }
+  }
+
+  @override
   Future<FeedCommentDocumentPage> pageComments({
     required String postId,
     FeedCommentCursor? startAfter,

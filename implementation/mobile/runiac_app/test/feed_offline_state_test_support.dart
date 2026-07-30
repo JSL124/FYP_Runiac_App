@@ -71,6 +71,14 @@ class ScreenFeedRepository implements FeedTimelineRepository {
     _posts.removeWhere((post) => post.postId == postId);
   }
 
+  @override
+  Future<FeedPostReadModel?> readPost(String postId) async {
+    for (final post in _posts) {
+      if (post.postId == postId) return post;
+    }
+    return null;
+  }
+
   void _replace(
     String postId,
     FeedPostReadModel Function(FeedPostReadModel) change,

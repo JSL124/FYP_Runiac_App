@@ -618,5 +618,7 @@ class _CommentsRepository
   @override
   Future<Uint8List> readThumbnail(String postId) async => Uint8List(0);
   @override
+  Future<FeedPostReadModel?> readPost(String postId) async => null;
+  @override
   void dispose() {}
 }

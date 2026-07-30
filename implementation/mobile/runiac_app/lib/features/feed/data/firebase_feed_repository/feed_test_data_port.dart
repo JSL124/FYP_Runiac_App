@@ -134,6 +134,23 @@ class FeedTestDataPort implements FeedDataPort {
     return FeedPostPage(posts: page, fromCache: cached, nextCursor: next);
   }
 
+  /// Set to make [readPublishedPost] throw for [readPublishedPostThrowsFor],
+  /// simulating a read failure distinct from a genuine not-found result.
+  String? readPublishedPostThrowsFor;
+  final List<String> readPublishedPostCalls = <String>[];
+
+  @override
+  Future<FeedPostDocument?> readPublishedPost(String postId) async {
+    readPublishedPostCalls.add(postId);
+    if (postId == readPublishedPostThrowsFor) {
+      throw StateError('Feed post read failed.');
+    }
+    for (final post in _posts) {
+      if (post.postId == postId) return post;
+    }
+    return null;
+  }
+
   @override
   Future<FeedCommentDocumentPage> pageComments({
     required String postId,

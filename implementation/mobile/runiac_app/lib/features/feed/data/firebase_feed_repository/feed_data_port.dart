@@ -167,6 +167,24 @@ abstract interface class FeedDataPort {
     FeedPostCursor? after,
   });
 
+  /// Reads one published post directly by id, bypassing the friend-buffered
+  /// paging path entirely.
+  ///
+  /// Exists for feed-engagement notification tap-through: the feed is
+  /// ordered by post creation time, so a notified post (a friend liked or
+  /// commented on it) can sit arbitrarily deep in the timeline — paging
+  /// until it turns up would cost one query per friend per page. A direct
+  /// `feedPosts/{postId}` document read is O(1) regardless of how old the
+  /// post is, and `firestore.rules` permits it because a feed-engagement
+  /// notification is only ever delivered to a post's own owner.
+  ///
+  /// Returns `null`, never throws, for: the document not existing, its
+  /// `status` not being `'published'`, and a permission denial. Any other
+  /// failure (offline, a malformed document) may still throw so a caller can
+  /// tell "genuinely not there" apart from "could not be resolved right
+  /// now".
+  Future<FeedPostDocument?> readPublishedPost(String postId);
+
   Future<FeedCommentDocumentPage> pageComments({
     required String postId,
     FeedCommentCursor? startAfter,

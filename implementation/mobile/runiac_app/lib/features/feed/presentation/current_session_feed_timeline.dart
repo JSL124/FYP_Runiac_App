@@ -92,6 +92,19 @@ class CurrentSessionFeedTimeline {
     }
   }
 
+  /// Resolves [postId] directly against the production timeline, without
+  /// paging. `null` outside production (no [FeedTimelineRepository] behind
+  /// [repository]) or when the post cannot be resolved. Deliberately does
+  /// NOT swallow a thrown failure the way every other passthrough on this
+  /// class does — the caller needs to tell "the read failed" apart from
+  /// "resolved to nothing" so it can show the right message.
+  Future<FeedPostReadModel?> readPost(String postId) {
+    final timeline = _timeline;
+    return timeline == null
+        ? Future<FeedPostReadModel?>.value()
+        : timeline.readPost(postId);
+  }
+
   Future<Uint8List?> readThumbnail(String postId) async {
     final timeline = _timeline;
     if (timeline == null ||
