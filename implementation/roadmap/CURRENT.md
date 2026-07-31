@@ -27,6 +27,19 @@
 - Measured at: 2026-07-31 Asia/Singapore. HEAD `8f0adb21`, branch `main`, working tree clean,
   in sync with `origin/main`. All three hosted CI jobs green on that commit — `governance-ci`,
   `backend-emulator-tests`, and the new `mobile-integration-tests`.
+- **`mobile-integration-tests` is flaky and is not yet a trustworthy gate.** Green on that
+  commit is a fact about that run, not about the job. Across its first six runs it is 2 pass /
+  4 fail, and every failure is `auth_email_password_emulator_test.dart` timing out in
+  `waitForText` during the signup flow — at "Welcome to Runiac" in the two earlier failures,
+  at "Nickname is available." in the two most recent. The most recent pair is not a slow
+  callable: the emulator log shows `checkNicknameAvailability` completing in 228 ms, and the
+  visible-widget dump 20 s later shows the app back on the auth screen reading "No Runiac
+  account setup exists for this account" — so the app left the profile-collection screen while
+  the test was still filling it in. The two earlier failures have a different signature (stuck
+  *on* the profile screen, never advancing), so treat this as "not root-caused" rather than one
+  known bug. It reproduces on documentation-only branches, which rules out any recent change as
+  the cause. Not triaged yet; a red `mobile-integration-tests` should not currently be read as
+  a regression in the branch under test.
 - Phase: Phase 01 Governance CI is **closed** at `f917aab`. No successor phase has been
   selected. The `- Current phase:` line in `## Current Routing` below is retained unchanged
   because check-roadmap-routing.sh requires exactly one line of that shape; it is a CI
