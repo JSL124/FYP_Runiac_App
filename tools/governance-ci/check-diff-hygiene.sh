@@ -448,6 +448,31 @@ is_exception_queue_moderation_path() {
   esac
 }
 
+is_pdd_security_and_limitations_capsule_active() {
+  grep -Eq '^- Newly routed PDD security decisions and limitations on 2026-07-31 Asia/Singapore: `implementation/roadmap/capsules/pdd-security-and-limitations\.md`' implementation/roadmap/CURRENT.md
+}
+
+# PDD_MODE documentation capsule. Two new numbered PDD documents only, named
+# exactly rather than globbed: docs/pdd/ is shared with the existing 00-06 suite,
+# the assembled draft, diagrams, and wireframes, none of which this capsule may
+# touch. docs/submissions/pdd/ is the frozen submitted snapshot and is never in
+# scope.
+is_pdd_security_and_limitations_path() {
+  case "$1" in
+    implementation/roadmap/capsules/pdd-security-and-limitations.md|\
+    implementation/roadmap/CURRENT.md|\
+    docs/pdd/07-security-and-privacy-decisions.md|\
+    docs/pdd/08-limitations-and-future-work.md|\
+    tools/governance-ci/check-diff-hygiene.sh|\
+    tools/governance-ci/check-pre-scaffold-scope.sh)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_unified_release_criteria_capsule_active() {
   grep -Eq '^- Newly routed unified release criteria on 2026-07-31 Asia/Singapore: `implementation/roadmap/capsules/unified-release-criteria\.md`' implementation/roadmap/CURRENT.md
 }
@@ -1395,6 +1420,10 @@ is_allowed_path() {
   fi
 
   if is_unified_release_criteria_path "$1" && is_unified_release_criteria_capsule_active; then
+    return 0
+  fi
+
+  if is_pdd_security_and_limitations_path "$1" && is_pdd_security_and_limitations_capsule_active; then
     return 0
   fi
 
