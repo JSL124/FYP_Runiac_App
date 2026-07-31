@@ -448,6 +448,35 @@ is_exception_queue_moderation_path() {
   esac
 }
 
+is_repository_consolidation_quality_gates_capsule_active() {
+  grep -Eq '^- Newly routed repository consolidation quality gates on 2026-07-31 Asia/Singapore: `implementation/roadmap/capsules/repository-consolidation-quality-gates\.md`' implementation/roadmap/CURRENT.md
+}
+
+# Governance/CI-only capsule. It wires the already-present
+# tests/cross-system/paywall-config-drift.mjs into run-all-checks.sh through a
+# tests/governance wrapper (its two sibling drift guards are already wired in),
+# and adds a check that reconciles the filename-enumerated test suite lists in
+# functions/package.json and tests/firebase-rules/package.json against the test
+# files actually on disk. Deliberately narrow: no functions/ or Flutter source,
+# and no directory globs, so that other capsules' inactive-capsule rejection
+# probes keep working once this capsule's append-only routing bullet goes stale.
+is_repository_consolidation_quality_gates_path() {
+  case "$1" in
+    implementation/roadmap/capsules/repository-consolidation-quality-gates.md|\
+    implementation/roadmap/CURRENT.md|\
+    tests/governance/paywall_config_drift_test.sh|\
+    tools/governance-ci/check-test-enumeration.sh|\
+    tools/governance-ci/run-all-checks.sh|\
+    tools/governance-ci/check-diff-hygiene.sh|\
+    tools/governance-ci/check-pre-scaffold-scope.sh)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_premium_parity_progression_capsule_active() {
   grep -Eq '^- Newly routed premium parity progression on 2026-07-20 Asia/Singapore: `implementation/roadmap/capsules/premium-parity-progression\.md`' implementation/roadmap/CURRENT.md
 }
@@ -1334,6 +1363,10 @@ is_allowed_path() {
   fi
 
   if is_test_suite_regression_hardening_path "$1" && is_test_suite_regression_hardening_capsule_active; then
+    return 0
+  fi
+
+  if is_repository_consolidation_quality_gates_path "$1" && is_repository_consolidation_quality_gates_capsule_active; then
     return 0
   fi
 
