@@ -448,6 +448,30 @@ is_exception_queue_moderation_path() {
   esac
 }
 
+is_unified_release_criteria_capsule_active() {
+  grep -Eq '^- Newly routed unified release criteria on 2026-07-31 Asia/Singapore: `implementation/roadmap/capsules/unified-release-criteria\.md`' implementation/roadmap/CURRENT.md
+}
+
+# Documentation-only capsule creating implementation/release/. The directory is
+# new and owned entirely by this capsule, so a glob is safe here — unlike the
+# shared functions/ and Flutter trees, no other capsule's inactive-capsule
+# rejection probe depends on paths under it. No deploy execution, no live
+# inventory query, and no functions/ or Flutter source is in scope.
+is_unified_release_criteria_path() {
+  case "$1" in
+    implementation/roadmap/capsules/unified-release-criteria.md|\
+    implementation/roadmap/CURRENT.md|\
+    implementation/release/*|\
+    tools/governance-ci/check-diff-hygiene.sh|\
+    tools/governance-ci/check-pre-scaffold-scope.sh)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_repository_consolidation_quality_gates_capsule_active() {
   grep -Eq '^- Newly routed repository consolidation quality gates on 2026-07-31 Asia/Singapore: `implementation/roadmap/capsules/repository-consolidation-quality-gates\.md`' implementation/roadmap/CURRENT.md
 }
@@ -1367,6 +1391,10 @@ is_allowed_path() {
   fi
 
   if is_repository_consolidation_quality_gates_path "$1" && is_repository_consolidation_quality_gates_capsule_active; then
+    return 0
+  fi
+
+  if is_unified_release_criteria_path "$1" && is_unified_release_criteria_capsule_active; then
     return 0
   fi
 
