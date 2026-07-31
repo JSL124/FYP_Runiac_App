@@ -125,6 +125,48 @@ different `subscriptionStatus`. This is what keeps the parity rule (§7.7) expre
 Entitlement is enforced in `functions/src/config/featureEntitlement.ts`, server-side. Hiding UI is
 never the control.
 
+### The tier map, and the one entry that needs explaining
+
+`config/featureAccess` is a server-owned document, editable only through the admin console. It
+holds seven keys, and the tiers are not a simple premium/basic split:
+
+| Key | Tier | Server-enforced |
+|---|---|---|
+| `aiHomeCoach` | premium | ✅ `assertFeatureEntitlement` in `agent/homeGuideAgentHandler.ts` |
+| `activityFeedback` | premium | ✅ `agent/activityFeedbackAgentHandler.ts` |
+| `workoutBriefing` | premium | ✅ `agent/workoutBriefingAgentHandler.ts` |
+| `shareRouteToFeed` | premium | ✅ `feed/publish/entitlement.ts` |
+| **`advancedAnalysis`** | **premium** | ❌ **none — see below** |
+| `shareCards` | **basic** | — |
+| `healthWorkoutImport` | **basic** | — |
+
+Two things follow that are easy to get wrong. Premium is not "everything": `shareCards` and
+`healthWorkoutImport` are basic-tier, so a change that gated them would be a regression against
+Basic Users, not a tightening. And of the five premium keys, only four have a server-side gate.
+
+**`advancedAnalysis` has no server-side enforcement, and that is defensible rather than an
+oversight.** On inspection it reads as a violation of the rule that premium features must not rely
+on hiding UI, so the reasoning is recorded here.
+
+Advanced analysis is computed **on-device, from the runner's own activity**. Nine builder and
+deriver services under
+`implementation/mobile/runiac_app/lib/features/run/domain/services/` — pace, cadence, elevation,
+heart-rate zones, performance overview, achievement badges, and the snapshot merger — derive it
+from data the user already has on their phone. The server's only role is to *validate* what gets
+uploaded, in `functions/src/run/validateCadenceAnalysisSeries.ts`.
+
+The rule the other gates enforce is about withholding server-held data or server-performed work.
+Here there is neither: nothing is fetched, and nothing is computed on the server. A client-side
+gate is the only gate that can exist, and bypassing it would reveal a runner their own run,
+already on their own device. No other user's data, and no server resource, is reachable through it.
+
+The contrast with `aiHomeCoach` is the point. That feature calls a server-side model, costs money
+per invocation, and returns generated content — so it is gated where the work happens. Placing
+`advancedAnalysis` behind the same gate would be theatre; it would not protect anything.
+
+This distinction is worth verifying during QA rather than assuming, and
+`implementation/release/RELEASE_CHECKLIST.md` §2 flow T1-4 asks for it to be recorded explicitly.
+
 ### Expert plans as currently implemented
 
 Sections 1–6 describe a Medical Trainer/Expert who supplies plan content and a Platform
@@ -200,9 +242,24 @@ derivation step is persisted to `progressionEvents` by
 `functions/src/progression/progressionAudit.ts`, so any divergence would be visible in the audit
 record.
 
-**Stated limitation:** absence of entitlement from the calculators is strong support, not a proof
-of absence. A dedicated Basic-vs-Premium identical-formula regression test would close this. It
-does not exist yet and is recorded in §8.
+**This is tested, not merely inspected.** Two emulator tests assert it end to end:
+
+- `functions/test/completeRun.test.ts:1683` — *"gives premium users the same XP and leaderboard
+  credit as basic users"*. It runs an identical payload for a premium account and asserts the same
+  `xpDelta`, the same `countsTowardLeaderboard`, the same awarded status, and that
+  client-authored `xp` / `rank` / `leaderboardScore` fields stay untouched regardless of tier.
+- `functions/test/completeCoolDown.test.ts:406` — the same for the cool-down bonus.
+
+**One nuance the claim has to state precisely.** There is a tier branch in the XP path, but it
+runs the other way: `config/progression.premiumEarnsXp` (default `true`) can be set to `false`,
+in which case Premium Users earn **no** XP at all. Nothing anywhere grants Premium *more*. Both
+suppression paths are also covered — `completeRun.test.ts:1710` and
+`completeCoolDown.test.ts:429`.
+
+`functions/src/run/completeCoolDown.ts:165` records why that branch is config-driven rather than
+tier-driven: an earlier version branched on `isPremium` directly and so suppressed the stretch
+bonus even when premium runners were configured to earn XP. The comment states the rule plainly —
+*"the tier alone withholds nothing"*.
 
 ## 7.8 Verification surface
 

@@ -68,6 +68,10 @@ coverage, and here is the client-first rollout" — and record the answer here.
 Verified on **both** Android and iOS unless noted. Evidence goes in `test-evidence/`, with the
 redaction rules in `test-evidence/README.md` applied first.
 
+Preparation, launch commands, redaction rules, and the per-run record live in
+`QA_EVIDENCE_TEMPLATE.md` alongside this file. Drive runs with
+`implementation/mobile/runiac_app/tool/qa/run_qa_surface.sh`.
+
 **These flows are derived from the app as it exists**, not from the PDD or an earlier plan.
 Re-derived 2026-07-31 against `main` from three sources: the five shell positions
 (Home `0`, Feed `1`, Run — a centre push action rather than a stacked tab, Leaderboard `3`,

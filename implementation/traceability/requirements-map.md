@@ -259,6 +259,10 @@ Stated plainly rather than left implicit:
   defect to fix silently — broad enforcement would reject already-shipped clients.
 - **"Premium confers no competitive advantage" is a negative claim.** §12 establishes that
   entitlement does not appear in the progression calculators, which is strong but not a proof of
-  absence. A dedicated Basic-vs-Premium identical-formula regression test would close it.
+  absence. **Corrected 2026-07-31: dedicated tests exist** —
+  `functions/test/completeRun.test.ts:1683` and `functions/test/completeCoolDown.test.ts:406`
+  assert identical XP and leaderboard credit across tiers with client-authored fields untouched,
+  plus the `config/progression.premiumEarnsXp: false` suppression paths. The one tier branch in the
+  XP path runs the other way — it can withhold Premium XP entirely, never grant more.
 - **Live deploy state is not asserted anywhere in this document.** Source presence is not
   deployment evidence; see `implementation/release/DEPLOY_RUNBOOK.md` §4.

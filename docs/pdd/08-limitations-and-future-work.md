@@ -30,8 +30,12 @@ Two central claims are negative — they assert an absence:
    `userProfiles/{uid}`.
 2. *Premium confers no competitive advantage.* Supported by the absence of entitlement checks from
    the progression calculators. **This is weaker.** Absence-from-inspection is not the same as a
-   test that would fail if it changed. A Basic-vs-Premium identical-formula regression test would
-   close it and does not exist.
+   test that would fail if it changed. **Corrected 2026-07-31: such tests do exist** —
+   `functions/test/completeRun.test.ts:1683` and `functions/test/completeCoolDown.test.ts:406`
+   assert identical XP, leaderboard credit, and untouched client-authored fields across tiers, and
+   the `premiumEarnsXp: false` suppression paths are covered too. The claim is therefore tested,
+   not merely inspected. An earlier revision of this document asserted the gap without checking
+   the suite, which is exactly the failure mode §8.2 is meant to guard against.
 
 A screenshot establishes neither claim, which is why the release checklist requires a four-part
 evidence bundle for the flows that depend on them.
@@ -129,10 +133,10 @@ Deliberately out of scope for this iteration, not defects:
 
 ## 8.6 Future work, in priority order
 
-1. **Device QA across the seven required flows**, both platforms — the largest verification gap.
-2. **Basic-vs-Premium identical-formula regression test** — converts the parity claim from
-   supported to proven.
-3. **App Check coverage decision and client-first rollout** — closes the attestation gap without
+1. **Device QA across the eight required flows**, both platforms — the largest verification gap.
+   The flows are defined in `implementation/release/RELEASE_CHECKLIST.md` §2, derived from the app
+   rather than from this document.
+2. **App Check coverage decision and client-first rollout** — closes the attestation gap without
    breaking shipped clients.
 4. **Routing manifest migration** — moves the governance CI anchors out of `CURRENT.md` so roadmap
    state can be compacted.
