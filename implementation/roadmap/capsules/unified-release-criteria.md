@@ -151,6 +151,40 @@ It also exercises the runbook's preference for server-side switches: because the
 `config/*` document rather than a client constant, disabling it is a Firestore edit rather than
 an app-store release — exactly the risk placement `ROLLBACK.md` argues for.
 
+## Evidence — required user flows re-derived from the app (2026-07-31)
+
+`RELEASE_CHECKLIST.md` §2 originally carried seven flows inherited from a planning document. The
+user directed that judgement must come from the current app rather than the PDD, so they were
+re-derived from three sources in the tree: the five shell positions in `runiac_shell.dart`
+(Home `0`, Feed `1`, Run as a centre push action rather than a stacked tab, Leaderboard `3`,
+You `4`), the 61 exports in `functions/src/index.ts`, and the seven keys in `config/featureAccess`
+with their real tiers.
+
+Six corrections resulted:
+
+- **App tour** was missing. It exists under `features/tutorial/` and arms only on sign-up
+  completion, so no other flow exercises it and a returning account cannot verify it.
+- **Cool-down** was missing. `completeCoolDown` is a separate callable from `completeRun` and
+  carries its own XP bonus, so stopping at "activity saved" left half the XP path unverified.
+- **"Premium feature access"** was one line. In the tree it is four server-enforced gates
+  (`aiHomeCoach`, `activityFeedback`, `workoutBriefing`, `shareRouteToFeed`) plus two **basic-tier**
+  features (`shareCards`, `healthWorkoutImport`) that a denial-only test would never catch
+  regressing.
+- **Challenge** was buried inside a combined social flow. It is multi-user and schedule-driven —
+  `settleChallengeDeadlines` has no caller to surface a failure — so it is now its own flow.
+- **Feed engagement notification** was absent. The push-to-recipient path deployed 2026-07-30 and
+  is the least device-verified link in the social chain.
+- **`advancedAnalysis`** is configured `premium` with **no server-side gate**. It is computed
+  on-device from the user's own run data — nine builder/deriver services under
+  `features/run/domain/services/`, with the server only validating what is uploaded via
+  `validateCadenceAnalysisSeries.ts`. There is no server-held data to withhold, so the client-side
+  gate is the only possible one and nothing leaks if bypassed. Recorded explicitly because on
+  inspection it otherwise reads as a violation of "Premium features must not rely only on hiding
+  UI".
+
+Net effect is a redistribution rather than growth: seven flows became eight, four in Tier 1 across
+both platforms and four in Tier 2 by risk.
+
 ### Conclusion
 
 No deploy required a rule outside the matrix. The matrix additionally caught two things the

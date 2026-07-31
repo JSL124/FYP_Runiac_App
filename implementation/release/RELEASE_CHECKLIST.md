@@ -68,20 +68,75 @@ coverage, and here is the client-first rollout" — and record the answer here.
 Verified on **both** Android and iOS unless noted. Evidence goes in `test-evidence/`, with the
 redaction rules in `test-evidence/README.md` applied first.
 
-### Tier 1 — core, both platforms
+**These flows are derived from the app as it exists**, not from the PDD or an earlier plan.
+Re-derived 2026-07-31 against `main` from three sources: the five shell positions
+(Home `0`, Feed `1`, Run — a centre push action rather than a stacked tab, Leaderboard `3`,
+You `4`), the 61 exports in `functions/src/index.ts`, and the seven keys in
+`config/featureAccess` with their real tiers.
 
-1. Sign up → sign in → onboarding
-2. Start run → track → save activity
-3. XP / level / streak reflected
-4. Subscription entitlement and premium feature access
+### Tier 1 — core, both platforms (8 scenarios)
 
-### Tier 2 — risk-based platform selection
+These carry the claims the project is assessed on.
 
-5. Friends → feed → challenge interaction
-6. Profile privacy settings and blocking
-7. Errors, network loss, permission denial
+**T1-1 First run.** Sign up → onboarding → **app tour** → Home stage map.
+The tour arms **only on sign-up completion**; an existing account and "retake onboarding" must
+never trigger it. Verifying this needs a fresh account, not a returning one.
 
-### Flows 3 and 4 cannot be proven by screenshots
+**T1-2 Run lifecycle.** Start → track → complete (`completeRun`) → **cool-down**
+(`completeCoolDown`).
+These are two separate callables and the cool-down carries its own XP bonus. Stopping at
+"activity saved" leaves half the XP path unverified.
+
+**T1-3 Server-owned progression.** XP, level, and streak reflected on Home, You, and Leaderboard
+after T1-2, with the four-part evidence bundle below.
+
+**T1-4 Tier boundary.** Three assertions, not one:
+- A Basic User is **denied** at each of the four server-enforced premium gates —
+  `aiHomeCoach`, `activityFeedback`, `workoutBriefing`, `shareRouteToFeed`.
+- A Basic User **can still use** the basic-tier features: `shareCards`, `healthWorkoutImport`.
+  Testing only the denials would miss a regression that locks Basic Users out of their own
+  features.
+- A Premium User passes all of the above.
+
+  Note on `advancedAnalysis`: it is configured `premium` but has **no server-side gate**, because
+  it is computed on-device from the user's own run data (nine builder/deriver services under
+  `features/run/domain/services/`; the server only validates what is uploaded, via
+  `validateCadenceAnalysisSeries.ts`). There is no server-held data to withhold, so a client-side
+  gate is the only possible one and nothing leaks if bypassed. Record this explicitly during QA —
+  on inspection it otherwise reads as a "premium feature behind UI hiding only".
+
+### Tier 2 — risk-based platform selection (one platform each, rationale recorded)
+
+**T2-5 Social graph and engagement notification.** Nickname → search → friend request → accept →
+publish to feed (premium gate) → the friend likes or comments → **push lands on the recipient's
+device** → notification inbox. The engagement-notification half is the newest and least
+device-verified part of this chain.
+
+**T2-6 Challenge lifecycle.** Catalogue → create lobby → invite → respond → start → progress →
+settle or abandon. This is multi-user **and** time-based, which is why it is its own flow rather
+than a step inside a social flow: `settleChallengeDeadlines` fires on a schedule and has no
+caller to surface a failure.
+
+**T2-7 Privacy and safety.** Private-profile switch → public profile fetched by handle → block →
+report a post → moderation outcome.
+
+**T2-8 Resilience.** Offline run capture, network loss mid-run, location-permission denial, and
+error reporting through `reportAppError`.
+
+### What changed from the previous list, and why
+
+The earlier seven flows came from a planning document rather than the app. Corrections:
+
+| Change | Reason |
+|---|---|
+| App tour added to T1-1 | It exists (`features/tutorial/`) and has a signup-only trigger that no other flow exercises |
+| Cool-down added to T1-2 | `completeCoolDown` is a separate callable with its own XP bonus |
+| "Premium feature access" → four named gates + two basic-tier features | `config/featureAccess` has 7 keys, not a single premium/basic switch |
+| Challenge promoted to its own flow | Multi-user and schedule-driven; it was buried inside "friends → feed → challenge" |
+| Engagement notification added | Deployed 2026-07-30; the push-to-recipient path was absent from the list |
+| `advancedAnalysis` exception recorded | Premium with no server gate, defensible but needs stating |
+
+### T1-3 and T1-4 cannot be proven by screenshots
 
 "The client does not write XP" and "Premium confers no competitive advantage" are **negative**
 claims. A screenshot of a correct number does not establish either. Each needs a four-part
