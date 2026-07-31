@@ -85,3 +85,85 @@ jobs:
       - name: Run Firestore/Storage rules suite
         working-directory: tests/firebase-rules
         run: npm test
+
+  # The three suites under integration_test/ had never run in CI. They need a
+  # real device, which the other jobs do not provide, so they get their own job
+  # rather than being folded into `governance-ci`.
+  #
+  # Two of them also need the Functions emulator, not just Auth and Firestore:
+  # friends_realtime_emulator_test.dart calls the sendFriendRequest callable and
+  # the nickname callables. That is why `functions` is built here — the Functions
+  # emulator serves compiled JS from functions/lib, so `npm ci && npm run build`
+  # is a prerequisite, not a convenience.
+  #
+  # GitHub-hosted jobs run on isolated VMs, so this shares no emulator ports with
+  # backend-emulator-tests and the two can run concurrently.
+  #
+  # iOS is deliberately excluded: it needs a macOS runner, and the iOS half of
+  # these flows is covered by the owner-held device QA in
+  # implementation/release/RELEASE_CHECKLIST.md instead.
+  mobile-integration-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Set up Java 21 for Firebase emulators
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Cache Firebase emulator binaries
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-${{ runner.os }}-firebase-tools-14.27.0
+
+      - name: Install and build Functions
+        working-directory: functions
+        run: npm ci && npm run build
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.0'
+          channel: stable
+
+      - name: Install Flutter dependencies
+        working-directory: implementation/mobile/runiac_app
+        run: flutter pub get --no-example
+
+      - name: Enable KVM for the Android emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # Third-party action pinned to a commit SHA rather than a floating tag
+      # (v2.38.0 = a421e43855164a8197daf9d8d40fe71c6996bb0d). A mutable tag on a
+      # third-party action is a supply-chain hole: the tag can be repointed at
+      # any commit after review.
+      - name: Run integration tests on an Android emulator
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          script: >
+            npx --yes firebase-tools@14.27.0 emulators:exec
+            --project demo-runiac-integration
+            --only auth,firestore,functions
+            "cd implementation/mobile/runiac_app && flutter test integration_test/ --no-pub"
