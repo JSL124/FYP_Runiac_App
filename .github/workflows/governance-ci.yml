@@ -86,9 +86,19 @@ jobs:
         working-directory: tests/firebase-rules
         run: npm test
 
-  # The three suites under integration_test/ had never run in CI. They need a
-  # real device, which the other jobs do not provide, so they get their own job
+  # The suites under integration_test/ had never run in CI. They need a real
+  # device, which the other jobs do not provide, so they get their own job
   # rather than being folded into `governance-ci`.
+  #
+  # Which job a test belongs in is decided by what it actually needs, not by
+  # which directory it was first written in. A test that only drives widgets
+  # against a fake belongs in test/ and runs free in the `flutter test` step;
+  # only a test that needs a device or a live emulator belongs here, because
+  # every file added to this directory pays a full Android emulator boot.
+  # signout_confirmation_test.dart was removed under exactly that rule — it
+  # pumped RuniacApp against FakeRuniacAuthRepository, touched no Firebase, and
+  # was already covered assertion-for-assertion by the two sign-out tests in
+  # test/auth_gate_test.dart.
   #
   # Two of them also need the Functions emulator, not just Auth and Firestore:
   # friends_realtime_emulator_test.dart calls the sendFriendRequest callable and
