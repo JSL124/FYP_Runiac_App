@@ -125,9 +125,68 @@ different `subscriptionStatus`. This is what keeps the parity rule (§7.7) expre
 Entitlement is enforced in `functions/src/config/featureEntitlement.ts`, server-side. Hiding UI is
 never the control.
 
-Expert plan governance follows the same principle: a Medical Trainer/Expert may provide content,
-but only a Platform Administrator can approve, publish, update, archive, reject, suspend, or
-manage an expert plan. Cloud Functions enforce the transitions; they are not the authority.
+### Expert plans as currently implemented
+
+Sections 1–6 describe a Medical Trainer/Expert who supplies plan content and a Platform
+Administrator who approves and publishes it. **That workflow is not implemented in this
+repository, and this section describes what is.**
+
+```
+match /expertPlans/{planId} {
+  allow read: if isPremiumUser() && resource.data.status == 'published';
+  allow create, update, delete: if false;
+}
+```
+
+Expert plans are a **read-only Premium feature**. A Premium User can read a plan only when its
+`status` is `published`; no client can write one under any condition; and no Cloud Function in
+`functions/src/` writes to the collection either. `isPremiumUser()` (`firestore.rules:586`)
+resolves the tier by reading `users/{uid}.subscriptionStatus`, which per §7.3 Tier 1 the client can
+never write — so the entitlement cannot be forged client-side.
+
+No Medical Trainer/Expert role exists in the code. `functions/src/security/roles.ts` implements one
+role predicate, `isPlatformAdminRole`. The string `"expert"` elsewhere in the codebase is an
+onboarding running-experience level (beginner / intermediate / expert), not a user role.
+
+The unimplemented approval workflow is recorded as a scope boundary in §8.5 rather than claimed
+here.
+
+### Administrator operations
+
+Administrator actions do not run through client-facing callables with a role check. The model is
+different, and deliberately so.
+
+Command collections are **totally client-inaccessible**:
+
+```
+match /leaderboardAdminCommands/{commandId} { allow read, write: if false; }
+match /moderationCommands/{commandId}       { allow read, write: if false; }
+match /badgeConfigs/{badgeId}               { allow read, write: if false; }
+```
+
+The admin console is a separate Next.js server holding Admin SDK credentials. Because the Admin SDK
+bypasses rules by design, and because that server cannot invoke callables directly, an
+administrator action is expressed as a **Firestore write plus trigger handoff**: the console
+creates a command document, a Cloud Function trigger consumes it and performs the real work, then
+merge-writes the outcome back onto the same document.
+
+The security boundary is therefore **possession of Admin SDK credentials in the console
+deployment**, not a role check inside these Functions.
+
+What makes this safe is that the trigger **does not trust its own input**.
+`functions/src/leaderboard/leaderboardAdminCommand.ts:23`:
+
+> *SAFETY: admin recalculation is deliberately restricted to the CURRENT Singapore month, and the
+> period is derived here rather than trusted from the command document.*
+
+The same comment explains the attack this prevents: a command naming an older month would repoint
+`leaderboardPeriods/monthly_current` and then delete every snapshot outside the three-month window
+around that key. Deriving the period server-side rather than reading it from the command removes
+the possibility entirely.
+
+`isPlatformAdminRole` exists for the cases where a Function does need a role check, and reconciles
+the canonical `"platformAdmin"` value with the legacy `"Platform Administrator"` spelling in one
+place so the two cannot drift apart across call sites.
 
 ## 7.7 Premium confers no competitive advantage
 

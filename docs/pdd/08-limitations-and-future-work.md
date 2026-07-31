@@ -110,8 +110,21 @@ Deliberately out of scope for this iteration, not defects:
 - Territorial leaderboard mechanics beyond the implemented monthly aggregation.
 - Medical or diagnostic guidance. Agent-generated summaries are explanatory only and cannot alter
   XP, rank, leaderboard score, or plan authority.
-- An expert dashboard. Medical Trainer/Expert users provide content; only a Platform Administrator
-  can publish, and no self-service submission surface exists.
+- **The expert plan governance workflow.** This is the largest gap between the design in sections
+  1–6 and the implementation, and it is worth stating precisely rather than glossing.
+
+  Designed: a Medical Trainer/Expert supplies plan content, and a Platform Administrator approves,
+  publishes, updates, archives, rejects, suspends, or manages it.
+
+  Implemented: `expertPlans` is a read-only Premium surface — `allow read: if isPremiumUser() &&
+  resource.data.status == 'published'`, with all client writes denied and **no Cloud Function
+  writing to the collection at all**. The Medical Trainer/Expert role does not exist in code;
+  `functions/src/security/roles.ts` implements only `isPlatformAdminRole`. Published plans reach
+  the collection through the Admin SDK, outside this repository.
+
+  So the *consumption* half is built and enforced; the *authoring and approval* half is design
+  intent. A future iteration needs the role, the draft lifecycle, the approval transitions, and an
+  audit record of who published what.
 - OAuth providers. Sign-in is email and password.
 
 ## 8.6 Future work, in priority order
