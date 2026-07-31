@@ -158,6 +158,14 @@ functions suites around 1,000, and `functions/src/progression/progressionAudit.t
 persists every XP derivation step to `progressionEvents`. That audit trail is the strongest
 single artefact for ②–④.
 
+**That inventory is done: `SERVER_OWNERSHIP_EVIDENCE.md` alongside this file.** It maps each of
+②③④ to the existing cases that carry it, and the conclusion is that **no new tests are
+required** — every XP-awarding path already has both a parity case and its suppression
+counterpart. What it cannot supply, and what a QA run must therefore record, is the state of
+two production documents: `config/progression.premiumEarnsXp` must be `true` or absent, and
+`config/leaderboard.excludePremium` must be `false` or absent. Parity is the default, but it is
+configuration, and it is editable from the admin console.
+
 ---
 
 ## 3. QA data policy
