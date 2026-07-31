@@ -1,5 +1,17 @@
 # Runiac Latest Roadmap Snapshot
 
+> **Authority note (2026-07-31).** `implementation/roadmap/CURRENT.md` → `## Canonical Current
+> State` is the single source of truth for present state. This snapshot is a historical record
+> and had drifted well behind `main`: it names `activity-history-durable-preview-recovery` as
+> the only selected capsule and describes `adaptive-character-guidance` as preserved parallel
+> state, while `CURRENT.md` names the latter as the active-capsule CI anchor and neither is
+> actually being worked. It also predates roughly 37 routing entries recorded in `CURRENT.md`.
+>
+> Reconciled position: at `main` @ `6eb6efef` **no capsule is active**; Phase 01 Governance CI
+> is closed at `f917aab` with no successor selected. Entries below are retained verbatim as
+> records of when they were written. Where this file and the Canonical block disagree, the
+> Canonical block wins.
+
 ## Snapshot Metadata
 
 - Last updated phase: Phase 01 - Governance CI

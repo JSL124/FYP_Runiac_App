@@ -1,5 +1,48 @@
 # Runiac Current Roadmap Context
 
+## Canonical Current State
+
+<!--
+  SINGLE SOURCE OF TRUTH for what is true *now*. Every other statement in this file is a
+  record of what was true when it was written, not a description of the present. On any
+  conflict, this block wins.
+
+  HOW TO READ THE REST OF THIS FILE. The `- Newly routed ...` and `- Current active capsule ...`
+  lines below are not prose. They are capability grants that governance CI parses:
+  tools/governance-ci/check-diff-hygiene.sh and check-pre-scaffold-scope.sh match those exact
+  lines with anchored regexes, and each match opens one capsule's path allowlist. As measured
+  on 2026-07-31 this file holds 40 such anchor lines (39 `Newly routed` + 1 `Current active
+  capsule`) against 58 grep calls across the two checkers. Moving, deleting, or rewording any
+  of them silently revokes the matching permission branch. They are append-only by design and
+  stay verbatim even once historically stale.
+
+  For the same reason this block deliberately does NOT reuse the `- Current phase:` line
+  format: check-roadmap-routing.sh requires exactly one line of that shape, so a second one
+  would fail CI.
+
+  Verify the anchor set before editing anything here:
+    grep -n '^- Newly routed\|^- Current active capsule' implementation/roadmap/CURRENT.md
+-->
+
+- Measured at: 2026-07-31 Asia/Singapore. HEAD `6eb6efef`, branch `main`, working tree clean,
+  in sync with `origin/main`. Governance CI passing locally and on hosted run `30568823947`.
+- Phase: Phase 01 Governance CI is **closed** at `f917aab`. No successor phase has been
+  selected. The `- Current phase:` line in `## Current Routing` below is retained unchanged
+  because check-roadmap-routing.sh requires exactly one line of that shape; it is a CI
+  contract, not a claim that Phase 01 is open.
+- Active capsule: **none**. Work on `main` is currently between capsules. The
+  `- Current active capsule:` line below names `adaptive-character-guidance` and is retained
+  as a CI allowlist anchor only — that capsule is not being worked, and item 9 of
+  `## Operational TODO / Active Capsule` explicitly forbids resuming it.
+- Most recent merged work on `main`: feed engagement push notifications, then Android
+  platform-vibrator haptics (#52) at `6eb6efef`. Neither belongs to any capsule described as
+  "active" elsewhere in this file.
+- Blocked: nothing.
+- Next action: repository consolidation. Route a governance capsule, then wire
+  `tests/cross-system/paywall-config-drift.mjs` into `run-all-checks.sh` (it exists today with
+  no execution path, while the sibling config-contract and avatar-path drift guards are both
+  wired in).
+
 ## Current Routing
 
 - Current track: Track A - Governance and implementation readiness
@@ -11,6 +54,7 @@
 - Current state: worktree baseline was cleaned at `c85eb1f7 fix(shell): refresh progress on day rollover` before this capsule routing. The open adaptive-character capsule and concurrent user-owned Leaderboard/You/design/test changes remain unrelated and untouched.
 - Current governance decision record: ADR-003 classifies this work as Backend Guarded Lane; ADR-002 requires Emulator First. Project `demo-runiac-feed` and explicit Auth/Firestore/Functions/Storage host guards are mandatory before any fixture mutation.
 - Current active milestone: `adaptive-character-guidance`. Phase 02 remains unselected.
+- Newly routed repository consolidation quality gates on 2026-07-31 Asia/Singapore: `implementation/roadmap/capsules/repository-consolidation-quality-gates.md`. The user explicitly routed a governance/CI-only capsule closing two verification holes. First, `tests/cross-system/paywall-config-drift.mjs` exists with no execution path while its two sibling drift guards are both wired into `run-all-checks.sh`, leaving `config/paywall` drift between the Dart read model, the website admin editor, and the fixture unguarded; the script already degrades to a loud SKIP when `website/` is absent, so wiring it in buys local protection plus a visible SKIP line in hosted CI, and the fixture-to-Dart half stays covered in hosted CI by `paywall_config_defaults_fixture_test.dart`. Second, `functions/package.json` enumerates its suites by filename across five scripts and `tests/firebase-rules/package.json` across two, so an unlisted suite silently never runs — the exact defect recorded as fix #8 in `review-triage-notification-privacy-quota`, where the friends rules suite had never executed. Scope is limited to the two new checks, their registration in `run-all-checks.sh`, and routing predicates in the two checkers. No functions/ or Flutter source, no production service, deploy, or secret action, and no Phase 02 selection is authorized by this routing. This does not supersede other active capsules.
 - Newly routed profile stats visibility on 2026-07-29 Asia/Singapore: `implementation/roadmap/capsules/profile-stats-visibility.md`. The user explicitly routed a full-stack capsule adding a `Private profile` master switch that withholds a runner's level/XP progress, longest streak, total distance, and challenge badges from other runners' view of their profile, and moving the Settings entry point from the Profile Manage list into a header overflow menu. Enforcement is server-side in `getRunnerPublicProfile`: the hidden values never leave the callable, and the client blur renders an already-empty card rather than masking data it received. Scope is limited to `functions/src/profile/publicProfile/core.ts`, its two test files, the `publicStatsHidden` key in `firestore.rules`, and the named Flutter profile/settings files. No production deploy is authorized by this routing, and the isolated `adaptive-character-guidance` worktree stays untouched.
 - Newly routed backed Friends MVP on 2026-07-13 Asia/Singapore: `implementation/roadmap/capsules/friends-backend-mvp.md` now integrates the authenticated nickname/profile callables, atomic request/friend/block transitions, rate/cooldown limits, Unicode migration, owner Rules/indexes, and the callable-backed Flutter Friends/Profile client. Suggested is removed; Friends / Search / Requests / Blocked use backed owner lists and callables. The exact ten Friends/nickname Functions and Friends indexes are deployed to `runiac-fypp`, focused backend/Rules/Flutter tests and fresh simulator visual QA pass, and unrelated Challenge/Run work remains outside this client commit. The stricter Firestore Rules remain a coordinated client-cutover step until legacy direct nickname writers are confirmed absent.
 - Newly routed capsule in the main worktree on 2026-07-12 Asia/Singapore: `implementation/roadmap/capsules/home-social-dropdown-friends-shell.md`. The user explicitly routed a Safe Visible Product Acceleration frontend capsule adding a static Home stage-map `Social` dropdown (Friends navigation plus Challenge Coming-soon stub) and a new static demo-data Friends feature module with Friends / Search / Suggested / Requests tabs. It is frontend-only: no feed changes, no Firebase/Firestore/Cloud Functions work, no `users/{uid}/friends` I/O, no XP/level/rank/streak calculation or mutation, no new dependencies, and no shell/navigation changes. This routing is append-only and does not modify or supersede the `activity-history-durable-preview-recovery` capsule in its separate isolated worktree.
@@ -149,7 +193,32 @@ Do not load future phase documents unless explicitly requested.
 
 ## Next Gate
 
-Next gate is the user-owned real-screen emulator checklist. Package B is exactly `Ready for user screen QA` plus `Ready for manual commit`; real-screen acceptance remains user-owned and has not been claimed. The isolated task-only Flutter suite passed 1,348/1,348, while the shared tree has five proven unrelated dirty failures. No Phase 02 selection, production service, deploy, secret, automatic staging, or automatic commit is authorized.
+Updated 2026-07-31 at `main` @ `6eb6efef`. See `## Canonical Current State` at the top of this
+file for present state; this section states only the next gate.
+
+Next gate is **repository consolidation**, not a feature capsule. In order:
+
+1. Route a governance capsule for the consolidation work, and wire its paths into
+   `check-diff-hygiene.sh` and `check-pre-scaffold-scope.sh`.
+2. Wire `tests/cross-system/paywall-config-drift.mjs` into `run-all-checks.sh` via a
+   `tests/governance/` wrapper. It exists today with no execution path, while the sibling
+   config-contract and avatar-path drift guards are both wired in — paywall config drift
+   between the Dart read model, the website admin editor, and the fixtures is currently
+   unguarded.
+3. Add a test-enumeration drift check. `functions/package.json` enumerates its suites by
+   filename across five scripts and `tests/firebase-rules/package.json` across two; a suite
+   omitted from those lists silently never runs. This has already happened once — see
+   `capsules/review-triage-notification-privacy-quota.md` fix #8, where the friends rules
+   suite had never executed in CI.
+4. Then: unified release criteria (checklist / deploy runbook / rollback), E2E evidence into
+   the empty `test-evidence/` tree, and FYP assessment artifacts.
+
+No Phase 02 selection, production service, deploy, secret, automatic staging, or automatic
+commit is authorized.
+
+The previous entry here described a "Package B" real-screen QA gate with a 1,348/1,348 Flutter
+suite and five unrelated dirty failures in a shared tree. That was written against an isolated
+worktree and no longer describes `main`, whose tree is clean.
 
 ## Operational TODO / Active Capsule
 

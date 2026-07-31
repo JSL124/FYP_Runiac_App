@@ -15,9 +15,11 @@ checks=(
   "tools/governance-ci/check-sensitive-paths.sh"
   "tools/governance-ci/check-workflow-memory-drift.sh"
   "tools/governance-ci/measure-context-overhead.sh"
+  "tools/governance-ci/check-test-enumeration.sh"
   "tests/governance/backend_functions_scope_test.sh"
   "tests/governance/config_contract_drift_test.sh"
   "tests/governance/avatar_path_contract_drift_test.sh"
+  "tests/governance/paywall_config_drift_test.sh"
 )
 
 failures=0
