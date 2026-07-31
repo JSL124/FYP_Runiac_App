@@ -162,8 +162,14 @@ jobs:
           target: google_apis
           arch: x86_64
           disable-animations: true
+          # The project id must match `emulatorFirebaseOptions.projectId` in
+          # lib/core/firebase/runiac_firebase_bootstrap.dart. The client builds
+          # callable URLs as /{projectId}/{region}-{name}, so a mismatch serves
+          # the functions under one path while the app asks for another and
+          # every callable returns NOT_FOUND. Still demo-prefixed, so the
+          # production-safety guard holds.
           script: >
             npx --yes firebase-tools@14.27.0 emulators:exec
-            --project demo-runiac-integration
+            --project demo-runiac-feed
             --only auth,firestore,functions
             "cd implementation/mobile/runiac_app && flutter test integration_test/ --no-pub"
