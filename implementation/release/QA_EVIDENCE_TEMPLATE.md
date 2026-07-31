@@ -117,9 +117,15 @@ test files, and `functions/src/progression/progressionAudit.ts`, which persists 
 derivation step to `progressionEvents`. That audit trail is the strongest single artefact for
 ②–④.
 
-**④ does not yet have a dedicated test.** Entitlement's absence from the progression calculators
-supports the parity claim but does not prove it. Record that gap rather than treating ① as
-sufficient.
+**④ already has dedicated tests** — cite them rather than re-deriving the claim by hand:
+
+- `functions/test/completeRun.test.ts:1683` — same XP and leaderboard credit for premium as basic,
+  with client-authored `xp` / `rank` / `leaderboardScore` untouched regardless of tier
+- `functions/test/completeCoolDown.test.ts:406` — same for the cool-down bonus
+
+Note the direction of the one tier branch that does exist: `config/progression.premiumEarnsXp`
+(default `true`) can suppress Premium XP entirely. Nothing grants Premium more. If QA runs against
+a non-default config, record the flag's value alongside the result.
 
 ---
 

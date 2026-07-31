@@ -200,9 +200,24 @@ derivation step is persisted to `progressionEvents` by
 `functions/src/progression/progressionAudit.ts`, so any divergence would be visible in the audit
 record.
 
-**Stated limitation:** absence of entitlement from the calculators is strong support, not a proof
-of absence. A dedicated Basic-vs-Premium identical-formula regression test would close this. It
-does not exist yet and is recorded in §8.
+**This is tested, not merely inspected.** Two emulator tests assert it end to end:
+
+- `functions/test/completeRun.test.ts:1683` — *"gives premium users the same XP and leaderboard
+  credit as basic users"*. It runs an identical payload for a premium account and asserts the same
+  `xpDelta`, the same `countsTowardLeaderboard`, the same awarded status, and that
+  client-authored `xp` / `rank` / `leaderboardScore` fields stay untouched regardless of tier.
+- `functions/test/completeCoolDown.test.ts:406` — the same for the cool-down bonus.
+
+**One nuance the claim has to state precisely.** There is a tier branch in the XP path, but it
+runs the other way: `config/progression.premiumEarnsXp` (default `true`) can be set to `false`,
+in which case Premium Users earn **no** XP at all. Nothing anywhere grants Premium *more*. Both
+suppression paths are also covered — `completeRun.test.ts:1710` and
+`completeCoolDown.test.ts:429`.
+
+`functions/src/run/completeCoolDown.ts:165` records why that branch is config-driven rather than
+tier-driven: an earlier version branched on `isPremium` directly and so suppressed the stretch
+bonus even when premium runners were configured to earn XP. The comment states the rule plainly —
+*"the tier alone withholds nothing"*.
 
 ## 7.8 Verification surface
 
