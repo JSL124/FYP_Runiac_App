@@ -170,6 +170,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('99+'), findsOneWidget);
+    // Carried over from the deleted HomeHeader badge test: the count has to
+    // stay legible against the red disc.
+    expect(tester.widget<Text>(find.text('99+')).style?.color, Colors.white);
   });
 
   testWidgets('No unread badge is drawn at zero', (tester) async {
