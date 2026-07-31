@@ -97,6 +97,13 @@ Result:          PASS | FAIL | BLOCKED
 
 <None, or one line each with the reproduction.>
 
+**Progression config at run time** *(T1-3 and T1-4 only — see below for why)*
+
+```
+config/progression.premiumEarnsXp:   true | false | document absent
+config/leaderboard.excludePremium:   true | false | document absent
+```
+
 ---
 
 ## Flows T1-3 and T1-4 need more than screenshots
@@ -112,20 +119,33 @@ parts:
 | ③ | Server computes the value | `functions/test/` — `functions/src/progression/` |
 | ④ | Basic and Premium use the identical formula | `functions/test/` |
 
-Inventory what already exists before writing anything new: 139 rules cases, 82 Cloud Functions
-test files, and `functions/src/progression/progressionAudit.ts`, which persists every XP
-derivation step to `progressionEvents`. That audit trail is the strongest single artefact for
-②–④.
-
-**④ already has dedicated tests** — cite them rather than re-deriving the claim by hand:
+**The inventory is already done — do not re-derive it.** `SERVER_OWNERSHIP_EVIDENCE.md`
+alongside this file maps ②③④ to the existing cases, case by case, and concludes that no new
+tests are required: every XP-awarding path (`completeRun`, `completeCoolDown`, the monthly
+leaderboard writer) has both a parity case and its suppression counterpart. Cite that file
+rather than re-reading the suites. The headline anchors:
 
 - `functions/test/completeRun.test.ts:1683` — same XP and leaderboard credit for premium as basic,
   with client-authored `xp` / `rank` / `leaderboardScore` untouched regardless of tier
 - `functions/test/completeCoolDown.test.ts:406` — same for the cool-down bonus
+- `functions/test/monthlyLeaderboardWriter.test.ts:149` — premium ranked by default
+- `tests/firebase-rules/firestore.rules.test.mjs:555-600` — every named progression field denied
+  to the client, in both directions (writing the value *down* fails too)
 
-Note the direction of the one tier branch that does exist: `config/progression.premiumEarnsXp`
-(default `true`) can suppress Premium XP entirely. Nothing grants Premium more. If QA runs against
-a non-default config, record the flag's value alongside the result.
+**What the tests cannot cover, and you therefore must record.** Parity is a default, not an
+invariant — it is configuration, editable from the admin console. Read both documents in the
+Firebase console during the run and write the values into the record below:
+
+| Document | Field | Required for a valid T1-4 result |
+|---|---|---|
+| `config/progression` | `premiumEarnsXp` | `true`, or the document absent |
+| `config/leaderboard` | `excludePremium` | `false`, or the document absent |
+
+Note the direction of the one tier branch that exists: `premiumEarnsXp: false` suppresses Premium
+XP entirely. Nothing grants Premium more. And the two interact — `excludePremium: true` without
+also clearing `premiumEarnsXp` ranks premium runners at a permanent zero instead of removing them
+from the board. If QA runs against a non-default config, the result is not a parity result and
+must be labelled as such.
 
 ---
 
