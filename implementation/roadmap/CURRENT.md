@@ -24,8 +24,9 @@
     grep -n '^- Newly routed\|^- Current active capsule' implementation/roadmap/CURRENT.md
 -->
 
-- Measured at: 2026-07-31 Asia/Singapore. HEAD `6eb6efef`, branch `main`, working tree clean,
-  in sync with `origin/main`. Governance CI passing locally and on hosted run `30568823947`.
+- Measured at: 2026-07-31 Asia/Singapore. HEAD `8f0adb21`, branch `main`, working tree clean,
+  in sync with `origin/main`. All three hosted CI jobs green on that commit — `governance-ci`,
+  `backend-emulator-tests`, and the new `mobile-integration-tests`.
 - Phase: Phase 01 Governance CI is **closed** at `f917aab`. No successor phase has been
   selected. The `- Current phase:` line in `## Current Routing` below is retained unchanged
   because check-roadmap-routing.sh requires exactly one line of that shape; it is a CI
@@ -34,14 +35,17 @@
   `- Current active capsule:` line below names `adaptive-character-guidance` and is retained
   as a CI allowlist anchor only — that capsule is not being worked, and item 9 of
   `## Operational TODO / Active Capsule` explicitly forbids resuming it.
-- Most recent merged work on `main`: feed engagement push notifications, then Android
-  platform-vibrator haptics (#52) at `6eb6efef`. Neither belongs to any capsule described as
-  "active" elsewhere in this file.
+- Most recent merged work on `main`: the repository-consolidation run, #53 through #60 —
+  canonical roadmap state and the two governance CI gates (`ec591c79`), unified release
+  criteria (#54), as-built traceability (#55), PDD security and limitations (#56), the user
+  flows re-derived from the app (#57), the feed engagement push test race (#58), Stage 4 QA
+  scaffolding (#59), and the `mobile-integration-tests` job (#60). None of these belong to any
+  capsule described as "active" elsewhere in this file.
 - Blocked: nothing.
-- Next action: repository consolidation. Route a governance capsule, then wire
-  `tests/cross-system/paywall-config-drift.mjs` into `run-all-checks.sh` (it exists today with
-  no execution path, while the sibling config-contract and avatar-path drift guards are both
-  wired in).
+- Next action: manual QA execution (Stage 4b). Every agent-side prerequisite is now in place —
+  release criteria, the QA runner, the evidence template, and the server-ownership evidence
+  inventory. What remains is owner-held and cannot be delegated: three QA accounts, the App
+  Check debug-token registration, and the eight flow runs.
 
 ## Current Routing
 
@@ -196,25 +200,40 @@ Do not load future phase documents unless explicitly requested.
 
 ## Next Gate
 
-Updated 2026-07-31 at `main` @ `6eb6efef`. See `## Canonical Current State` at the top of this
+Updated 2026-07-31 at `main` @ `8f0adb21`. See `## Canonical Current State` at the top of this
 file for present state; this section states only the next gate.
 
-Next gate is **repository consolidation**, not a feature capsule. In order:
+**Repository consolidation is complete.** All four items previously listed here have landed:
+the governance capsule was routed (`capsules/repository-consolidation-quality-gates.md`,
+`ec591c79`); `tests/cross-system/paywall-config-drift.mjs` is wired in through
+`tests/governance/paywall_config_drift_test.sh`; `tools/governance-ci/check-test-enumeration.sh`
+reconciles both enumerations on every run (82/82 functions files, 12 rules files against 11
+glob-expanded entries); and unified release criteria shipped as `implementation/release/`
+(#54, #57, #59). Two things landed beyond that list — the `mobile-integration-tests` CI job
+(#60), which put the `integration_test/` suites in CI for the first time, and the
+server-ownership evidence inventory that completes the code-side half of the T1-3/T1-4 bundle.
 
-1. Route a governance capsule for the consolidation work, and wire its paths into
-   `check-diff-hygiene.sh` and `check-pre-scaffold-scope.sh`.
-2. Wire `tests/cross-system/paywall-config-drift.mjs` into `run-all-checks.sh` via a
-   `tests/governance/` wrapper. It exists today with no execution path, while the sibling
-   config-contract and avatar-path drift guards are both wired in — paywall config drift
-   between the Dart read model, the website admin editor, and the fixtures is currently
-   unguarded.
-3. Add a test-enumeration drift check. `functions/package.json` enumerates its suites by
-   filename across five scripts and `tests/firebase-rules/package.json` across two; a suite
-   omitted from those lists silently never runs. This has already happened once — see
-   `capsules/review-triage-notification-privacy-quota.md` fix #8, where the friends rules
-   suite had never executed in CI.
-4. Then: unified release criteria (checklist / deploy runbook / rollback), E2E evidence into
-   the empty `test-evidence/` tree, and FYP assessment artifacts.
+Next gate is **manual QA execution**, and it is owner-held. The agent-side scaffolding is
+done; what remains cannot be delegated:
+
+1. QA data preparation — three dedicated accounts (Basic, Premium, Admin), synthetic seed
+   data, and the App Check debug token registered in the Firebase Console. Skipping the last
+   one fails every enforced callable and wastes the whole run.
+2. Tier 1 — the four core flows on both Android and iOS, eight runs, per
+   `implementation/release/RELEASE_CHECKLIST.md` §2.
+3. Tier 2 — the four remaining flows, one platform each, with the platform choice justified.
+4. For T1-3 and T1-4 specifically, record the two production config values named in
+   `implementation/release/SERVER_OWNERSHIP_EVIDENCE.md` §4. Parity between Basic and Premium
+   is a *default*, not an invariant, so a run against a non-default config is not a parity
+   result.
+5. Then: FYP assessment artifacts, and the demo scenarios, which may only be derived from
+   flows Tier 1 actually verified.
+
+Deliberately cut, not forgotten: **coverage instrumentation** (the optional Stage 2d item —
+Flutter `--coverage` plus a `c8` script for Functions, reporting without gating). The
+test-to-source ratio is already 0.83:1 on mobile and 0.94:1 on the backend, so a coverage
+percentage would add a number without adding a decision. Revisit only if a specific gap needs
+measuring.
 
 No Phase 02 selection, production service, deploy, secret, automatic staging, or automatic
 commit is authorized.

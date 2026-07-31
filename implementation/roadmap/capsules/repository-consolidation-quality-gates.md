@@ -113,8 +113,36 @@ appropriate test for a checker:
 
 ## Exit Criteria
 
-- [ ] Both gates registered in `run-all-checks.sh` and passing.
-- [ ] Negative-control demonstration recorded for each.
-- [ ] Anchor-count invariance verified.
-- [ ] Governance CI PASS locally; hosted CI green after push.
-- [ ] `CURRENT.md` routing appended without disturbing existing anchors.
+- [x] Both gates registered in `run-all-checks.sh` and passing.
+- [x] Negative-control demonstration recorded for each.
+- [x] Anchor-count invariance verified.
+- [x] Governance CI PASS locally; hosted CI green after push.
+- [x] `CURRENT.md` routing appended without disturbing existing anchors.
+
+## Closure
+
+Closed 2026-07-31 at `ec591c79` (PR #53), verified against the repository rather than against
+this document:
+
+- `run-all-checks.sh` lists and passes both new checks. `check-test-enumeration.sh` reports
+  `functions: 82 test files on disk, 82 enumerated entries, fully reconciled` and
+  `firebase-rules: 12 test files on disk, 11 enumerated entries, fully reconciled` — 11 rather
+  than 12 because `feed.*.test.mjs` is a glob that the check expands before comparing.
+- Negative controls are recorded in the PR #53 description: a mutated paywall fixture, an
+  injected orphan test file, an injected ghost enumeration entry, and an exception registered
+  without a reason, each failing and each restored. That exercise caught a real defect in the
+  new checker — the exception list was piped into a heredoc that consumed stdin, so the
+  mechanism silently did nothing while still reporting PASS. Fixed by passing entries as argv.
+  This is precisely the failure class the gate exists to catch, and it is the reason a
+  negative control is required rather than optional.
+- Hosted Governance CI green on `ec591c79`.
+- Anchor count unchanged by the later edits to `CURRENT.md`: 44 `- Newly routed` /
+  `- Current active capsule` lines before and after, and exactly one `- Current phase:` line
+  throughout.
+
+**Not in this capsule, deliberately.** The `mobile-integration-tests` CI job was excluded from
+the Forbidden Scope above as needing device-tier work, and it landed separately in #60 under
+the governance lane that already allowlists `.github/workflows/governance-ci.yml`
+(`check-diff-hygiene.sh:1518`). The follow-up removal of
+`integration_test/signout_confirmation_test.dart` — a widget-only test already covered by
+`test/auth_gate_test.dart` — belongs to that same later work, not to this capsule.
