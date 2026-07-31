@@ -6,6 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/core/firebase/runiac_firebase_bootstrap.dart';
 import 'package:runiac_app/features/auth/domain/runiac_auth_service.dart';
+import 'package:runiac_app/features/profile/domain/repositories/user_profile_persistence_repository.dart';
+import 'package:runiac_app/features/profile/domain/singapore_region_options.dart';
 import 'package:runiac_app/features/run/data/run_repository_factory.dart';
 
 String get firebaseEmulatorHost {
@@ -48,6 +50,7 @@ Future<void> pumpRuniac(
   required RuniacAuthRepository authRepository,
   bool showAuth = true,
   bool showOnboarding = true,
+  bool useRealProfilePersistence = false,
 }) async {
   await tester.pumpWidget(
     RuniacApp(
@@ -55,6 +58,14 @@ Future<void> pumpRuniac(
       runRepository: bootstrap.runRepository,
       friendsRepository: bootstrap.friendsRepository,
       profileRepository: bootstrap.profileRepository,
+      // Defaults to the Noop persistence repository so suites that never reach
+      // the personal-profile screen keep their previous behaviour. The auth
+      // suite opts in, because the screen's nickname check is a real
+      // `checkNicknameAvailability` callable and the Noop always answers
+      // "available", which would make that gate untested.
+      profilePersistenceRepository: useRealProfilePersistence
+          ? bootstrap.profilePersistenceRepository
+          : const NoopUserProfilePersistenceRepository(),
       showSplash: false,
       showAuth: showAuth,
       showOnboarding: showOnboarding,
@@ -168,6 +179,87 @@ Future<void> signUp(
   await tapVisibleText(tester, 'Create account');
 }
 
+/// The birthdate `ProfileDateOfBirthField` pre-selects when it opens with no
+/// stored value, i.e. what "Use selected date" returns if the wheel is not
+/// scrolled. Kept here so the seeded profile and the on-screen assertion agree.
+final String defaultPickedBirthDateIso = birthDateIso(DateTime(2000));
+
+/// A fresh signup no longer lands on onboarding. `app.dart`'s
+/// `_shouldShowPersonalProfile` routes it through
+/// `PersonalProfileCollectionScreen` first, and `_shouldShowOnboarding` only
+/// turns true once that screen hands back a draft, so the auth suite has to
+/// clear it the way a real user does.
+Future<void> completePersonalProfileCollection(
+  WidgetTester tester, {
+  required String fullName,
+  required String nickname,
+  required String weightKg,
+  required String region,
+}) async {
+  await waitForText(
+    tester,
+    'Tell us about you',
+    reason: 'signup should open the personal profile screen',
+  );
+
+  await tester.enterText(_profileFieldByLabel('Name'), fullName);
+  await tester.pump();
+
+  await tester.enterText(_profileFieldByLabel('Nickname'), nickname);
+  await tester.pump();
+  await waitForText(
+    tester,
+    'Nickname is available.',
+    reason:
+        'the checkNicknameAvailability callable should clear a fresh nickname',
+  );
+
+  await tapVisibleText(tester, 'Choose birthdate');
+  await waitForText(
+    tester,
+    'Select birthdate',
+    reason: 'the birthdate field should open the picker sheet',
+  );
+  await tapVisibleText(tester, 'Use selected date');
+
+  await tester.enterText(_profileFieldByLabel('Weight in kilograms'), weightKg);
+  await tester.pump();
+
+  await tapVisibleText(tester, 'Choose a Singapore region');
+  await waitForText(
+    tester,
+    'Choose region',
+    reason: 'the region field should open the picker sheet',
+  );
+  await tapVisibleText(tester, region);
+
+  await tapVisibleText(tester, 'Continue to onboarding');
+}
+
+/// The first Singapore planning area the region picker offers.
+String get firstSingaporeRegionOption => SingaporeRegionOptions.values.first;
+
+/// Onboarding sits behind one more gate: `_buildOnboardingAndShell` wraps it in
+/// `RuniacCharacterSelectionGate`, so a fresh signup picks a buddy before it
+/// ever sees step 1. Bolt is free for a Basic account, which keeps this suite
+/// off the premium-lock path that `character_selection_test.dart` owns.
+Future<void> chooseFreeRunningBuddy(WidgetTester tester) async {
+  await waitForText(
+    tester,
+    'Choose your running buddy',
+    reason: 'a completed personal profile should open character selection',
+  );
+  await tapVisibleText(tester, 'Bolt');
+  await tapVisibleText(tester, "Let's go with Bolt");
+}
+
+Finder _profileFieldByLabel(String label) {
+  return find.ancestor(
+    of: find.text(label),
+    matching: find.byType(TextFormField),
+  );
+}
+
 Future<void> logIn(
   WidgetTester tester, {
   required String email,
@@ -206,6 +298,16 @@ Future<void> signOutFromAccount(WidgetTester tester) async {
   await tester.pumpAndSettle();
   await tester.tap(find.text('Sign out'));
   await tester.pumpAndSettle();
+
+  // Account sign-out is confirmed, not immediate — the first tap only opens the
+  // sheet, as `signout_confirmation_test.dart` asserts. Tapping once and
+  // waiting for the welcome screen would just time out behind the open sheet.
+  expect(find.text('Sign out?'), findsOneWidget);
+  final confirmSignOut = find.text('Sign out').last;
+  await tester.ensureVisible(confirmSignOut);
+  await tester.pumpAndSettle();
+  await tester.tap(confirmSignOut);
+  await tester.pump();
 }
 
 Future<void> enterAuthCredentials(
