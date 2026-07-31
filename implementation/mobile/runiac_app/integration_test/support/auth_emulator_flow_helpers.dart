@@ -300,8 +300,8 @@ Future<void> signOutFromAccount(WidgetTester tester) async {
   await tester.pumpAndSettle();
 
   // Account sign-out is confirmed, not immediate — the first tap only opens the
-  // sheet, as `signout_confirmation_test.dart` asserts. Tapping once and
-  // waiting for the welcome screen would just time out behind the open sheet.
+  // sheet, as `test/auth_gate_test.dart` asserts. Tapping once and waiting for
+  // the welcome screen would just time out behind the open sheet.
   expect(find.text('Sign out?'), findsOneWidget);
   final confirmSignOut = find.text('Sign out').last;
   await tester.ensureVisible(confirmSignOut);
