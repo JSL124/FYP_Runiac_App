@@ -164,3 +164,99 @@ Future implementation needs approved gates before creating or changing productio
 - Confirm whether expert-plan governance remains setup-gate only during Phase 1 or gets an admin workflow prototype later.
 - Confirm whether notification delivery is tested through emulator/send-intent evidence first or delayed until device testing.
 - Confirm map provider and geocoding provider choices before any API key or project configuration is created.
+
+---
+
+# Part II — As-Built Traceability (2026-07-31)
+
+> **Sections 1–11 above are the Phase 1 pre-implementation record and are preserved verbatim.**
+> They describe a future that has since happened. Written before any production source existed,
+> they map requirements to *intended* owner areas and *minimally viable* test criteria, and they
+> repeatedly state that nothing is approved yet (`§1`, `§3`, `§9`, `§10`).
+>
+> This part maps the same requirement areas to what actually exists in the tree, so each claim
+> can be followed from requirement → implementation file → the test that proves it. Where Part I
+> and Part II disagree, Part II describes the present.
+>
+> Verified against `main` @ `6eb6efef`.
+
+## 12. Server ownership — the categorical proof
+
+Part I `§6` lists backend-owned fields and asserts "No direct Flutter write path." That assertion
+is now enforceable in one line, and the enforcement is stronger than field-level filtering.
+
+`firestore.rules`:
+
+```
+match /users/{uid} {
+  allow read: if isOwner(uid);
+  allow create, update, delete: if false;
+```
+
+The client cannot write to `users/{uid}` **under any condition**. Not "cannot write XP" — cannot
+write at all. `totalXp`, `level`, `streakCount`, `weeklyXp`, `monthlyXp`, and rank all live under
+this document, and the only writer is Cloud Functions through the Admin SDK, which bypasses rules
+by design.
+
+This is the single strongest artefact for the claim that progression is server-owned. It cannot
+be satisfied by a screenshot, and it does not depend on client code behaving correctly.
+
+Supporting evidence:
+
+| Claim | Artefact |
+|---|---|
+| Values are *computed* on the server, not merely written there | `functions/src/progression/progressionCalculator.ts`, `streakCalculator.ts` |
+| Every derivation step is auditable | `functions/src/progression/progressionAudit.ts` persists each step to `progressionEvents` |
+| Premium changes no formula | Entitlement is read in `functions/src/config/featureEntitlement.ts`; it gates *access*, and does not appear in the progression calculators |
+
+## 13. As-built matrix
+
+| Requirement area | Part I ID | Implementation | Verifying tests |
+|---|---|---|---|
+| Authentication and profile | `REQ-F*` auth, `GATE-SEC-*` | Firebase Authentication; `firestore.rules` `users/{uid}` owner-read | `tests/firebase-rules/firestore.rules.test.mjs` |
+| XP / streak / level progression | `REQ-F6`, `REQ-F9` | `functions/src/progression/` (12 modules) | `functions/test/progressionCalculator.test.ts`, `progressionAuditHelpers.test.ts`, `streakExpiry.test.ts` |
+| Activity validation and anti-abuse | `REQ-F1` | `functions/src/run/` (12 modules incl. `validateRunPayload.ts`, `validateRunScalarFields.ts`, `validateCadenceAnalysisSeries.ts`, `rejectUnsupportedFields.ts`, `completedAtFreshness.ts`) | `functions/test/completeRun.test.ts`, `completeRunCallableSurface.test.ts` |
+| `subscriptionStatus` entitlement | `REQ-NF-SEC` | `functions/src/config/featureEntitlement.ts` | `functions/test/featureEntitlement.test.ts`, `feedPublishEntitlement.test.ts` |
+| `userRole` governance | `REQ-NF-SEC` | `functions/src/security/roles.ts` | `functions/test/roles.test.ts`, `leaderboardAdminCommand.test.ts` |
+| Leaderboard and ranking | `REQ-F8`, `REQ-F9` | `functions/src/leaderboard/` | 12 test files incl. `monthlyLeaderboard.test.ts`, `monthlyLeaderboardWriter.test.ts`, `levelUpLeaderboard.integration.test.ts` |
+| Training plan and schedule | `REQ-F3`, `REQ-F4` | `functions/src/plan/` (`planProgress.ts`, `adaptiveEstimate.ts`, …) | `functions/test/` plan suites |
+| Notifications | `REQ-F4` | `functions/src/notifications/` (device registry, scheduled dispatch) | `functions/test/` notification suites |
+| Feed | Phase 2 in Part I | `functions/src/feed/` (publish, engagement, lifecycle, thumbnail, author levels) | `functions/test/` feed suites (`npm run test:feed`, 13 files); `tests/firebase-rules/feed.*.test.mjs` |
+| Challenges | Not in Part I | `functions/src/challenge/` | `npm run test:challenge` (8 files); `tests/firebase-rules/challenge.firestore.rules.test.mjs` |
+| Friends and blocking | Not in Part I | `functions/src/friends/` | `npm run test:friends`; `tests/firebase-rules/friends.firestore.rules.test.mjs` |
+| Moderation and reporting | `REQ-NF-SEC` | `functions/src/moderation/` | `npm run test:moderation` (4 files) |
+| GPS and privacy handling | `REQ-F7`, `REQ-NF-PRIV` | `functions/src/errors/sanitize.ts` (coordinate-pair, labelled lat/lon, email, URL-query, 5+ digit redaction); `functions/src/profile/publicProfile/` | `functions/test/` sanitize suites; `tests/firebase-rules/firestore.rules.test.mjs` |
+| Expert plan governance | `REQ-F*` expert | `expertPlans` rules in `firestore.rules`; admin-only transitions | `tests/firebase-rules/firestore.rules.test.mjs` |
+
+Suite totals at the same commit: **82** Cloud Functions test files, **12** Firestore/Storage rules
+test files carrying **139** cases across roughly 40 collections, and **259** Flutter test files.
+Both backend enumerations are reconciled against disk by
+`tools/governance-ci/check-test-enumeration.sh`, so a suite cannot silently stop running.
+
+## 14. Part I predictions vs what shipped
+
+| Part I statement | As-built |
+|---|---|
+| `§3:67` "Example mapping rows will be added after the first implementation task is created" | Never added. Part II is that addition. |
+| `§5:85` "To verify from approved PRD/PDD source before implementation" | Implemented and covered by rules tests. |
+| `§5:86` "Cloud Functions enforcement remains future work" | Implemented — `featureEntitlement.ts` with dedicated tests. |
+| `§5:90` "Full territorial leaderboard is Phase 2" | Leaderboard is implemented, including monthly aggregation and admin commands. |
+| `§9:145` "Approved exception: root `firebase.json` for the Firestore emulator shell" | Superseded — production deploys to `runiac-fypp` have occurred under separate explicit authorization. |
+| `§10` Out of scope: route sharing, LLM summaries, production scaffolding | All three shipped. Agent summaries exist under `functions/src/agent/` with entitlement gating. |
+| `§11` Six open questions | Answered by events. Flutter and Firebase scaffolds both landed; notification delivery is emulator-tested with device QA still outstanding; the map provider is Mapbox, token supplied at runtime and never committed. |
+
+## 15. Gaps this matrix does not close
+
+Stated plainly rather than left implicit:
+
+- **Device QA is outstanding.** Every row above is verified by automated tests at the emulator or
+  unit level. No row is verified end-to-end on a physical Android or iOS device. That is the
+  subject of `implementation/release/RELEASE_CHECKLIST.md` §2 and is user-owned.
+- **App Check covers 8 of 61 exports.** One (`subscribeNewsletter`) is deliberately public.
+  Whether the rest should enforce it is an open decision recorded in the release checklist, not a
+  defect to fix silently — broad enforcement would reject already-shipped clients.
+- **"Premium confers no competitive advantage" is a negative claim.** §12 establishes that
+  entitlement does not appear in the progression calculators, which is strong but not a proof of
+  absence. A dedicated Basic-vs-Premium identical-formula regression test would close it.
+- **Live deploy state is not asserted anywhere in this document.** Source presence is not
+  deployment evidence; see `implementation/release/DEPLOY_RUNBOOK.md` §4.
