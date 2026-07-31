@@ -217,7 +217,8 @@ Supporting evidence:
 | XP / streak / level progression | `REQ-F6`, `REQ-F9` | `functions/src/progression/` (12 modules) | `functions/test/progressionCalculator.test.ts`, `progressionAuditHelpers.test.ts`, `streakExpiry.test.ts` |
 | Activity validation and anti-abuse | `REQ-F1` | `functions/src/run/` (12 modules incl. `validateRunPayload.ts`, `validateRunScalarFields.ts`, `validateCadenceAnalysisSeries.ts`, `rejectUnsupportedFields.ts`, `completedAtFreshness.ts`) | `functions/test/completeRun.test.ts`, `completeRunCallableSurface.test.ts` |
 | `subscriptionStatus` entitlement | `REQ-NF-SEC` | `functions/src/config/featureEntitlement.ts` | `functions/test/featureEntitlement.test.ts`, `feedPublishEntitlement.test.ts` |
-| `userRole` governance | `REQ-NF-SEC` | `functions/src/security/roles.ts` | `functions/test/roles.test.ts`, `leaderboardAdminCommand.test.ts` |
+| `userRole` role predicate | `REQ-NF-SEC` | `functions/src/security/roles.ts` — reconciles canonical `"platformAdmin"` with the legacy `"Platform Administrator"` spelling | `functions/test/roles.test.ts` (predicate only) |
+| Administrator operations | `REQ-NF-SEC` | Not a role check. Command collections (`leaderboardAdminCommands`, `moderationCommands`, `badgeConfigs`) are `allow read, write: if false`; the admin console writes them via Admin SDK and a trigger consumes them. Boundary = credential possession | `functions/test/leaderboardAdminCommand.test.ts` — verifies the command guards, not authorization: rejects a past `periodKey` without touching live projections, an impossible month, and an already-leased run |
 | Leaderboard and ranking | `REQ-F8`, `REQ-F9` | `functions/src/leaderboard/` | 12 test files incl. `monthlyLeaderboard.test.ts`, `monthlyLeaderboardWriter.test.ts`, `levelUpLeaderboard.integration.test.ts` |
 | Training plan and schedule | `REQ-F3`, `REQ-F4` | `functions/src/plan/` (`planProgress.ts`, `adaptiveEstimate.ts`, …) | `functions/test/` plan suites |
 | Notifications | `REQ-F4` | `functions/src/notifications/` (device registry, scheduled dispatch) | `functions/test/` notification suites |
@@ -226,7 +227,8 @@ Supporting evidence:
 | Friends and blocking | Not in Part I | `functions/src/friends/` | `npm run test:friends`; `tests/firebase-rules/friends.firestore.rules.test.mjs` |
 | Moderation and reporting | `REQ-NF-SEC` | `functions/src/moderation/` | `npm run test:moderation` (4 files) |
 | GPS and privacy handling | `REQ-F7`, `REQ-NF-PRIV` | `functions/src/errors/sanitize.ts` (coordinate-pair, labelled lat/lon, email, URL-query, 5+ digit redaction); `functions/src/profile/publicProfile/` | `functions/test/` sanitize suites; `tests/firebase-rules/firestore.rules.test.mjs` |
-| Expert plan governance | `REQ-F*` expert | `expertPlans` rules in `firestore.rules`; admin-only transitions | `tests/firebase-rules/firestore.rules.test.mjs` |
+| Expert plan **consumption** | `REQ-F*` expert | `firestore.rules` — `allow read: if isPremiumUser() && resource.data.status == 'published'`, all client writes denied | `tests/firebase-rules/firestore.rules.test.mjs` (published vs draft gating) |
+| Expert plan **authoring and approval** | `REQ-F*` expert | **Not implemented.** No Medical Trainer/Expert role exists; no Cloud Function writes `expertPlans`. Published plans arrive via Admin SDK from outside this repository | — see `docs/pdd/08-limitations-and-future-work.md` §8.5 |
 
 Suite totals at the same commit: **82** Cloud Functions test files, **12** Firestore/Storage rules
 test files carrying **139** cases across roughly 40 collections, and **259** Flutter test files.
