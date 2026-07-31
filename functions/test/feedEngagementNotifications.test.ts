@@ -23,6 +23,7 @@ import {
   planFeedCommentNotification,
   planFeedLikeNotification,
   truncateCommentBody,
+  type FeedEngagementNotificationWriteStatus,
   type FeedEngagementNotificationWriter,
 } from "../src/feed/engagement/engagementNotifications.js";
 import type { FeedEngagementMessagingPort } from "../src/feed/engagement/engagementPush.js";
@@ -83,6 +84,25 @@ function fakeMessaging(options?: {
       },
     },
   };
+}
+
+// A writer stub with a fixed result.
+//
+// These emulator tests run against `demo-runiac-feed` with the Functions
+// emulator on, so writing `feedPosts/{postId}/likes|comments/{id}` fires the
+// REAL `feedLikeCreated` / `feedCommentCreated` triggers. Those triggers race
+// the direct `emit*` call below to the same `notificationInbox` doc, and the
+// writer's exactly-once guard is a transactional exists-check + create. If a
+// trigger wins, the direct call sees its own interaction as already-notified,
+// returns "duplicate", and sends nothing — so a push fan-out assertion of 2
+// intermittently observes 0. That is a test-harness race, not a product bug,
+// and it failed in CI on 2026-07-31.
+//
+// Pinning the writer result isolates the push fan-out contract from the race.
+// The real writer's exactly-once behaviour is covered separately by the
+// "firestoreFeedEngagementNotificationWriter dedup" suite, so nothing is lost.
+function stubWriter(status: FeedEngagementNotificationWriteStatus): FeedEngagementNotificationWriter {
+  return { persist: async () => status };
 }
 
 async function registerToken(uid: string, tokenFingerprint: string, fcmToken: string): Promise<void> {
@@ -561,7 +581,10 @@ describe("emitFeedLikeNotification (emulator)", () => {
     await registerToken(authorUid, "fp-2", "token-2");
     const { port, sent } = fakeMessaging();
 
-    await emitFeedLikeNotification(firestore, { postId, actorUid }, Date.now(), { messaging: port });
+    await emitFeedLikeNotification(firestore, { postId, actorUid }, Date.now(), {
+      messaging: port,
+      writer: stubWriter("written"),
+    });
 
     assert.equal(sent.length, 2);
     assert.deepEqual(sent.map((call) => call.token).sort(), ["token-1", "token-2"]);
@@ -578,8 +601,11 @@ describe("emitFeedLikeNotification (emulator)", () => {
     await firestore.doc(`feedPosts/${postId}/likes/${actorUid}`).set({ userUid: actorUid });
     await registerToken(authorUid, "fp-1", "token-1");
 
-    // First call writes the inbox item ("written"); the push port is a no-op
-    // stand-in here since this call is only setting up the duplicate state.
+    // This call establishes the already-notified state. It may itself return
+    // "duplicate" rather than "written", because the real `feedLikeCreated`
+    // trigger fires on the like write above and may reach the inbox doc first
+    // (see `stubWriter`). Either way the state this test needs is in place, so
+    // the assertion below is unaffected — only the reason differs.
     await emitFeedLikeNotification(firestore, { postId, actorUid }, Date.now());
 
     const { port, sent } = fakeMessaging();
@@ -723,6 +749,7 @@ describe("emitFeedCommentNotification (emulator)", () => {
 
     await emitFeedCommentNotification(firestore, { postId, commentId: "comment-1" }, Date.now(), {
       messaging: port,
+      writer: stubWriter("written"),
     });
 
     assert.equal(sent.length, 2);
