@@ -82,11 +82,34 @@ class _RuniacProfileSetupGateState extends State<RuniacProfileSetupGate> {
     final profileRepository = widget.profileRepository;
     try {
       final profile = await profileRepository.loadUserProfile();
+      if (!mounted) {
+        return true;
+      }
       widget.onLoadedProfile?.call(profile);
       return true;
     } catch (error) {
       if (!_isRecoverableProfileSetupError(error)) {
         rethrow;
+      }
+      // A signup races this probe. RuniacAuthGate builds the post-auth flow the
+      // moment its auth stream emits a user, which can be a frame before the
+      // auth screen reports the completion that tells RuniacApp this is a
+      // *signup* — so for that one frame `_shouldProbeSignedInProfileSetup`
+      // holds and this gate mounts against an account whose profile document
+      // does not exist yet, because signup writes it only when onboarding
+      // completes.
+      //
+      // The read then fails with `missing` long after the app has moved on to
+      // profile collection and disposed this gate. Acting on that stale result
+      // signs the brand-new account out and drops it back on the auth screen
+      // claiming no setup exists for it. `mounted` is the whole guard: a gate
+      // that is no longer in the tree is no longer the authority on whether
+      // this account needs recovery.
+      //
+      // A genuine signed-in account with no profile keeps this gate mounted for
+      // the whole probe, so its sign-out path is unaffected.
+      if (!mounted) {
+        return true;
       }
       if (authRepository.currentUser?.uid == probedUid) {
         widget.onRecoverableProfileMissing?.call();
