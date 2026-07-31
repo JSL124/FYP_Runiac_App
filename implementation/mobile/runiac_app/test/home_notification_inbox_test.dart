@@ -5,43 +5,16 @@ import 'package:runiac_app/features/profile/domain/repositories/user_profile_per
 import 'package:runiac_app/features/auth/data/non_production_auth_repository.dart';
 import 'package:runiac_app/features/challenge/presentation/challenge_invitations_screen.dart';
 import 'package:runiac_app/features/home/presentation/home_tab.dart';
-import 'package:runiac_app/features/home/presentation/widgets/home_header.dart';
 import 'package:runiac_app/features/notifications/domain/models/notification_inbox_item.dart';
 import 'package:runiac_app/features/notifications/domain/repositories/notification_inbox_repository.dart';
 import 'package:runiac_app/features/notifications/presentation/notification_inbox_page.dart';
 
+// The bell's zero-hiding and 99+ cap moved with it into the Home Menu panel
+// and are covered there by home_menu_test.dart ('Unread badge caps at 99+',
+// 'No unread badge is drawn at zero'). The version that used to live here
+// drove HomeHeader, which the app stopped building; it has been deleted along
+// with that widget.
 void main() {
-  testWidgets(
-    'Home notification bell hides badge at zero and caps unread count',
-    (WidgetTester tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: Column(
-              children: [
-                HomeHeader(
-                  unreadNotificationCount: 0,
-                  onNotifications: () {},
-                  onProfile: () {},
-                ),
-                HomeHeader(
-                  unreadNotificationCount: 120,
-                  onNotifications: () {},
-                  onProfile: () {},
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-
-      expect(find.text('0'), findsNothing);
-      expect(find.text('99+'), findsOneWidget);
-      final badgeText = tester.widget<Text>(find.text('99+'));
-      expect(badgeText.style?.color, Colors.white);
-    },
-  );
-
   testWidgets(
     'Home bell opens notification inbox instead of account settings',
     (WidgetTester tester) async {
