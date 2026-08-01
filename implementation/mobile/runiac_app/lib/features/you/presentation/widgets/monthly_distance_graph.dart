@@ -29,6 +29,14 @@ const _monthFontSize = 13.0;
 const _monthLabelMaxWidth = 48.0;
 const _monthLabelMinGap = 4.0;
 
+/// Horizontal space the painted chart gives up on each side, exposed so tests
+/// can derive the real chart bounds from the laid-out graph instead of
+/// hard-coding numbers that drift when the insets change.
+@visibleForTesting
+const monthlyDistanceGraphLeftInset = _leftInset;
+@visibleForTesting
+const monthlyDistanceGraphRightInset = _rightInset;
+
 @visibleForTesting
 class MonthLabelPlacement {
   const MonthLabelPlacement({
@@ -464,7 +472,7 @@ List<MonthLabelPlacement> visibleMonthLabelPlacementsForGraph({
   );
   final candidates = <MonthLabelPlacement>[];
   for (var index = 0; index < labels.length; index += 1) {
-    final centerX = _monthLabelCenterX(
+    final naturalCenterX = _monthLabelCenterX(
       index: index,
       labelCount: labels.length,
       pointCount: pointCount,
@@ -478,18 +486,19 @@ List<MonthLabelPlacement> visibleMonthLabelPlacementsForGraph({
       textDirection: TextDirection.ltr,
       maxLines: 1,
     )..layout(maxWidth: _monthLabelMaxWidth);
-    final left = centerX - painter.width / 2;
-    final right = centerX + painter.width / 2;
-    if (left < chartLeft || right > chartRight) {
-      continue;
-    }
+    final centerX = _clampedMonthLabelCenterX(
+      centerX: naturalCenterX,
+      width: painter.width,
+      chartLeft: chartLeft,
+      chartRight: chartRight,
+    );
     candidates.add(
       MonthLabelPlacement(
         label: labels[index],
         index: index,
         centerX: centerX,
-        left: left,
-        right: right,
+        left: centerX - painter.width / 2,
+        right: centerX + painter.width / 2,
       ),
     );
   }
@@ -507,6 +516,30 @@ List<MonthLabelPlacement> visibleMonthLabelPlacementsForGraph({
   }
   accepted.sort((a, b) => a.index.compareTo(b.index));
   return accepted;
+}
+
+/// Nudges a month label back inside the chart instead of dropping it when its
+/// bucket centre sits closer to an edge than half the label width.
+///
+/// The first and last week buckets are only half a slot from the chart bounds —
+/// about 12 logical pixels on a common phone — which is narrower than a
+/// three-letter month at the label font size. Dropping those labels silently
+/// hid the current month for the first days of every month, because the marker
+/// builder deliberately anchors the current month to the final bucket. A label
+/// wider than the whole chart is centred, since no shift can satisfy both
+/// bounds.
+double _clampedMonthLabelCenterX({
+  required double centerX,
+  required double width,
+  required double chartLeft,
+  required double chartRight,
+}) {
+  final chartWidth = chartRight - chartLeft;
+  if (width >= chartWidth) {
+    return chartLeft + chartWidth / 2;
+  }
+  final half = width / 2;
+  return centerX.clamp(chartLeft + half, chartRight - half).toDouble();
 }
 
 double _monthLabelCenterX({

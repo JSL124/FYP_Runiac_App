@@ -2415,7 +2415,7 @@ void main() {
   );
 
   test(
-    'weekly distance graph visible labels never clamp or overlap all year',
+    'weekly distance graph mid-month labels keep their natural centers',
     () {
       for (var month = 1; month <= 12; month += 1) {
         final today = _firstMondayOnOrAfter(DateTime(2026, month, 13));
@@ -2439,15 +2439,17 @@ void main() {
             lessThanOrEqualTo(378),
             reason: '${label.label} right edge for ${today.toIso8601String()}',
           );
-          expect(
-            label.centerX,
-            closeTo(
-              58 + 320 * (markers.weekIndices[label.index] + 0.5) / 12,
-              0.001,
-            ),
-            reason:
-                '${label.label} natural center for ${today.toIso8601String()}',
-          );
+          final naturalCenterX =
+              58 + 320 * (markers.weekIndices[label.index] + 0.5) / 12;
+          final clamped = label.left <= 58.001 || label.right >= 377.999;
+          if (!clamped) {
+            expect(
+              label.centerX,
+              closeTo(naturalCenterX, 0.001),
+              reason:
+                  '${label.label} natural center for ${today.toIso8601String()}',
+            );
+          }
         }
         for (var index = 1; index < visibleLabels.length; index += 1) {
           expect(
@@ -2459,6 +2461,173 @@ void main() {
       }
     },
   );
+
+  test('weekly distance graph shows the current month on every day of a year', () {
+    // Regression guard for the August 2026 report: on the first days of a month
+    // the current-month marker is anchored to the final week bucket, whose
+    // center sits half a slot from the right edge. Dropping labels that overrun
+    // the chart therefore erased the current month for roughly the first week of
+    // every month. Chart width is the screen width minus the 16pt page padding
+    // on each side and the graph's 58/12 insets: 291 for a 393pt phone, 328 for
+    // a 430pt phone, plus 261 as a narrower-than-any-shipping-device stress.
+    const chartWidths = <double>[261, 291, 328];
+
+    for (var offset = 0; offset < 366; offset += 1) {
+      final today = DateTime(2026).add(Duration(days: offset));
+      final markers = weeklyDistanceGraphMonthMarkers(today);
+      final expectedCurrentMonth = _monthAbbreviation(today.month);
+      expect(
+        markers.labels.last,
+        expectedCurrentMonth,
+        reason: 'marker set for ${today.toIso8601String()}',
+      );
+
+      for (final chartWidth in chartWidths) {
+        const chartLeft = 58.0;
+        final chartRight = chartLeft + chartWidth;
+        final visibleLabels = visibleMonthLabelPlacementsForGraph(
+          labels: markers.labels,
+          labelWeekIndices: markers.weekIndices,
+          pointCount: 12,
+          chartLeft: chartLeft,
+          chartRight: chartRight,
+        );
+        final context =
+            '${today.toIso8601String()} at chart width $chartWidth';
+
+        expect(
+          visibleLabels.map((label) => label.label),
+          contains(expectedCurrentMonth),
+          reason: 'current month must stay visible for $context',
+        );
+        expect(
+          visibleLabels.last.label,
+          expectedCurrentMonth,
+          reason: 'current month must be the rightmost label for $context',
+        );
+        for (final label in visibleLabels) {
+          expect(
+            label.left,
+            greaterThanOrEqualTo(chartLeft - 0.001),
+            reason: '${label.label} must not overrun the left edge for $context',
+          );
+          expect(
+            label.right,
+            lessThanOrEqualTo(chartRight + 0.001),
+            reason:
+                '${label.label} must not overrun the right edge for $context',
+          );
+        }
+        for (var index = 1; index < visibleLabels.length; index += 1) {
+          expect(
+            visibleLabels[index].left,
+            greaterThanOrEqualTo(visibleLabels[index - 1].right + 4),
+            reason: 'labels must not overlap for $context',
+          );
+          expect(
+            visibleLabels[index].centerX,
+            greaterThan(visibleLabels[index - 1].centerX),
+            reason: 'labels must stay in calendar order for $context',
+          );
+        }
+      }
+    }
+  });
+
+  testWidgets(
+    'You distance graph keeps the current month inside the laid-out chart',
+    (WidgetTester tester) async {
+      // Geometry comes from the real widget rather than hard-coded numbers, so
+      // a future change to the page padding or the graph insets is caught here
+      // instead of silently shrinking the room the edge labels need.
+      const screenWidths = <double>[375, 393, 430];
+      final earlyMonthDays = <DateTime>[
+        DateTime(2026, 8), // Saturday: the reported case.
+        DateTime(2026, 6, 30), // Tuesday: current week starts in June.
+        DateTime(2026, 3, 2), // Monday: current week starts on the 1st.
+        DateTime(2026, 11, 7), // Sunday: last day of the first full week.
+      ];
+
+      for (final screenWidth in screenWidths) {
+        for (final today in earlyMonthDays) {
+          tester.view.physicalSize = Size(screenWidth * 3, 2400);
+          tester.view.devicePixelRatio = 3;
+          addTearDown(tester.view.reset);
+
+          await tester.pumpWidget(
+            MaterialApp(
+              home: Scaffold(
+                body: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: YouProgressSurface(
+                    activityHistoryMonths: const [],
+                    activityHistoryLoading: false,
+                    runs: const [],
+                    visibleCalendarMonth: DateTime(today.year, today.month),
+                    onPreviousMonth: () {},
+                    onNextMonth: () {},
+                    onRunSelected: (_) {},
+                    onMoreActivities: () {},
+                    officialStreakLabel: '0 days',
+                    today: today,
+                  ),
+                ),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          final graphSize = tester.getSize(
+            find.byKey(const ValueKey('you_monthly_distance_graph')),
+          );
+          final markers = weeklyDistanceGraphMonthMarkers(today);
+          final visibleLabels = visibleMonthLabelPlacementsForGraph(
+            labels: markers.labels,
+            labelWeekIndices: markers.weekIndices,
+            pointCount: 12,
+            chartLeft: monthlyDistanceGraphLeftInset,
+            chartRight: graphSize.width - monthlyDistanceGraphRightInset,
+          );
+          final context =
+              '${today.toIso8601String()} on a ${screenWidth}pt screen';
+
+          expect(
+            visibleLabels.map((label) => label.label),
+            contains(_monthAbbreviation(today.month)),
+            reason: 'current month must be painted for $context',
+          );
+          expect(
+            visibleLabels.last.label,
+            _monthAbbreviation(today.month),
+            reason: 'current month must be the rightmost label for $context',
+          );
+        }
+      }
+    },
+  );
+
+  test('weekly distance graph shows the first window month on early days', () {
+    // 1 August 2026 is a Saturday, so the window runs Mon 11 May to Sun 2 August
+    // and the markers land on buckets 0, 3, 8 and 11 — one against each edge.
+    final markers = weeklyDistanceGraphMonthMarkers(DateTime(2026, 8));
+    expect(markers.labels, ['MAY', 'JUN', 'JUL', 'AUG']);
+    expect(markers.weekIndices, [0, 3, 8, 11]);
+
+    final visibleLabels = visibleMonthLabelPlacementsForGraph(
+      labels: markers.labels,
+      labelWeekIndices: markers.weekIndices,
+      pointCount: 12,
+      chartLeft: 58,
+      chartRight: 349,
+    );
+
+    expect(visibleLabels.map((label) => label.label), [
+      'MAY',
+      'JUN',
+      'JUL',
+      'AUG',
+    ]);
+  });
 
   test(
     'weekly distance graph hides adjacent month labels instead of shifting',
@@ -2485,19 +2654,32 @@ void main() {
   );
 
   test(
-    'weekly distance graph hides clipped month labels instead of clamping',
+    'weekly distance graph clamps edge month labels into the chart',
     () {
+      const chartLeft = 72.0;
+      const chartRight = 378.0;
       final visibleLabels = visibleMonthLabelPlacementsForGraph(
         labels: const ['APR', 'MAY', 'JUN', 'JUL'],
         labelWeekIndices: const [0, 1, 5, 11],
         pointCount: 12,
-        chartLeft: 72,
-        chartRight: 378,
+        chartLeft: chartLeft,
+        chartRight: chartRight,
       );
 
-      expect(visibleLabels.map((label) => label.label), isNot(contains('APR')));
-      expect(visibleLabels.map((label) => label.label), isNot(contains('JUL')));
-      expect(visibleLabels.map((label) => label.label), contains('MAY'));
+      // Both edge buckets keep their label; only the crowded neighbour is
+      // dropped, and the current month always outranks it.
+      expect(visibleLabels.map((label) => label.label), ['APR', 'JUN', 'JUL']);
+      expect(visibleLabels.first.left, closeTo(chartLeft, 0.001));
+      expect(visibleLabels.last.right, closeTo(chartRight, 0.001));
+      // The uncrowded interior label is untouched by clamping.
+      final june = visibleLabels.firstWhere((label) => label.label == 'JUN');
+      expect(june.centerX, closeTo(chartLeft + 306 * 5.5 / 12, 0.001));
+      for (var index = 1; index < visibleLabels.length; index += 1) {
+        expect(
+          visibleLabels[index].left,
+          greaterThanOrEqualTo(visibleLabels[index - 1].right + 4),
+        );
+      }
     },
   );
 
