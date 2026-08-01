@@ -2351,6 +2351,64 @@ void main() {
     ]);
   });
 
+  test('weekly distance graph axis advances one month at a time for years', () {
+    // Walks four calendar years day by day — 1461 days including the 29
+    // February 2024 leap day and three December-to-January rollovers — to prove
+    // the axis holds still inside a month and slides exactly one slot left when
+    // the month turns, never skipping, repeating or reordering a month.
+    List<String>? previousLabels;
+    DateTime? previousDay;
+
+    for (var offset = 0; offset < 1461; offset += 1) {
+      final today = DateTime(2024, 1, 1 + offset);
+      final markers = weeklyDistanceGraphMonthMarkers(today);
+      final stamp = today.toIso8601String();
+
+      expect(markers.labels, hasLength(3), reason: 'label count for $stamp');
+      expect(markers.weekIndices, [2, 6, 10], reason: 'positions for $stamp');
+      expect(
+        markers.labels.toSet(),
+        hasLength(3),
+        reason: 'no month may repeat for $stamp',
+      );
+      expect(
+        markers.labels,
+        [
+          _monthAbbreviation(DateTime(today.year, today.month - 2).month),
+          _monthAbbreviation(DateTime(today.year, today.month - 1).month),
+          _monthAbbreviation(today.month),
+        ],
+        reason: 'the last three months in order for $stamp',
+      );
+
+      if (previousLabels != null) {
+        if (today.month == previousDay!.month) {
+          expect(
+            markers.labels,
+            previousLabels,
+            reason: 'the axis must not change within a month, at $stamp',
+          );
+        } else {
+          expect(
+            markers.labels.sublist(0, 2),
+            previousLabels.sublist(1),
+            reason: 'each label steps exactly one slot left at $stamp',
+          );
+          expect(
+            markers.labels,
+            isNot(contains(previousLabels.first)),
+            reason: '${previousLabels.first} must retire at $stamp',
+          );
+        }
+      }
+      previousLabels = markers.labels;
+      previousDay = today;
+    }
+
+    // The walk really did cross every boundary it claims to.
+    expect(previousDay, DateTime(2027, 12, 31));
+  });
+
   test('weekly distance graph spaces its three month labels evenly', () {
     // Buckets 2, 6 and 10 put each label at the centre of its own four-week
     // block, so the gaps stay identical as the labels slide left month by month.
