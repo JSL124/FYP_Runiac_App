@@ -245,7 +245,7 @@ _WeeklyDistanceGraphData _weeklyDistanceGraphDataFor(
     values[weekIndex] += _distanceKmFor(activity);
   }
 
-  final markers = _monthMarkersForWeeklyGraph(firstWeekStart, weekCount, today);
+  final markers = _monthMarkersForWeeklyGraph(weekCount, today);
   return _WeeklyDistanceGraphData(
     labels: markers.labels,
     values: values,
@@ -253,36 +253,31 @@ _WeeklyDistanceGraphData _weeklyDistanceGraphDataFor(
   );
 }
 
-/// Places one month label at the first week bucket belonging to each calendar
-/// month the 12-week window spans, guaranteeing the current month is the
-/// rightmost label. The current (last) week is attributed to [today]'s month so
-/// a week that starts in the previous month but reaches into the current month
-/// still surfaces the current month.
+/// The month axis always carries exactly this many labels.
+const _weeklyGraphMonthLabelCount = 3;
+
+/// Labels the month axis with the current month and the two before it, spaced
+/// evenly across the 12 week buckets.
+///
+/// The count and the spacing are both fixed, so the axis reads identically in
+/// every month of the year: each label owns a four-week block, the current
+/// month always sits in the rightmost block, and a new month pushes the oldest
+/// label off the left rather than crowding a fourth label onto the axis.
+/// Anchoring labels to the week a month actually starts in was tried instead
+/// and produced uneven, sometimes unrenderable positions.
 ({List<String> labels, List<int> weekIndices}) _monthMarkersForWeeklyGraph(
-  DateTime firstWeekStart,
   int weekCount,
   DateTime today,
 ) {
   final labels = <String>[];
   final weekIndices = <int>[];
-  int? lastMonthKey;
-  for (var week = 0; week < weekCount; week += 1) {
-    final isCurrentWeek = week == weekCount - 1;
-    final markerMonth = isCurrentWeek
-        ? DateTime(today.year, today.month)
-        : () {
-            final weekStart = firstWeekStart.add(Duration(days: 7 * week));
-            return DateTime(weekStart.year, weekStart.month);
-          }();
-    final monthKey = markerMonth.year * 12 + markerMonth.month;
-    if (monthKey == lastMonthKey) {
-      continue;
-    }
-    lastMonthKey = monthKey;
-    labels.add(
-      _monthNames[markerMonth.month - 1].substring(0, 3).toUpperCase(),
+  for (var slot = 0; slot < _weeklyGraphMonthLabelCount; slot += 1) {
+    final monthsBack = _weeklyGraphMonthLabelCount - 1 - slot;
+    final month = DateTime(today.year, today.month - monthsBack);
+    labels.add(_monthNames[month.month - 1].substring(0, 3).toUpperCase());
+    weekIndices.add(
+      ((slot + 0.5) * weekCount / _weeklyGraphMonthLabelCount).round(),
     );
-    weekIndices.add(week);
   }
   return (labels: labels, weekIndices: weekIndices);
 }
@@ -294,11 +289,7 @@ _WeeklyDistanceGraphData _weeklyDistanceGraphDataFor(
   DateTime today, {
   int weekCount = 12,
 }) {
-  final currentWeekStart = _startOfWeek(today);
-  final firstWeekStart = currentWeekStart.subtract(
-    Duration(days: 7 * (weekCount - 1)),
-  );
-  return _monthMarkersForWeeklyGraph(firstWeekStart, weekCount, today);
+  return _monthMarkersForWeeklyGraph(weekCount, today);
 }
 
 double _sumDistanceFor(
