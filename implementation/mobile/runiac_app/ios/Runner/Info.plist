@@ -86,6 +86,11 @@
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>
+		<!-- Voice coaching speaks while a run is in progress, which is exactly
+		     when the screen is locked and the phone is in a pocket. `location`
+		     keeps the process alive but grants no audio playback, so without
+		     `audio` every announcement after the screen locks is silenced. -->
+		<string>audio</string>
 	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>

@@ -4,14 +4,20 @@ import 'package:runiac_app/features/run/voice/infrastructure/flutter_tts_port.da
 import 'package:runiac_app/features/run/voice/infrastructure/flutter_tts_run_speech_output.dart';
 
 class _FakeFlutterTtsPort implements FlutterTtsPort {
+  /// Ordered log of the audio-session setup calls, so a test can assert the
+  /// category is applied before the session is activated.
+  final List<String> setupCalls = [];
   final List<String> languageCalls = [];
   final List<double> rateCalls = [];
   final List<double> volumeCalls = [];
   final List<bool> awaitSpeakCompletionCalls = [];
   int duckConfiguredCount = 0;
+  int audioSessionActivatedCount = 0;
   final List<String> spokenMessages = [];
   int stopCallCount = 0;
   bool languageAvailableResult = true;
+  bool duckResult = true;
+  bool activateResult = true;
 
   @override
   Future<void> setLanguage(String language) async {
@@ -34,8 +40,17 @@ class _FakeFlutterTtsPort implements FlutterTtsPort {
   }
 
   @override
-  Future<void> configureIosAudioDucking() async {
+  Future<bool> configureIosAudioDucking() async {
     duckConfiguredCount += 1;
+    setupCalls.add('configureIosAudioDucking');
+    return duckResult;
+  }
+
+  @override
+  Future<bool> activateAudioSession() async {
+    audioSessionActivatedCount += 1;
+    setupCalls.add('activateAudioSession');
+    return activateResult;
   }
 
   @override
@@ -87,7 +102,43 @@ void main() {
       expect(fake.rateCalls, [0.48]);
       expect(fake.volumeCalls, [1.0]);
       expect(fake.duckConfiguredCount, 1);
+      expect(fake.audioSessionActivatedCount, 1);
     });
+
+    test(
+      'initialize() applies the playback category before activating the '
+      'audio session',
+      () async {
+        // Activating first would activate the *default* ambient category, which
+        // the hardware mute switch silences — so the order is load-bearing, not
+        // incidental.
+        final fake = _FakeFlutterTtsPort();
+        final output = FlutterTtsRunSpeechOutput(portFactory: () => fake);
+
+        await output.initialize();
+
+        expect(fake.setupCalls, [
+          'configureIosAudioDucking',
+          'activateAudioSession',
+        ]);
+      },
+    );
+
+    test(
+      'initialize() still completes when the audio session cannot be brought '
+      'up, so a failed session never blocks the run',
+      () async {
+        final fake = _FakeFlutterTtsPort()
+          ..duckResult = false
+          ..activateResult = false;
+        final output = FlutterTtsRunSpeechOutput(portFactory: () => fake);
+
+        await output.initialize();
+        await output.speak('hello', languageTag: 'en-US');
+
+        expect(fake.spokenMessages, ['hello']);
+      },
+    );
 
     test(
       'speak() initializes, sets the requested language, then speaks',

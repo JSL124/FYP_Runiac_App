@@ -63,5 +63,13 @@
             <action android:name="android.intent.action.VIEW"/>
             <data android:scheme="https"/>
         </intent>
+        <!-- Required by flutter_tts for run voice coaching. Android 11+
+             package-visibility filtering hides the text-to-speech engine
+             unless it is declared here, and TextToSpeech init then fails
+             outright. The plugin's own manifest is empty and cannot supply
+             this, so it has to be declared app-side. -->
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE"/>
+        </intent>
     </queries>
 </manifest>

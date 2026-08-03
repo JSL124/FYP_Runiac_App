@@ -119,12 +119,16 @@ RunVoiceAnnouncement _scriptedAnnouncement(String id, int priority) {
   );
 }
 
-RunVoiceCoachingCoordinator _realCoordinator(_FakeRunSpeechOutput speech) {
+RunVoiceCoachingCoordinator _realCoordinator(
+  _FakeRunSpeechOutput speech, {
+  Duration speakTimeout = RunVoiceCoachingCoordinator.defaultSpeakTimeout,
+}) {
   return RunVoiceCoachingCoordinator(
     policy: DefaultRunVoiceAnnouncementPolicy(),
     selector: const PriorityRunVoiceAnnouncementSelector(),
     formatter: const LocalizedRunVoiceMessageFormatter(),
     speechOutput: speech,
+    speakTimeout: speakTimeout,
   );
 }
 
@@ -159,6 +163,47 @@ void main() {
       expect(speech.initializeCallCount, 0);
       expect(speech.spokenMessages, isEmpty);
     });
+
+    test(
+      'an utterance that never reports completion does not deadlock the '
+      'drain loop for the rest of the run',
+      () async {
+        // initialize() sets awaitSpeakCompletion(true), so speak() only
+        // resolves when the platform reports the utterance finished. When
+        // audio is unavailable that callback can simply never arrive. Before
+        // the timeout, the drain loop awaited it forever: `_speaking` stayed
+        // true and every later announcement queued behind a loop that could no
+        // longer advance, so one bad utterance silenced the whole run.
+        final speech = _FakeRunSpeechOutput()..gate = Completer<void>();
+        final coordinator = _realCoordinator(
+          speech,
+          speakTimeout: const Duration(milliseconds: 50),
+        );
+
+        await coordinator.startSession(_config());
+        await coordinator.onSnapshot(_snapshot(980));
+        await pumpEventQueue();
+        await coordinator.onSnapshot(_snapshot(1020));
+        await pumpEventQueue();
+
+        expect(
+          speech.spokenMessages,
+          ['You have completed 1 kilometer.'],
+          reason: 'the first utterance is in flight and never completes',
+        );
+
+        // The gate is deliberately still open: the 1 km utterance is
+        // permanently stuck. A later milestone must still be announced.
+        await coordinator.onSnapshot(_snapshot(2020));
+        await Future<void>.delayed(const Duration(milliseconds: 150));
+        await pumpEventQueue();
+
+        expect(speech.spokenMessages, [
+          'You have completed 1 kilometer.',
+          'You have completed 2 kilometers.',
+        ]);
+      },
+    );
 
     test('a throwing speech output does not surface an exception', () async {
       final speech = _FakeRunSpeechOutput()..throwOnSpeak = true;

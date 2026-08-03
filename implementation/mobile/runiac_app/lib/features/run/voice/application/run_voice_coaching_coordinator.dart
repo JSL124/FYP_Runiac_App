@@ -35,17 +35,27 @@ class RunVoiceCoachingCoordinator implements RunVoiceCoach {
     required RunVoiceAnnouncementSelector selector,
     required RunVoiceMessageFormatter formatter,
     required RunSpeechOutput speechOutput,
+    Duration speakTimeout = defaultSpeakTimeout,
   }) : _policy = policy,
        _selector = selector,
        _formatter = formatter,
-       _speechOutput = speechOutput;
+       _speechOutput = speechOutput,
+       _speakTimeout = speakTimeout;
 
   final RunVoiceAnnouncementPolicy _policy;
   final RunVoiceAnnouncementSelector _selector;
   final RunVoiceMessageFormatter _formatter;
   final RunSpeechOutput _speechOutput;
+  final Duration _speakTimeout;
 
   static const int _maxQueue = 8;
+
+  /// Upper bound on how long one utterance may block the drain loop. Chosen to
+  /// sit well clear of the longest real announcement (the completion analysis,
+  /// a few seconds spoken) so it only ever fires on a platform that has
+  /// stopped reporting completion at all. Overridable so tests can exercise
+  /// the timeout without waiting for it.
+  static const Duration defaultSpeakTimeout = Duration(seconds: 30);
 
   RunVoiceSessionConfig? _config;
   RunVoiceSnapshot? _previous;
@@ -55,7 +65,6 @@ class RunVoiceCoachingCoordinator implements RunVoiceCoach {
   final Queue<RunVoiceAnnouncement> _queue = Queue<RunVoiceAnnouncement>();
   bool _stopped = false;
   int _generation = 0;
-  bool _initialized = false;
   Future<void> _tail = Future<void>.value();
 
   int _activeSessionCount = 0;
@@ -205,10 +214,11 @@ class RunVoiceCoachingCoordinator implements RunVoiceCoach {
     if (g != _generation || _stopped) {
       return;
     }
-    if (!_initialized) {
-      await _speechOutput.initialize();
-      _initialized = true;
-    }
+    // `RunSpeechOutput.initialize()` latches internally, and deliberately does
+    // NOT latch when the audio session failed to come up, so it can retry.
+    // A second latch here would defeat that and leave the runner silent for
+    // the whole run after one transient failure.
+    await _speechOutput.initialize();
     final config = _config;
     if (config == null) {
       return;
@@ -218,9 +228,22 @@ class RunVoiceCoachingCoordinator implements RunVoiceCoach {
       return;
     }
     try {
-      await _speechOutput.speak(
-        message,
-        languageTag: config.language.ttsLocale,
+      // `initialize()` sets awaitSpeakCompletion(true), so this future only
+      // resolves when the platform reports the utterance finished. When audio
+      // is unavailable — an iOS session that never activated, or a backgrounded
+      // app without the `audio` background mode — that callback may never
+      // arrive, and an unbounded await would leave `_speaking` true for the
+      // rest of the run, silently queueing every later announcement behind a
+      // drain loop that can no longer advance. The timeout caps the cost of a
+      // failed utterance at that one announcement.
+      await _speechOutput
+          .speak(message, languageTag: config.language.ttsLocale)
+          .timeout(_speakTimeout);
+    } on TimeoutException {
+      developer.log(
+        'RUNIAC_VOICE speak did not complete within '
+        '${_speakTimeout.inSeconds}s, continuing',
+        name: 'RunVoiceCoachingCoordinator',
       );
     } catch (_) {
       // TTS failures are isolated from the run session: swallow silently.

@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'dart:io' show Platform;
 
 import 'package:flutter_tts/flutter_tts.dart';
@@ -16,7 +17,13 @@ abstract interface class FlutterTtsPort {
 
   Future<void> awaitSpeakCompletion(bool awaitCompletion);
 
-  Future<void> configureIosAudioDucking();
+  /// Activates the shared `AVAudioSession` on iOS. Returns whether activation
+  /// succeeded (always true on non-iOS, where there is nothing to activate).
+  Future<bool> activateAudioSession();
+
+  /// Applies the playback audio category on iOS. Returns whether the category
+  /// was applied (always true on non-iOS, where there is nothing to apply).
+  Future<bool> configureIosAudioDucking();
 
   Future<bool> isLanguageAvailable(String language);
 
@@ -71,23 +78,65 @@ class PluginFlutterTtsPort implements FlutterTtsPort {
     }
   }
 
+  /// Activates the shared `AVAudioSession`.
+  ///
+  /// Setting the category is not enough on its own: `setIosAudioCategory`
+  /// only calls `AVAudioSession.setCategory`, and the session must also be
+  /// made active before `AVSpeechSynthesizer` output is reliably audible.
+  /// The plugin exposes activation as this separate call.
   @override
-  Future<void> configureIosAudioDucking() async {
+  Future<bool> activateAudioSession() async {
     if (!Platform.isIOS) {
-      return;
+      return true;
     }
     try {
-      await _tts.setIosAudioCategory(
+      // The plugin signals failure by returning 0 rather than by throwing.
+      final result = await _tts.setSharedInstance(true);
+      return _isPluginSuccess(result);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> configureIosAudioDucking() async {
+    if (!Platform.isIOS) {
+      return true;
+    }
+    try {
+      // `.playback` is what lets voice coaching be heard while the ring/silent
+      // switch is on. If this call fails the session stays on the default
+      // ambient category, which the mute switch silences.
+      final result = await _tts.setIosAudioCategory(
         IosTextToSpeechAudioCategory.playback,
         [
           IosTextToSpeechAudioCategoryOptions.mixWithOthers,
           IosTextToSpeechAudioCategoryOptions.duckOthers,
         ],
       );
+      return _isPluginSuccess(result);
     } catch (_) {
       // Audio category configuration is a best-effort convenience: no-op if
       // the installed plugin/platform version doesn't support it.
+      return false;
     }
+  }
+
+  /// `flutter_tts` reports success as `1` and failure as `0`, typed loosely as
+  /// `dynamic`. A null result means the call returned nothing rather than
+  /// failing, which every platform does for at least one of these methods, so
+  /// it is treated as success.
+  static bool _isPluginSuccess(Object? result) {
+    if (result == null) {
+      return true;
+    }
+    if (result is bool) {
+      return result;
+    }
+    if (result is num) {
+      return result != 0;
+    }
+    return true;
   }
 
   @override
@@ -109,10 +158,24 @@ class PluginFlutterTtsPort implements FlutterTtsPort {
   @override
   Future<void> speak(String message) async {
     try {
-      await _tts.speak(message);
-    } catch (_) {
+      final result = await _tts.speak(message);
+      if (!_isPluginSuccess(result)) {
+        // The plugin reports a refused utterance by returning 0 instead of
+        // throwing, so without this the run is silent with no trace anywhere.
+        developer.log(
+          'RUNIAC_VOICE speak refused by the platform',
+          name: 'PluginFlutterTtsPort',
+        );
+      }
+    } catch (error, stackTrace) {
       // Speak failures are handled by the caller; degrade to no-op here so
       // a single bad platform call cannot crash the run session.
+      developer.log(
+        'RUNIAC_VOICE speak failed',
+        name: 'PluginFlutterTtsPort',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 
