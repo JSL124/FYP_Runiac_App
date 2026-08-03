@@ -16,6 +16,13 @@ String _defaultCharacterConfirmLabel(RunnerCharacter character) {
   return "Let's go with ${character.displayName}";
 }
 
+/// The least height the two card rows can take while every card still renders
+/// its art, its name and — on the premium-locked pair — its "Premium" label
+/// without clipping. Below this the area scrolls rather than squeezing the
+/// cards past the point where they overflow. Pinned by
+/// `character_selection_short_viewport_test.dart`.
+const _minCardRowsHeight = 280.0;
+
 /// Warm, playful screen where a user picks one of four guide characters.
 ///
 /// Used twice: as the onboarding step before the question flow (no [header],
@@ -200,26 +207,52 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen>
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
-                  // All four buddies always fit on screen at once (no
-                  // scrolling), so nothing hides below the fold.
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: _buildCardRow(
-                          selected,
-                          RunnerCharacter.blue,
-                          RunnerCharacter.cap,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Expanded(
-                        child: _buildCardRow(
-                          selected,
-                          RunnerCharacter.pink,
-                          RunnerCharacter.purple,
-                        ),
-                      ),
-                    ],
+                  // All four buddies fit on screen at once (no scrolling), so
+                  // nothing hides below the fold — on any viewport tall enough
+                  // to render a usable card.
+                  //
+                  // Below that the rows keep [_minCardRowHeight] and the area
+                  // scrolls instead. The cards used to absorb the entire
+                  // shortfall, because they are the only flexible thing between
+                  // a fixed heading and a fixed confirm button: on a short
+                  // viewport each cell collapsed under the ~31dp its name (or
+                  // ~52dp its name plus "Premium") needs and threw
+                  // `A RenderFlex overflowed by 12/33 pixels on the bottom`,
+                  // which is a hard failure in debug builds. It reproduces
+                  // between roughly 508dp and 548dp of usable height — narrow
+                  // enough that CI's Android emulator sat on the boundary and
+                  // failed only on the runs where the system-bar insets landed
+                  // before the frame was pumped.
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final rows = Column(
+                        children: [
+                          Expanded(
+                            child: _buildCardRow(
+                              selected,
+                              RunnerCharacter.blue,
+                              RunnerCharacter.cap,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Expanded(
+                            child: _buildCardRow(
+                              selected,
+                              RunnerCharacter.pink,
+                              RunnerCharacter.purple,
+                            ),
+                          ),
+                        ],
+                      );
+
+                      if (constraints.maxHeight >= _minCardRowsHeight) {
+                        return rows;
+                      }
+
+                      return SingleChildScrollView(
+                        child: SizedBox(height: _minCardRowsHeight, child: rows),
+                      );
+                    },
                   ),
                 ),
               ),
