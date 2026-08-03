@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../profile/presentation/account_profile_screen.dart';
@@ -191,6 +193,16 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
   /// while a result route is already open must not stack a second one).
   bool _presentingResult = false;
 
+  /// Live inbox subscription used purely as a trigger: a challenge-result
+  /// notification arriving means the backend has finished settling and the
+  /// result is now readable. See [_watchChallengeResultNotifications].
+  StreamSubscription<List<NotificationInboxItem>>?
+  _challengeNotificationSubscription;
+
+  /// Inbox item ids already considered, so re-emissions of the same list (a
+  /// read receipt, an unrelated notification) do not re-trigger the check.
+  final Set<String> _seenChallengeResultNotificationIds = <String>{};
+
   /// Guards the one-shot plan-completion ceremony against re-entrancy (a
   /// resume or a widget update while the overlay is already open must not
   /// stack a second one).
@@ -212,6 +224,7 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
     _setUserProfileFuture(refresh: false);
     _loadHomeGuideConsent();
     _loadActiveChallenge();
+    _watchChallengeResultNotifications();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _maybePresentUnseenResult();
       _maybeCelebratePlanCompletion();
@@ -220,6 +233,7 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _challengeNotificationSubscription?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -233,19 +247,73 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
     }
   }
 
-  /// Presents the newest unseen terminal result exactly once. The presenter
-  /// itself is idempotent (it advances a local seen-marker), so a resume/replay
-  /// yields nothing to present.
+  /// Presents the newest unseen terminal result exactly once.
+  ///
+  /// A challenge settles on a backend sweep that runs about a minute after the
+  /// run which completed it, so the result routinely becomes available while
+  /// the app is in the foreground and Home is already built. `initState` and
+  /// `resumed` alone therefore miss it entirely — the celebration only appeared
+  /// if the runner happened to background and reopen the app. This is called
+  /// from four places now: mount, resume, Home becoming frontmost, and the
+  /// arrival of a challenge-result notification in the inbox stream (see
+  /// [_watchChallengeResultNotifications]), which is the live signal that a
+  /// result has just settled.
+  ///
+  /// Like the plan ceremony, this holds when Home is not frontmost rather than
+  /// pushing a full-screen route over the cool-down / summary / XP flow. The
+  /// marker is only advanced once the ceremony is actually on screen, so
+  /// holding costs nothing.
   Future<void> _maybePresentUnseenResult() async {
     final presenter = widget.challengeResultPresenter;
-    if (presenter == null || !mounted || _presentingResult) {
+    if (presenter == null ||
+        !mounted ||
+        _presentingResult ||
+        _homeIsFrontmost == false) {
       return;
     }
-    final ChallengeResult? result = await presenter.takeUnseenResult();
-    if (result == null || !mounted) {
+    final ChallengeResult? result = await presenter.peekUnseenResult();
+    if (result == null || !mounted || _homeIsFrontmost == false) {
       return;
     }
     await _presentResult(result);
+  }
+
+  /// Re-checks for an unseen result whenever a challenge-result notification
+  /// lands in the inbox.
+  ///
+  /// The backend writes the inbox document strictly after the history document
+  /// commits, so by the time an item arrives here the result it refers to is
+  /// guaranteed readable. The inbox is already streamed live for the unread
+  /// badge, so this adds no new listener cost and needs no polling.
+  void _watchChallengeResultNotifications() {
+    if (widget.challengeResultPresenter == null) {
+      return;
+    }
+    _challengeNotificationSubscription = widget
+        .notificationInboxRepository
+        .watchInboxItems()
+        .listen((items) {
+          var sawNewResultNotification = false;
+          for (final item in items) {
+            final target = challengeNotificationTargetFor(item.data);
+            if (target?.destination !=
+                ChallengeNotificationDestination.result) {
+              continue;
+            }
+            // Only react to items not seen in an earlier emission, so an
+            // unrelated inbox change (a read receipt, another notification)
+            // does not re-run the check for results already handled.
+            if (_seenChallengeResultNotificationIds.add(item.id)) {
+              sawNewResultNotification = true;
+            }
+          }
+          if (sawNewResultNotification) {
+            _maybePresentUnseenResult();
+          }
+        }, onError: (_) {
+          // The inbox stream is a convenience trigger; the mount/resume/
+          // frontmost paths still cover presentation if it fails.
+        });
   }
 
   /// Celebrates a backend-recorded plan completion exactly once. The seen
@@ -304,6 +372,17 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
     }
     _presentingResult = true;
     try {
+      // Advance the marker here rather than inside the presenter's read, for
+      // two reasons. It is the one point both entry paths share, so opening a
+      // result from the notification inbox now also stops it auto-presenting
+      // later — previously the inbox route left the marker untouched and the
+      // same ceremony replayed on the next resume. And it happens only once
+      // the ceremony is committed to being shown, so a peek that is then
+      // abandoned no longer consumes the celebration permanently.
+      await widget.challengeResultPresenter?.markSeen(result.endedAtMs);
+      if (!mounted) {
+        return;
+      }
       await Navigator.of(context).push(
         challengeCeremonyRoute<void>(
           fullscreenDialog: true,
@@ -431,6 +510,10 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
     _homeIsFrontmost = frontmost;
     if (previous == false && frontmost) {
       _maybeCelebratePlanCompletion();
+      // The challenge ceremony is held the same way while Home is covered, so
+      // it needs the same retry. This is the path that fires when the run flow
+      // pops back to Home: no lifecycle event occurs and Home is not rebuilt.
+      _maybePresentUnseenResult();
     }
   }
 

@@ -29,52 +29,112 @@ ChallengeHistoryEntry _entry({
   );
 }
 
+// Fixed "current time" for the recency window. Every entry below is dated
+// relative to this so the tests never depend on the wall clock.
+final DateTime _now = DateTime.utc(2026, 8, 3, 12);
+int _msAgo(Duration age) => _now.subtract(age).millisecondsSinceEpoch;
+
 void main() {
   group('one-shot foreground presentation', () {
     test('presents the newest unseen result exactly once', () async {
+      final endedAtMs = _msAgo(const Duration(minutes: 1));
       final repository = FakeChallengeRepository(
-        historyOverride: <ChallengeHistoryEntry>[_entry(endedAtMs: 5000)],
+        historyOverride: <ChallengeHistoryEntry>[_entry(endedAtMs: endedAtMs)],
       );
       final controller = ChallengeResultPresentationController(
         repository: repository,
         seenStore: InMemoryChallengeResultSeenStore(),
       );
 
-      final first = await controller.takeUnseenResult();
+      final first = await controller.peekUnseenResult(now: _now);
       expect(first, isNotNull);
       expect(first!.challengeId, 'c-1');
 
-      // A resume/replay must not re-present the same result.
-      final second = await controller.takeUnseenResult();
-      expect(second, isNull);
+      // Peeking alone must not consume it: the host may still fail to present.
+      expect(await controller.peekUnseenResult(now: _now), isNotNull);
+
+      // Only once the ceremony is on screen does the host mark it seen, after
+      // which a resume/replay must not re-present the same result.
+      await controller.markSeen(first.endedAtMs);
+      expect(await controller.peekUnseenResult(now: _now), isNull);
     });
 
     test('never re-presents a result already recorded as seen', () async {
+      final endedAtMs = _msAgo(const Duration(minutes: 1));
       final repository = FakeChallengeRepository(
-        historyOverride: <ChallengeHistoryEntry>[_entry(endedAtMs: 5000)],
+        historyOverride: <ChallengeHistoryEntry>[_entry(endedAtMs: endedAtMs)],
       );
       final controller = ChallengeResultPresentationController(
         repository: repository,
-        seenStore: InMemoryChallengeResultSeenStore(initialEndedAtMs: 5000),
+        seenStore: InMemoryChallengeResultSeenStore(
+          initialEndedAtMs: endedAtMs,
+        ),
       );
 
-      expect(await controller.takeUnseenResult(), isNull);
+      expect(await controller.peekUnseenResult(now: _now), isNull);
     });
 
     test('presents a strictly newer result after an earlier one was seen',
         () async {
       final repository = FakeChallengeRepository(
-        historyOverride: <ChallengeHistoryEntry>[_entry(endedAtMs: 9000)],
+        historyOverride: <ChallengeHistoryEntry>[
+          _entry(endedAtMs: _msAgo(const Duration(minutes: 1))),
+        ],
       );
       final controller = ChallengeResultPresentationController(
         repository: repository,
-        seenStore: InMemoryChallengeResultSeenStore(initialEndedAtMs: 5000),
+        seenStore: InMemoryChallengeResultSeenStore(
+          initialEndedAtMs: _msAgo(const Duration(hours: 2)),
+        ),
       );
 
-      final result = await controller.takeUnseenResult();
+      final result = await controller.peekUnseenResult(now: _now);
       expect(result, isNotNull);
-      expect(await controller.takeUnseenResult(), isNull);
+      await controller.markSeen(result!.endedAtMs);
+      expect(await controller.peekUnseenResult(now: _now), isNull);
     });
+
+    test(
+      'picks the newest unseen entry rather than assuming a list position, so '
+      'a second result settling in the same window is not skipped',
+      () async {
+        final olderMs = _msAgo(const Duration(minutes: 30));
+        final newerMs = _msAgo(const Duration(minutes: 1));
+        final repository = FakeChallengeRepository(
+          // Deliberately not newest-first, to pin the selection to endedAt.
+          historyOverride: <ChallengeHistoryEntry>[
+            _entry(challengeId: 'older', endedAtMs: olderMs),
+            _entry(challengeId: 'newer', endedAtMs: newerMs),
+          ],
+        );
+        final controller = ChallengeResultPresentationController(
+          repository: repository,
+          seenStore: InMemoryChallengeResultSeenStore(),
+        );
+
+        final first = await controller.peekUnseenResult(now: _now);
+        expect(first!.challengeId, 'newer');
+      },
+    );
+
+    test(
+      'ignores a result older than the recency window, so a fresh install '
+      'does not celebrate a long-finished challenge',
+      () async {
+        // No marker at all — exactly the state of a new device.
+        final repository = FakeChallengeRepository(
+          historyOverride: <ChallengeHistoryEntry>[
+            _entry(endedAtMs: _msAgo(const Duration(days: 60))),
+          ],
+        );
+        final controller = ChallengeResultPresentationController(
+          repository: repository,
+          seenStore: InMemoryChallengeResultSeenStore(),
+        );
+
+        expect(await controller.peekUnseenResult(now: _now), isNull);
+      },
+    );
 
     test('returns null when there is no history', () async {
       final repository = FakeChallengeRepository(
@@ -85,7 +145,7 @@ void main() {
         seenStore: InMemoryChallengeResultSeenStore(),
       );
 
-      expect(await controller.takeUnseenResult(), isNull);
+      expect(await controller.peekUnseenResult(now: _now), isNull);
     });
 
     test('swallows a read failure and presents nothing', () async {
@@ -97,7 +157,7 @@ void main() {
         seenStore: InMemoryChallengeResultSeenStore(),
       );
 
-      expect(await controller.takeUnseenResult(), isNull);
+      expect(await controller.peekUnseenResult(now: _now), isNull);
     });
   });
 
