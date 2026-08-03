@@ -438,20 +438,23 @@ class _GoalPlanDailyRow extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Text(day.distanceOrTime, style: _smallBodyStyle),
-          if (canOpenWorkout) ...[
-            const SizedBox(width: 6),
-            const Icon(
-              Icons.chevron_right,
-              size: 16,
-              color: RuniacColors.textSecondary,
-            ),
-          ],
+          const SizedBox(width: 6),
+          SizedBox(
+            width: _dailyRowChevronSlotWidth,
+            child: canOpenWorkout
+                ? const Icon(
+                    Icons.chevron_right,
+                    size: 16,
+                    color: RuniacColors.textSecondary,
+                  )
+                : null,
+          ),
         ],
       ),
     );
 
     if (!canOpenWorkout) {
-      return Padding(padding: const EdgeInsets.only(top: 0), child: row);
+      return row;
     }
 
     return Material(
@@ -459,10 +462,7 @@ class _GoalPlanDailyRow extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () => onWorkoutSelected!(workoutDetail),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6),
-          child: row,
-        ),
+        child: row,
       ),
     );
   }
@@ -521,6 +521,9 @@ Widget _markerChild(GoalPlanWeekStatus status) {
     ),
   };
 }
+
+/// Reserved even on rest days so every daily row shares the same trailing edge.
+const _dailyRowChevronSlotWidth = 20.0;
 
 const _cardTitleStyle = TextStyle(
   color: RuniacColors.textPrimary,
