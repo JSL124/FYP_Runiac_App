@@ -120,44 +120,60 @@ int _assetImageCount(WidgetTester tester, String assetName) {
 }
 
 void main() {
-  test(
-    'Blue guide uses the supplied GIF while resting and walking on Home',
-    () {
-      expect(
-        homeStageGuideAssetPath(
-          character: RunnerCharacter.blue,
-          facing: RunnerCharacterFacing.front,
-        ),
-        kBlueRunnerIdleGifAsset,
-      );
+  test('Home guide selects idle, running, and fallback assets by motion', () {
+    expect(
+      homeStageGuideAssetPath(
+        character: RunnerCharacter.blue,
+        facing: RunnerCharacterFacing.front,
+      ),
+      RunnerCharacter.blue.idleAnimationAssetPath,
+    );
 
-      expect(
-        homeStageGuideAssetPath(
-          character: RunnerCharacter.blue,
-          facing: RunnerCharacterFacing.right,
-        ),
-        kBlueRunnerIdleGifAsset,
-      );
+    expect(
+      homeStageGuideAssetPath(
+        character: RunnerCharacter.cap,
+        facing: RunnerCharacterFacing.right,
+        isMoving: true,
+      ),
+      'assets/images/characters/cap_runner_run_right.gif',
+    );
 
-      expect(
-        homeStageGuideAssetPath(
-          character: RunnerCharacter.cap,
-          facing: RunnerCharacterFacing.front,
-        ),
-        'assets/images/characters/cap_runner_front.png',
-      );
-    },
-  );
+    expect(
+      homeStageGuideAssetPath(
+        character: RunnerCharacter.cap,
+        facing: RunnerCharacterFacing.front,
+      ),
+      'assets/images/characters/cap_runner_idle.gif',
+    );
+
+    expect(
+      homeStageGuideAssetPath(
+        character: RunnerCharacter.cap,
+        facing: RunnerCharacterFacing.back,
+        isMoving: true,
+      ),
+      'assets/images/characters/cap_runner_back.png',
+    );
+
+    expect(
+      homeStageGuideAssetPath(
+        character: RunnerCharacter.pink,
+        facing: RunnerCharacterFacing.right,
+        isMoving: true,
+        reducedMotion: true,
+      ),
+      'assets/images/characters/pink_runner_front.png',
+    );
+  });
 
   test('guide height preserves the selected asset aspect ratio', () {
-    expect(
-      homeStageGuideHeightForWidth(character: RunnerCharacter.blue, width: 193),
-      closeTo(289, 0.0001),
-    );
-    expect(
-      homeStageGuideHeightForWidth(character: RunnerCharacter.cap, width: 350),
-      closeTo(280, 0.0001),
-    );
+    for (final character in RunnerCharacter.values) {
+      expect(
+        homeStageGuideHeightForWidth(character: character, width: 193),
+        closeTo(289, 0.0001),
+        reason: '${character.displayName} should use the Bolt footprint',
+      );
+    }
   });
 
   test(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../characters/runner_character.dart';
 import '../theme/runiac_colors.dart';
+import 'runner_character_sprite.dart';
 
 /// Shared blocking overlay in which a Runiac character runs in from the right
 /// and delivers paged guidance in a speech bubble.
@@ -12,11 +13,6 @@ import '../theme/runiac_colors.dart';
 /// widget-key prefix; nothing in here knows about agents, Firebase, or any
 /// particular feature's domain model.
 const characterGuidanceRunDuration = Duration(milliseconds: 800);
-
-const _characterGuidanceRunLeftAsset =
-    'assets/images/characters/cap_runner_run_left.gif';
-const _characterGuidanceIdleAsset =
-    'assets/images/characters/blue_idle/blue_runner_idle.gif';
 
 /// One page of guidance copy rendered inside the speech bubble.
 class CharacterGuidanceStep {
@@ -39,9 +35,6 @@ class CharacterGuidanceOverlay extends StatefulWidget {
     super.key,
   });
 
-  /// Retained so callers keep expressing intent, even though the run-in and
-  /// idle assets are still fixed: only Cap has run GIFs and only Blue has an
-  /// idle GIF, so honouring the selection would need art that does not exist.
   final RunnerCharacter character;
 
   /// Started once in [initState] so the network call overlaps the run-in.
@@ -220,6 +213,7 @@ class _CharacterGuidanceOverlayState extends State<CharacterGuidanceOverlay>
                                 child: Align(
                                   alignment: Alignment.bottomLeft,
                                   child: _GuidanceRow(
+                                    character: widget.character,
                                     steps: steps,
                                     stepIndex: _stepIndex,
                                     keyPrefix: prefix,
@@ -230,6 +224,7 @@ class _CharacterGuidanceOverlayState extends State<CharacterGuidanceOverlay>
                                     maxBubbleHeight: constraints.maxHeight
                                         .clamp(0.0, 480.0),
                                     showIdle: arrivedForFrame && !_closing,
+                                    reducedMotion: _reducedMotion,
                                     bubbleVisible: arrivedForFrame && !_closing,
                                     onNext: () => _showNext(steps?.length ?? 0),
                                     onPrevious: _showPrevious,
@@ -255,6 +250,7 @@ class _CharacterGuidanceOverlayState extends State<CharacterGuidanceOverlay>
 
 class _GuidanceRow extends StatelessWidget {
   const _GuidanceRow({
+    required this.character,
     required this.steps,
     required this.stepIndex,
     required this.keyPrefix,
@@ -264,12 +260,14 @@ class _GuidanceRow extends StatelessWidget {
     required this.nextTooltip,
     required this.maxBubbleHeight,
     required this.showIdle,
+    required this.reducedMotion,
     required this.bubbleVisible,
     required this.onNext,
     required this.onPrevious,
     required this.onClose,
   });
 
+  final RunnerCharacter character;
   final List<CharacterGuidanceStep>? steps;
   final int stepIndex;
   final String keyPrefix;
@@ -279,6 +277,7 @@ class _GuidanceRow extends StatelessWidget {
   final String nextTooltip;
   final double maxBubbleHeight;
   final bool showIdle;
+  final bool reducedMotion;
   final bool bubbleVisible;
   final VoidCallback onNext;
   final VoidCallback onPrevious;
@@ -290,24 +289,24 @@ class _GuidanceRow extends StatelessWidget {
     final step = resolved == null || resolved.isEmpty
         ? null
         : resolved[stepIndex.clamp(0, resolved.length - 1)];
+    final assetPath = reducedMotion
+        ? character.assetPath(RunnerCharacterFacing.front)
+        : showIdle
+        ? character.idleAnimationAssetPath
+        : character.runAnimationAssetPath(RunnerCharacterFacing.left) ??
+              character.assetPath(RunnerCharacterFacing.left);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        SizedBox(
+        RunnerCharacterSprite(
+          key: ValueKey('${keyPrefix}_character_footprint'),
+          character: character,
+          assetPath: assetPath,
           width: 96,
-          height: 112,
-          child: Image(
-            image: AssetImage(
-              showIdle
-                  ? _characterGuidanceIdleAsset
-                  : _characterGuidanceRunLeftAsset,
-            ),
-            key: ValueKey(
-              showIdle
-                  ? '${keyPrefix}_idle_character'
-                  : '${keyPrefix}_running_character',
-            ),
-            fit: BoxFit.contain,
+          imageKey: ValueKey(
+            showIdle
+                ? '${keyPrefix}_idle_character'
+                : '${keyPrefix}_running_character',
           ),
         ),
         const SizedBox(width: 8),

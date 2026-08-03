@@ -4,14 +4,15 @@ import 'package:flutter/material.dart';
 
 import '../../../core/characters/runner_character.dart';
 import '../../../core/theme/runiac_colors.dart';
+import '../../../core/widgets/runner_character_sprite.dart';
 
 /// Animated guide overlay shown when the user stalls on an onboarding step.
 ///
-/// The Blue guide runs in from a random horizontal direction, then settles in
-/// the lower safe area before its speech bubble appears. On dismissal, the
-/// guide leaves through whichever horizontal edge is farther from its current
-/// position. Other selected guide characters retain the existing static
-/// presentation until matching running and idle assets are available.
+/// A guide with matching running art enters from a random horizontal direction,
+/// then settles into its idle animation before the speech bubble appears. On
+/// dismissal, it leaves through whichever horizontal edge is farther from its
+/// current position. Blue retains the static directional fallback because it
+/// does not yet have a matching run animation.
 ///
 /// Display-only: the overlay renders sprites and hint copy and never touches
 /// XP, level, rank, streak, or leaderboard values.
@@ -41,11 +42,6 @@ const onboardingGuideRunInDuration = Duration(milliseconds: 800);
 
 /// Keeps dismissal responsive while letting the run-out direction read.
 const onboardingGuideRunOutDuration = Duration(milliseconds: 620);
-
-const _blueIdleAsset =
-    'assets/images/characters/blue_idle/blue_runner_idle.gif';
-const _blueRunLeftAsset = 'assets/images/characters/cap_runner_run_left.gif';
-const _blueRunRightAsset = 'assets/images/characters/cap_runner_run_right.gif';
 
 class _OnboardingGuideOverlayState extends State<OnboardingGuideOverlay>
     with TickerProviderStateMixin {
@@ -93,7 +89,7 @@ class _OnboardingGuideOverlayState extends State<OnboardingGuideOverlay>
     ).animate(CurvedAnimation(parent: _type, curve: Curves.easeOut));
     _bob.repeat(reverse: true);
     _type.forward();
-    _hasArrived = widget.character != RunnerCharacter.blue;
+    _hasArrived = !widget.character.hasRunAnimation;
     _runIn.addStatusListener((status) {
       if (status == AnimationStatus.completed && mounted) {
         setState(() {
@@ -117,7 +113,14 @@ class _OnboardingGuideOverlayState extends State<OnboardingGuideOverlay>
     _motionInitialized = true;
     final reduceMotion =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
-    if (widget.character != RunnerCharacter.blue) {
+    if (reduceMotion) {
+      _bob
+        ..stop()
+        ..value = 0.5;
+    } else if (!_bob.isAnimating) {
+      _bob.repeat(reverse: true);
+    }
+    if (!widget.character.hasRunAnimation) {
       if (reduceMotion) {
         _entrance.value = 1;
       } else {
@@ -180,7 +183,7 @@ class _OnboardingGuideOverlayState extends State<OnboardingGuideOverlay>
 
   @override
   Widget build(BuildContext context) {
-    final isBlueGuide = widget.character == RunnerCharacter.blue;
+    final hasRunAnimation = widget.character.hasRunAnimation;
     final runIn = CurvedAnimation(parent: _runIn, curve: Curves.easeOutCubic);
     return Stack(
       children: [
@@ -195,7 +198,7 @@ class _OnboardingGuideOverlayState extends State<OnboardingGuideOverlay>
           left: 16,
           right: 16,
           bottom: 20,
-          child: isBlueGuide
+          child: hasRunAnimation
               ? LayoutBuilder(
                   builder: (context, constraints) {
                     return AnimatedBuilder(
@@ -345,26 +348,21 @@ class _GuideCharacter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isBlueGuide = character == RunnerCharacter.blue;
-    final assetPath = isBlueGuide
-        ? isRunning
-              ? facing == RunnerCharacterFacing.left
-                    ? _blueRunLeftAsset
-                    : _blueRunRightAsset
-              : _blueIdleAsset
-        : character.assetPath(facing);
-    return SizedBox(
+    final reducedMotion = MediaQuery.disableAnimationsOf(context);
+    final assetPath = reducedMotion
+        ? character.assetPath(RunnerCharacterFacing.front)
+        : isRunning
+        ? character.runAnimationAssetPath(facing) ?? character.assetPath(facing)
+        : character.idleAnimationAssetPath;
+    return RunnerCharacterSprite(
       key: ValueKey('onboarding_guide_character_${facing.name}'),
+      character: character,
+      assetPath: assetPath,
       width: 92,
-      height: 104,
-      child: Image.asset(
-        assetPath,
-        key: ValueKey(
-          isBlueGuide && isRunning
-              ? 'onboarding_guide_running_character'
-              : 'onboarding_guide_idle_character',
-        ),
-        fit: BoxFit.contain,
+      imageKey: ValueKey(
+        isRunning
+            ? 'onboarding_guide_running_character'
+            : 'onboarding_guide_idle_character',
       ),
     );
   }

@@ -6,8 +6,9 @@ import '../../../core/characters/runner_character.dart';
 import '../../../core/haptics/runiac_haptics_scope.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_buttons.dart';
+import '../../../core/widgets/runner_character_sprite.dart';
 import '../../home/presentation/stage_map/home_stage_map.dart'
-    show homeStageGuideAssetPath, homeStageGuideHeightForWidth;
+    show homeStageGuideAssetPath;
 import '../domain/app_tour_steps.dart';
 import '../domain/models/tutorial_step.dart';
 import 'spotlight_scrim_painter.dart';
@@ -424,8 +425,7 @@ class _AppTourOverlayState extends State<AppTourOverlay>
                               : const Duration(milliseconds: 260),
                           curve: Curves.easeOutCubic,
                           builder: (context, animatedRawHole, _) {
-                            final resolvedRawHole =
-                                animatedRawHole ?? rawHole;
+                            final resolvedRawHole = animatedRawHole ?? rawHole;
                             return _buildScrim(
                               _padAndClamp(resolvedRawHole, size),
                               size,
@@ -534,10 +534,8 @@ class _TourBlock extends StatelessWidget {
 
 /// The runner sprite shown alongside the tour bubble.
 ///
-/// Mirrors the asymmetry already encoded by `homeStageGuideAssetPath` /
-/// `homeStageGuideHeightForWidth` on the Home stage map: Bolt is an idle GIF
-/// at a 193x289 ratio, the other three characters are directional PNGs at a
-/// 350x280 ratio.
+/// Uses the same selected-character idle asset and stable sizing contract as
+/// the Home stage map.
 class _TourCharacterSprite extends StatelessWidget {
   const _TourCharacterSprite({
     required this.character,
@@ -557,15 +555,12 @@ class _TourCharacterSprite extends StatelessWidget {
     final assetPath = homeStageGuideAssetPath(
       character: character,
       facing: facing,
+      reducedMotion: MediaQuery.disableAnimationsOf(context),
     );
-    final height = homeStageGuideHeightForWidth(
+    return RunnerCharacterSprite(
       character: character,
+      assetPath: assetPath,
       width: width,
-    );
-    return SizedBox(
-      width: width,
-      height: height,
-      child: Image.asset(assetPath, fit: BoxFit.contain),
     );
   }
 }

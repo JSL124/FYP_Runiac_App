@@ -123,14 +123,14 @@ void main() {
       expect(find.textContaining('running buddy'), findsNothing);
     });
 
-    testWidgets('Blue guide runs in before showing its idle help state', (
+    testWidgets('animated guide runs in before showing its idle help state', (
       tester,
     ) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
             body: OnboardingGuideOverlay(
-              character: RunnerCharacter.blue,
+              character: RunnerCharacter.pink,
               message: 'Pick the closest answer for now.',
               enterFromLeft: true,
               onDismiss: _noop,
@@ -170,7 +170,7 @@ void main() {
     });
 
     testWidgets(
-      'Blue guide runs out to the right when more screen remains there',
+      'animated guide runs out to the right when more screen remains there',
       (tester) async {
         final originalSize = tester.view.physicalSize;
         final originalDevicePixelRatio = tester.view.devicePixelRatio;
@@ -185,7 +185,7 @@ void main() {
           MaterialApp(
             home: Scaffold(
               body: OnboardingGuideOverlay(
-                character: RunnerCharacter.blue,
+                character: RunnerCharacter.pink,
                 message: 'Pick the closest answer for now.',
                 enterFromLeft: true,
                 onDismiss: () {
@@ -224,7 +224,7 @@ void main() {
     );
 
     testWidgets(
-      'Blue guide runs out to the left when more screen remains there',
+      'animated guide runs out to the left when more screen remains there',
       (tester) async {
         final originalSize = tester.view.physicalSize;
         final originalDevicePixelRatio = tester.view.devicePixelRatio;
@@ -239,7 +239,7 @@ void main() {
           MaterialApp(
             home: Scaffold(
               body: OnboardingGuideOverlay(
-                character: RunnerCharacter.blue,
+                character: RunnerCharacter.pink,
                 message: 'Pick the closest answer for now.',
                 enterFromLeft: false,
                 onDismiss: () {
@@ -277,14 +277,14 @@ void main() {
       },
     );
 
-    testWidgets('non-Blue guides retain the existing static guide state', (
+    testWidgets('Blue retains the static guide fallback without run art', (
       tester,
     ) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
             body: OnboardingGuideOverlay(
-              character: RunnerCharacter.pink,
+              character: RunnerCharacter.blue,
               message: 'Pick the closest answer for now.',
               enterFromLeft: false,
               onDismiss: _noop,

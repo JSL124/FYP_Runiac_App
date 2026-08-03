@@ -135,7 +135,7 @@ void main() {
     );
     expect(
       (sprite.image as AssetImage).assetName,
-      RunnerCharacter.purple.assetPath(RunnerCharacterFacing.front),
+      RunnerCharacter.purple.idleAnimationAssetPath,
     );
 
     await _teardownTree(tester);
@@ -144,7 +144,8 @@ void main() {
   testWidgets('reduced motion renders statically and fully settles', (
     tester,
   ) async {
-    // Blue would normally play its idle GIF; reduced motion must fall back to
+    // The selected character would normally play its idle GIF; reduced motion
+    // must fall back to
     // the static front sprite, schedule no highlight timer, and settle.
     await _pumpSheet(
       tester,

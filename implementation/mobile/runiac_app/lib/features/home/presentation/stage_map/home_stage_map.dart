@@ -6,6 +6,7 @@ import '../../../../core/characters/runner_character.dart';
 import '../../../../core/haptics/runiac_haptics_scope.dart';
 import '../../../../core/theme/runiac_colors.dart';
 import '../../../../core/widgets/runiac_level_profile_badge.dart';
+import '../../../../core/widgets/runner_character_sprite.dart';
 import '../../../challenge/domain/challenge_copy.dart';
 import '../../../challenge/domain/challenge_countdown.dart';
 import '../../../challenge/presentation/home_active_challenge_display.dart';
@@ -59,31 +60,35 @@ const String _kStageRunAsset =
     'assets/images/home/stages/dashboard_stage_run.png';
 const String _kStageRestAsset =
     'assets/images/home/stages/dashboard_stage_rest.png';
-const String kBlueRunnerIdleGifAsset =
-    'assets/images/characters/blue_idle/blue_runner_idle.gif';
 
 /// Chooses the guide sprite for the Home stage map.
 ///
-/// When Blue is selected, this supplied runner GIF represents the guide in
-/// both the resting and plan-to-plan movement states. The other characters
-/// retain their existing direction-specific PNG sprites.
+/// Resting guides use their idle animation. Horizontal plan-to-plan movement
+/// uses a matching directional run animation when supplied; Blue and vertical
+/// movement retain the existing direction-specific sprite fallback.
 String homeStageGuideAssetPath({
   required RunnerCharacter character,
   required RunnerCharacterFacing facing,
+  bool isMoving = false,
+  bool reducedMotion = false,
 }) {
-  if (character == RunnerCharacter.blue) {
-    return kBlueRunnerIdleGifAsset;
+  if (reducedMotion) {
+    return character.assetPath(RunnerCharacterFacing.front);
   }
-  return character.assetPath(facing);
+  if (!isMoving) {
+    return character.idleAnimationAssetPath;
+  }
+  return character.runAnimationAssetPath(facing) ??
+      (character == RunnerCharacter.blue
+          ? character.idleAnimationAssetPath
+          : character.assetPath(facing));
 }
 
 double homeStageGuideHeightForWidth({
   required RunnerCharacter character,
   required double width,
 }) {
-  return character == RunnerCharacter.blue
-      ? width * 289 / 193
-      : width * 280 / 350;
+  return character.animationHeightForWidth(width);
 }
 
 /// Duolingo-style vertical stage map for the Home tab.
@@ -890,8 +895,10 @@ class _HomeStageMapState extends State<HomeStageMap>
       if (nearestIndex != null) {
         final candidateFirst = math.min(firstIndex, nearestIndex);
         final candidateLast = math.max(lastIndex, nearestIndex);
-        final candidateArea =
-            boundsFor(candidateFirst, candidateLast).inflate(_kStoneClusterPadding);
+        final candidateArea = boundsFor(
+          candidateFirst,
+          candidateLast,
+        ).inflate(_kStoneClusterPadding);
         final areaCap = _viewportHeight > 0
             ? _sectionWidth * _viewportHeight * 0.45
             : double.infinity;
@@ -1093,23 +1100,32 @@ class _HomeStageMapState extends State<HomeStageMap>
 
     final charWidth = _characterWidth;
     final charHeight = _characterHeightFor(character);
-    final asset = homeStageGuideAssetPath(character: character, facing: facing);
+    final asset = homeStageGuideAssetPath(
+      character: character,
+      facing: facing,
+      isMoving: _walking,
+      reducedMotion: MediaQuery.disableAnimationsOf(context),
+    );
+    final charLayoutWidth = RunnerCharacterSprite.layoutWidthFor(
+      assetPath: asset,
+      width: charWidth,
+    );
     final canTapCharacter =
         !_walking && widget.guideAgent != null && widget.guideRequest != null;
     return Positioned(
       key: const ValueKey<String>('homeStageCharacter'),
-      left: center.dx - charWidth / 2,
+      left: center.dx - charLayoutWidth / 2,
       top: _characterTopForAnchor(center, character) - bob,
-      width: charWidth,
+      width: charLayoutWidth,
       height: charHeight,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
           IgnorePointer(
-            child: Image.asset(
-              asset,
-              fit: BoxFit.contain,
-              filterQuality: FilterQuality.medium,
+            child: RunnerCharacterSprite(
+              character: character,
+              assetPath: asset,
+              width: charWidth,
               errorBuilder: (context, error, stackTrace) =>
                   const SizedBox.shrink(),
             ),

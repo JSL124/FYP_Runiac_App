@@ -6,8 +6,9 @@ import 'package:runiac_app/core/characters/runner_character.dart';
 import 'package:runiac_app/features/run/domain/models/activity_feedback_agent.dart';
 import 'package:runiac_app/features/run/presentation/widgets/activity_feedback_overlay.dart';
 
-const _runLeftAsset = 'assets/images/characters/cap_runner_run_left.gif';
-const _idleAsset = 'assets/images/characters/blue_idle/blue_runner_idle.gif';
+const _runLeftAsset = 'assets/images/characters/pink_runner_run_left.gif';
+const _idleAsset = 'assets/images/characters/pink_runner_idle.gif';
+const _reducedMotionAsset = 'assets/images/characters/pink_runner_front.png';
 const _runDuration = Duration(milliseconds: 800);
 
 const _bundle = ActivityFeedbackBundle(
@@ -131,7 +132,7 @@ void main() {
         expect(find.text('Summary'), findsOneWidget);
 
         final characterRect = tester.getRect(
-          find.byKey(const ValueKey('activity_feedback_idle_character')),
+          find.byKey(const ValueKey('activity_feedback_character_footprint')),
         );
         final bubbleRect = tester.getRect(
           find.byKey(const ValueKey('activity_feedback_bubble')),
@@ -257,7 +258,7 @@ void main() {
 
       expect(
         _assetName(tester, const ValueKey('activity_feedback_idle_character')),
-        _idleAsset,
+        _reducedMotionAsset,
       );
       expect(
         find.byKey(const ValueKey('activity_feedback_running_character')),
