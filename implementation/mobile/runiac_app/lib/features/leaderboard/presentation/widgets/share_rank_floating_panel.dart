@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -20,7 +21,13 @@ class ShareRankFloatingPanel extends StatefulWidget {
     required this.divisionName,
     required this.rankLabel,
     required this.leagueBadgeAssetPath,
+    this.exportService = const ShareCardExportService(),
   });
+
+  /// Seam for tests. Production always uses the default const instance; a test
+  /// injects a failing one to prove an export failure still reaches the runner
+  /// as a message rather than silently doing nothing.
+  final ShareCardExportService exportService;
 
   final String regionName;
   final String divisionName;
@@ -34,7 +41,7 @@ class ShareRankFloatingPanel extends StatefulWidget {
 }
 
 class _ShareRankFloatingPanelState extends State<ShareRankFloatingPanel> {
-  static const _export = ShareCardExportService();
+  ShareCardExportService get _export => widget.exportService;
 
   final PageController _pageController = PageController();
   final GlobalKey _solidBoundaryKey = GlobalKey();
@@ -50,6 +57,21 @@ class _ShareRankFloatingPanelState extends State<ShareRankFloatingPanel> {
   // the screen bottom, hidden behind this modal sheet, so feedback lives here.
   String? _toast;
   Timer? _toastTimer;
+  // Whether Instagram Stories can actually be opened from this device (iOS
+  // with Instagram installed). Probed once on init so the target renders
+  // disabled rather than failing on tap. Optimistically true until the probe
+  // answers, so the button never flickers from enabled to disabled.
+  bool _instagramAvailable = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _export.isInstagramStoryAvailable().then((available) {
+      if (mounted) {
+        setState(() => _instagramAvailable = available);
+      }
+    });
+  }
 
   void _showToast(String message) {
     if (!mounted) {
@@ -66,6 +88,11 @@ class _ShareRankFloatingPanelState extends State<ShareRankFloatingPanel> {
 
   /// Runs an export action with a visible busy state so a tap on a share target
   /// gives immediate feedback and cannot be double-fired.
+  ///
+  /// The catch is deliberate. Without it an export failure escaped as an
+  /// unhandled async error: the spinner cleared and the tap produced no
+  /// visible result whatsoever, which is how a broken capture path shipped
+  /// unnoticed. Every failure must leave the runner with something to read.
   Future<void> _runBusy(Future<void> Function() action) async {
     if (_busy) {
       return;
@@ -73,6 +100,14 @@ class _ShareRankFloatingPanelState extends State<ShareRankFloatingPanel> {
     setState(() => _busy = true);
     try {
       await action();
+    } catch (error, stackTrace) {
+      developer.log(
+        'RUNIAC_SHARE rank export failed',
+        name: 'ShareRankFloatingPanel',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      _showToast('Could not share right now');
     } finally {
       if (mounted) {
         setState(() => _busy = false);
@@ -331,7 +366,7 @@ class _ShareRankFloatingPanelState extends State<ShareRankFloatingPanel> {
           icon: Icons.camera_alt_outlined,
           iconAsset: RuniacAssets.instagramStoriesIcon,
           label: 'Instagram',
-          enabled: !_busy,
+          enabled: !_busy && _instagramAvailable,
           onPressed: () => _runBusy(_shareToInstagram),
         ),
         RuniacShareTargetButton(

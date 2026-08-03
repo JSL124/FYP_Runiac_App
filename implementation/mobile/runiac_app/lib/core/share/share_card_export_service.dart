@@ -1,4 +1,6 @@
+import 'dart:developer' as developer;
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -24,7 +26,9 @@ class ShareCardExportService {
   );
 
   /// Rasterizes the [RepaintBoundary] behind [boundaryKey] to PNG bytes.
-  /// Returns null if the boundary is not laid out yet.
+  /// Returns null if the boundary is not laid out yet, or if the raster/encode
+  /// fails — every caller already handles null by showing a "could not render"
+  /// message, so a failure here must never escape as an unhandled async error.
   Future<Uint8List?> capturePng(
     GlobalKey boundaryKey, {
     double pixelRatio = 3.0,
@@ -33,9 +37,26 @@ class ShareCardExportService {
     if (renderObject is! RenderRepaintBoundary) {
       return null;
     }
-    final image = await renderObject.toImage(pixelRatio: pixelRatio);
+    final ui.Image image;
     try {
-      return encodeEightBitPng(image);
+      image = await renderObject.toImage(pixelRatio: pixelRatio);
+    } catch (error, stackTrace) {
+      developer.log(
+        'RUNIAC_SHARE capture failed',
+        name: 'ShareCardExportService',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      return null;
+    }
+    // The `await` is load-bearing, not stylistic: without it the `finally`
+    // below disposes the image while `encodeEightBitPng` is still reading it.
+    // That only breaks on a wide-gamut (Display P3) device, because the
+    // second `toByteData` pass it disposes out from under runs solely when
+    // the direct encode came back at depth 16 — which never happens on the
+    // simulator or under `flutter_test`. See eight_bit_png.dart.
+    try {
+      return await encodeEightBitPng(image);
     } finally {
       image.dispose();
     }
@@ -64,12 +85,19 @@ class ShareCardExportService {
 
   /// Opens the OS share sheet with [pngBytes] as a PNG attachment. Bytes are
   /// written to a temp file so every platform receives a real file path.
+  ///
+  /// One fixed directory is reused rather than `createTemp`, which minted a
+  /// fresh random directory per share and never removed any of them. Deleting
+  /// after `share()` returns is not safe — on iOS the completion fires when
+  /// the sheet is dismissed, which can precede the receiving extension
+  /// finishing with the file — so each share simply overwrites the last.
   Future<void> shareViaSheet(
     Uint8List pngBytes, {
     required String fileName,
     String? text,
   }) async {
-    final directory = await Directory.systemTemp.createTemp('runiac_share');
+    final directory = Directory('${Directory.systemTemp.path}/runiac_share');
+    await directory.create(recursive: true);
     final file = File('${directory.path}/$fileName');
     await file.writeAsBytes(pngBytes, flush: true);
     await SharePlus.instance.share(
