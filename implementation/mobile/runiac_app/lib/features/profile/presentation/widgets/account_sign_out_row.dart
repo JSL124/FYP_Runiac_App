@@ -104,7 +104,9 @@ class _AccountSignOutRowState extends State<AccountSignOutRow> {
                     const SizedBox(height: 3),
                     const Text(
                       'Return to the Runiac welcome screen',
-                      maxLines: 2,
+                      // Matches the manage rows above: one line so this card
+                      // keeps the same height as the rest of the list.
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: RuniacColors.textSecondary,

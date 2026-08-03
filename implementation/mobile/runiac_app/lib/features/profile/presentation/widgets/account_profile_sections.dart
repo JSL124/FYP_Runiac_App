@@ -318,7 +318,10 @@ class _ManageRow extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   row.subtitle,
-                  maxLines: 2,
+                  // One line, always: a wrapping subtitle made its card taller
+                  // than its neighbours and broke the even rhythm of the list.
+                  // Every manage subtitle is written to fit within this bound.
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: RuniacColors.textSecondary,

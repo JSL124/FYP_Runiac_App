@@ -148,7 +148,7 @@ class FirestoreUserProfileRepository implements UserProfileRepository {
       manageRows: const <UserProfileManageRowReadModel>[
         UserProfileManageRowReadModel(
           title: 'Edit profile',
-          subtitle: 'Email, personal details, and onboarding',
+          subtitle: 'Personal details and onboarding',
           snackBarMessage: '',
           action: UserProfileManageAction.editProfile,
         ),
@@ -156,13 +156,13 @@ class FirestoreUserProfileRepository implements UserProfileRepository {
         // overflow menu, not in this list.
         UserProfileManageRowReadModel(
           title: 'Running buddy',
-          subtitle: 'Change the guide character who cheers you on',
+          subtitle: 'Change your guide character',
           snackBarMessage: '',
           action: UserProfileManageAction.runningBuddy,
         ),
         UserProfileManageRowReadModel(
           title: 'Privacy & Safety',
-          subtitle: 'Personalized guide data use and sharing controls',
+          subtitle: 'Guide data use and sharing',
           snackBarMessage: '',
           action: UserProfileManageAction.privacySafety,
         ),
