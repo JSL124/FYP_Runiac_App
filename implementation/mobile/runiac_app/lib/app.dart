@@ -56,6 +56,7 @@ import 'features/plan/domain/repositories/generated_plan_persistence_repository.
 import 'features/plan/domain/repositories/plan_progress_repository.dart';
 import 'features/plan/domain/services/beginner_adaptive_plan_generator.dart';
 import 'features/plan/presentation/current_session_generated_plan.dart';
+import 'features/plan/presentation/plan_completion_celebration_scope.dart';
 import 'features/run/data/static_run_repository.dart';
 import 'features/run/domain/repositories/run_repository.dart';
 import 'features/run/presentation/active_run_session_coordinator.dart';
@@ -230,6 +231,15 @@ class _RuniacAppState extends State<RuniacApp> {
   String? _generatedPlanHydrationProbeUid;
   PlanProgressReadModel? _planProgress;
   var _planProgressLoadSerial = 0;
+
+  /// Read by the run flow's "Home" action so a plan finished on this run lands
+  /// the runner on the Home dashboard, where the ceremony is held. Owned here
+  /// because this state holds both inputs — the backend-recorded completion and
+  /// the one-shot seen marker.
+  late final PlanCompletionCelebrationRouter _planCompletionCelebrationRouter =
+      PlanCompletionCelebrationRouter(
+        isCelebrationPending: _planCompletionCelebrationPending,
+      );
   AdaptivePlanEstimateReadModel? _adaptivePlanEstimate;
   var _adaptivePlanEstimateLoadSerial = 0;
 
@@ -445,90 +455,93 @@ class _RuniacAppState extends State<RuniacApp> {
 
   @override
   Widget build(BuildContext context) {
-    return RuniacHapticsScope(
-      haptics: _haptics,
-      child: CurrentSessionUserProgressScope(
-        store: _userProgressStore,
-        child: CurrentSessionUserAccountScope(
-          store: _userAccountStore,
-          child: PaywallConfigScope(
-            store: _paywallConfigStore,
-            child: FeatureAccessScope(
-              store: _featureAccessStore,
-              child: CharacterAccessScope(
-                store: _characterAccessStore,
-                child: CurrentSessionFeedScope(
-                  store: _feedStore,
-                  child: SelectedRunnerCharacterScope(
-                    store: _selectedCharacterStore,
-                    child: CurrentSessionActivityHistoryScope(
-                      store: _activityHistoryStore,
-                      child: CurrentSessionGeneratedPlanScope(
-                        store: _generatedPlanStore,
-                        child: RunRepositoryScope(
-                          repository: widget.runRepository,
-                          child: RunnerPublicProfileScope(
-                            repository: widget.runnerPublicProfileRepository,
-                            child: MaterialApp(
-                              debugShowCheckedModeBanner: false,
-                              title: 'Runiac',
-                              theme: buildRuniacTheme(),
-                              navigatorObservers: [runiacErrorScreenTracker],
-                              home: RuniacStartupGate(
-                                showSplash: widget.showSplash,
-                                splashDuration: widget.splashDuration,
-                                child: RuniacAuthGate(
-                                  authRepository: widget.authRepository,
-                                  showAuth: widget.showAuth,
-                                  onAuthenticated: (completion) {
-                                    final ownerUid =
-                                        widget.authRepository.currentUser?.uid;
-                                    _syncUserProgressOwner(ownerUid);
-                                    _userAccountStore.updateOwnerUid(ownerUid);
-                                    _syncFeatureAccessOwner(ownerUid);
-                                    setState(() {
-                                      _authCompletion = completion;
-                                      _authStateError = null;
-                                      _showMissingProfileSignupPrompt = false;
-                                    });
-                                    _startPushNotificationsForCurrentUser();
-                                    unawaited(
-                                      _restoreSelectedCharacter(ownerUid),
-                                    );
-                                  },
-                                  onAuthStateChanged: (user) {
-                                    _thumbnailArtifactLifecycle.syncOwner(
-                                      user?.uid,
-                                    );
-                                    _syncUserProgressOwner(user?.uid);
-                                    _userAccountStore.updateOwnerUid(user?.uid);
-                                    _syncFeatureAccessOwner(user?.uid);
-                                    if (user == null) {
+    return PlanCompletionCelebrationScope(
+      router: _planCompletionCelebrationRouter,
+      child: RuniacHapticsScope(
+        haptics: _haptics,
+        child: CurrentSessionUserProgressScope(
+          store: _userProgressStore,
+          child: CurrentSessionUserAccountScope(
+            store: _userAccountStore,
+            child: PaywallConfigScope(
+              store: _paywallConfigStore,
+              child: FeatureAccessScope(
+                store: _featureAccessStore,
+                child: CharacterAccessScope(
+                  store: _characterAccessStore,
+                  child: CurrentSessionFeedScope(
+                    store: _feedStore,
+                    child: SelectedRunnerCharacterScope(
+                      store: _selectedCharacterStore,
+                      child: CurrentSessionActivityHistoryScope(
+                        store: _activityHistoryStore,
+                        child: CurrentSessionGeneratedPlanScope(
+                          store: _generatedPlanStore,
+                          child: RunRepositoryScope(
+                            repository: widget.runRepository,
+                            child: RunnerPublicProfileScope(
+                              repository: widget.runnerPublicProfileRepository,
+                              child: MaterialApp(
+                                debugShowCheckedModeBanner: false,
+                                title: 'Runiac',
+                                theme: buildRuniacTheme(),
+                                navigatorObservers: [runiacErrorScreenTracker],
+                                home: RuniacStartupGate(
+                                  showSplash: widget.showSplash,
+                                  splashDuration: widget.splashDuration,
+                                  child: RuniacAuthGate(
+                                    authRepository: widget.authRepository,
+                                    showAuth: widget.showAuth,
+                                    onAuthenticated: (completion) {
+                                      final ownerUid =
+                                          widget.authRepository.currentUser?.uid;
+                                      _syncUserProgressOwner(ownerUid);
+                                      _userAccountStore.updateOwnerUid(ownerUid);
+                                      _syncFeatureAccessOwner(ownerUid);
+                                      setState(() {
+                                        _authCompletion = completion;
+                                        _authStateError = null;
+                                        _showMissingProfileSignupPrompt = false;
+                                      });
+                                      _startPushNotificationsForCurrentUser();
                                       unawaited(
-                                        _cancelPushNotificationSubscription(),
+                                        _restoreSelectedCharacter(ownerUid),
                                       );
+                                    },
+                                    onAuthStateChanged: (user) {
+                                      _thumbnailArtifactLifecycle.syncOwner(
+                                        user?.uid,
+                                      );
+                                      _syncUserProgressOwner(user?.uid);
+                                      _userAccountStore.updateOwnerUid(user?.uid);
+                                      _syncFeatureAccessOwner(user?.uid);
+                                      if (user == null) {
+                                        unawaited(
+                                          _cancelPushNotificationSubscription(),
+                                        );
+                                        unawaited(
+                                          widget.notificationRegistrationService
+                                              ?.unregisterCurrentDevice(),
+                                        );
+                                      }
+                                      _scheduleActivityHistoryOwnerSync(
+                                        user?.uid,
+                                      );
+                                      _feedStore.syncOwner(user?.uid);
+                                      _clearGeneratedPlanForAuthChange(user?.uid);
                                       unawaited(
-                                        widget.notificationRegistrationService
-                                            ?.unregisterCurrentDevice(),
+                                        _restoreSelectedCharacter(user?.uid),
                                       );
-                                    }
-                                    _scheduleActivityHistoryOwnerSync(
-                                      user?.uid,
-                                    );
-                                    _feedStore.syncOwner(user?.uid);
-                                    _clearGeneratedPlanForAuthChange(user?.uid);
-                                    unawaited(
-                                      _restoreSelectedCharacter(user?.uid),
-                                    );
-                                  },
-                                  recoveryPrompt:
-                                      _showMissingProfileSignupPrompt
-                                      ? const RuniacAuthRecoveryPrompt.signup(
-                                          message:
-                                              'No Runiac account setup exists for this account. Sign up to create your profile and start onboarding.',
-                                        )
-                                      : null,
-                                  childBuilder: (_) => _buildPostAuthFlow(),
+                                    },
+                                    recoveryPrompt:
+                                        _showMissingProfileSignupPrompt
+                                        ? const RuniacAuthRecoveryPrompt.signup(
+                                            message:
+                                                'No Runiac account setup exists for this account. Sign up to create your profile and start onboarding.',
+                                          )
+                                        : null,
+                                    childBuilder: (_) => _buildPostAuthFlow(),
+                                  ),
                                 ),
                               ),
                             ),
@@ -986,6 +999,21 @@ class _RuniacAppState extends State<RuniacApp> {
           ? null
           : progress;
     });
+  }
+
+  /// Mirrors `HomeTab`'s own guard: a completion the backend has recorded for
+  /// the active plan, which the local one-shot marker has not yet spent. The
+  /// marker is deliberately not advanced here — `HomeTab` spends it, and only
+  /// once the overlay is actually being opened.
+  Future<bool> _planCompletionCelebrationPending() async {
+    final seenStore = widget.planCompletionSeenStore;
+    final completedAt = _planProgress?.planCompletedAt;
+    if (seenStore == null || completedAt == null) {
+      return false;
+    }
+    final lastSeenMs = await seenStore.lastSeenPlanCompletedAtMs();
+    return lastSeenMs == null ||
+        completedAt.millisecondsSinceEpoch > lastSeenMs;
   }
 
   Future<void> _loadAdaptivePlanEstimate(

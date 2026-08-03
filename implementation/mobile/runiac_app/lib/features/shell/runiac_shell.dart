@@ -42,6 +42,7 @@ import '../plan/domain/models/beginner_adaptive_plan_snapshot.dart';
 import '../plan/domain/repositories/generated_plan_persistence_repository.dart';
 import '../plan/domain/models/plan_progress_read_model.dart';
 import '../plan/presentation/current_session_generated_plan.dart';
+import '../plan/presentation/plan_completion_celebration_scope.dart';
 import '../run/domain/models/run_location_sample.dart';
 import '../run/presentation/active_run_session_coordinator.dart';
 import '../run/presentation/models/planned_run_context.dart';
@@ -167,6 +168,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
 
   int _selectedIndex = 0;
   final Set<int> _visitedTabIndexes = <int>{0};
+  PlanCompletionCelebrationRouter? _planCompletionCelebrationRouter;
   late final bool _ownsActiveRunSessionCoordinator =
       widget.activeRunSessionCoordinator == null;
   late final ActiveRunSessionCoordinator _activeRunSessionCoordinator =
@@ -433,8 +435,25 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
     });
   }
 
+  /// Selects the Home dashboard on behalf of the run flow's "Home" action, so a
+  /// plan finished on this run is celebrated where the ceremony lives.
+  void _showHomeDashboard() => _selectTab(0);
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final router = PlanCompletionCelebrationScope.maybeOf(context);
+    if (identical(router, _planCompletionCelebrationRouter)) {
+      return;
+    }
+    _planCompletionCelebrationRouter?.detachHomeDashboard(_showHomeDashboard);
+    _planCompletionCelebrationRouter = router;
+    router?.attachHomeDashboard(_showHomeDashboard);
+  }
+
   @override
   void dispose() {
+    _planCompletionCelebrationRouter?.detachHomeDashboard(_showHomeDashboard);
     WidgetsBinding.instance.removeObserver(this);
     _planNotificationScheduler.onDelivered = null;
     _currentDayController.removeListener(_handleCurrentDayChanged);

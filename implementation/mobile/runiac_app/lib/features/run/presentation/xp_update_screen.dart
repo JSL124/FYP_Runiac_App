@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:runiac_app/core/haptics/runiac_haptics_scope.dart';
 import 'package:runiac_app/core/theme/runiac_colors.dart';
 
+import '../../plan/presentation/plan_completion_celebration_scope.dart';
 import '../domain/models/xp_update_display_model.dart';
 import 'data/run_completion_demo_snapshots.dart';
 
@@ -42,6 +43,7 @@ class _XpUpdateScreenState extends State<XpUpdateScreen>
   late final AnimationController _controller;
   late final List<_ConfettiParticle> _particles;
   var _hapticFired = false;
+  var _goingHome = false;
 
   @override
   void initState() {
@@ -87,8 +89,47 @@ class _XpUpdateScreenState extends State<XpUpdateScreen>
     super.dispose();
   }
 
-  void _goHome() {
-    Navigator.of(context).popUntil((route) => route.isFirst);
+  /// Returns the runner to the shell — and, when this run finished their plan,
+  /// to the Home dashboard specifically.
+  ///
+  /// A run can be started from any tab, and popping back to the shell lands on
+  /// whichever tab was selected when it began. `HomeTab` holds the
+  /// plan-completion ceremony while Home is not frontmost, so a plan finished
+  /// on a run started from Feed, Leaderboard or You would leave the celebration
+  /// held indefinitely — the runner would have to happen to tap Home. Selecting
+  /// the Home tab *before* the pop releases that hold on the same frame the
+  /// shell is revealed, and avoids a visible tab switch afterwards.
+  ///
+  /// Only a pending celebration redirects: an ordinary run still returns the
+  /// runner to the tab they came from. The check is read-only and never spends
+  /// the one-shot marker, which stays `HomeTab`'s to advance.
+  Future<void> _goHome() async {
+    // The marker read puts an await between the tap and the pop, so a second
+    // tap can land while the first is still resolving.
+    if (_goingHome) {
+      return;
+    }
+    _goingHome = true;
+    final router = PlanCompletionCelebrationScope.maybeOf(context);
+    final navigator = Navigator.of(context);
+    // The redirect is a bonus on top of the CTA's real job. A failed marker
+    // read (or a missing scope, as on the QA surface) must still leave the
+    // runner able to get out of this screen, so it degrades to a plain pop.
+    var pending = false;
+    if (router != null) {
+      try {
+        pending = await router.isCelebrationPending();
+      } catch (_) {
+        pending = false;
+      }
+    }
+    if (!mounted) {
+      return;
+    }
+    if (pending) {
+      router!.showHomeDashboard();
+    }
+    navigator.popUntil((route) => route.isFirst);
   }
 
   @override

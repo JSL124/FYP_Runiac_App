@@ -48,6 +48,7 @@ import 'package:runiac_app/features/run/presentation/data/run_completion_demo_sn
 import 'package:runiac_app/features/run/presentation/view_summary_screen.dart';
 import 'package:runiac_app/features/run/presentation/xp_update_screen.dart';
 import 'package:runiac_app/features/you/presentation/current_session_activity_history.dart';
+import 'package:runiac_app/features/you/presentation/you_tab.dart';
 import 'package:runiac_app/features/profile/data/static_user_profile_repository.dart';
 
 import 'support/fake_runiac_auth_repository.dart';
@@ -238,6 +239,110 @@ void main() {
         );
       },
     );
+
+    testWidgets(
+      'F. the run was started from another tab: the XP update\'s "Home" CTA '
+      'selects the Home dashboard so the held ceremony is released',
+      (tester) async {
+        // The realistic case this was missing. A run started from You (or Feed,
+        // or Leaderboard) pops back to *that* tab, so Home never becomes
+        // frontmost and the celebration stays held indefinitely — the runner
+        // would only ever see it by happening to tap Home later.
+        final harness = await _pumpPlanDayApp(tester);
+        await _selectTab(tester, Icons.person);
+        expect(find.byType(YouTab), findsOneWidget);
+        expect(find.byType(HomeTab), findsNothing, reason: 'You is selected');
+
+        await _pushRunSummary(tester);
+        await harness.syncFinalWorkout(tester, onScreen: ViewSummaryScreen);
+        await tester.tap(find.text('View XP Update'));
+        await tester.pumpAndSettle();
+        expect(find.byType(XpUpdateScreen), findsOneWidget);
+
+        await tester.tap(find.text('Home'));
+        await tester.pumpAndSettle();
+        await tester.pump(const Duration(milliseconds: 400));
+
+        expect(
+          find.byType(HomeTab),
+          findsOneWidget,
+          reason: 'the CTA carries the runner to the Home dashboard itself',
+        );
+        expect(find.byType(YouTab), findsNothing);
+        expect(
+          find.text(_ceremonyText),
+          findsOneWidget,
+          reason: 'Home is frontmost, so the held celebration is released',
+        );
+        expect(
+          await harness.seenStore.lastSeenPlanCompletedAtMs(),
+          _completedAt.millisecondsSinceEpoch,
+        );
+
+        await tester.tap(find.byIcon(Icons.close).last);
+        await tester.pumpAndSettle();
+      },
+    );
+
+    testWidgets(
+      'G. no plan completion: the "Home" CTA leaves the runner on the tab the '
+      'run was started from',
+      (tester) async {
+        // The redirect is conditional on purpose. Hijacking the tab after every
+        // single run would be a behaviour change for every runner, every day.
+        await _pumpPlanDayApp(tester);
+        await _selectTab(tester, Icons.person);
+
+        await _pushRunSummary(tester);
+        await tester.tap(find.text('View XP Update'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Home'));
+        await tester.pumpAndSettle();
+        await tester.pump(const Duration(milliseconds: 400));
+
+        expect(find.byType(YouTab), findsOneWidget);
+        expect(find.byType(HomeTab), findsNothing);
+        expect(find.text(_ceremonyText), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'H. the redirect is as one-shot as the ceremony: the next run from '
+      'another tab returns there',
+      (tester) async {
+        final harness = await _pumpPlanDayApp(tester);
+        await _selectTab(tester, Icons.person);
+
+        // First run finishes the plan and celebrates on Home.
+        await _pushRunSummary(tester);
+        await harness.syncFinalWorkout(tester, onScreen: ViewSummaryScreen);
+        await tester.tap(find.text('View XP Update'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Home'));
+        await tester.pumpAndSettle();
+        await tester.pump(const Duration(milliseconds: 400));
+        expect(find.text(_ceremonyText), findsOneWidget);
+        await tester.tap(find.byIcon(Icons.close).last);
+        await tester.pumpAndSettle();
+
+        // A later run, started from You while the same completion is still
+        // recorded on the backend. The marker is spent, so nothing is pending.
+        await _selectTab(tester, Icons.person);
+        await _pushRunSummary(tester);
+        await tester.tap(find.text('View XP Update'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Home'));
+        await tester.pumpAndSettle();
+        await tester.pump(const Duration(milliseconds: 400));
+
+        expect(
+          find.byType(YouTab),
+          findsOneWidget,
+          reason: 'a spent celebration must not keep redirecting the runner',
+        );
+        expect(find.text(_ceremonyText), findsNothing);
+      },
+    );
   });
 }
 
@@ -333,12 +438,27 @@ Future<void> _pushRunSummary(WidgetTester tester) {
 
 /// Pushes a run-flow screen onto the same root navigator Home lives under,
 /// which is exactly what the real flow does.
+///
+/// Anchored on the shell's navigation bar rather than on `HomeTab`, because a
+/// run can be started from any tab and `HomeTab` is offstage — and so unfindable
+/// — whenever it is not the selected one.
 Future<void> _pushRoute(WidgetTester tester, Widget screen) async {
-  final homeContext = tester.element(find.byType(HomeTab));
+  final shellContext = tester.element(find.byType(BottomNavigationBar));
   unawaited(
     Navigator.of(
-      homeContext,
+      shellContext,
     ).push(MaterialPageRoute<void>(builder: (context) => screen)),
+  );
+  await tester.pumpAndSettle();
+}
+
+/// Selects a tab the way the runner does, through the shell's navigation bar.
+Future<void> _selectTab(WidgetTester tester, IconData icon) async {
+  await tester.tap(
+    find.descendant(
+      of: find.byType(BottomNavigationBar),
+      matching: find.byIcon(icon),
+    ),
   );
   await tester.pumpAndSettle();
 }
