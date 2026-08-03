@@ -23,9 +23,16 @@ class CurrentSessionPaywallConfig extends ChangeNotifier {
   PaywallConfigReadModel _config = PaywallConfigReadModel.defaults;
   Future<void>? _load;
   var _disposed = false;
+  var _hasResolved = false;
 
   /// Current paywall copy — defaults until the one-shot read resolves.
   PaywallConfigReadModel get config => _config;
+
+  /// Whether [config] is the real admin-published document rather than the
+  /// pre-load defaults. Callers that act destructively on the `enabled` kill
+  /// switch must wait for this, since the defaults say "paywall on" and would
+  /// otherwise override an administrator who had turned it off.
+  bool get hasResolved => _hasResolved;
 
   /// Kicks off the one-shot `config/paywall` read. Idempotent: repeated calls
   /// share the first in-flight load. Errors keep the defaults in place.
@@ -36,7 +43,14 @@ class CurrentSessionPaywallConfig extends ChangeNotifier {
   Future<void> _loadOnce() async {
     try {
       final loaded = await _repository.loadPaywallConfig();
-      if (_disposed || loaded == _config) {
+      if (_disposed) {
+        return;
+      }
+      // Resolved even when the document happens to equal the defaults: the
+      // point is that the read completed, not that the value changed.
+      final wasUnresolved = !_hasResolved;
+      _hasResolved = true;
+      if (loaded == _config && !wasUnresolved) {
         return;
       }
       _config = loaded;

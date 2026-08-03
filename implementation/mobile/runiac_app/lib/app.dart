@@ -42,6 +42,7 @@ import 'features/paywall/domain/repositories/character_access_repository.dart';
 import 'features/paywall/domain/repositories/feature_access_repository.dart';
 import 'features/paywall/domain/repositories/paywall_config_repository.dart';
 import 'features/paywall/presentation/current_session_character_access.dart';
+import 'features/paywall/presentation/premium_character_entitlement.dart';
 import 'features/paywall/presentation/current_session_feature_access.dart';
 import 'features/paywall/presentation/current_session_paywall_config.dart';
 import 'features/leaderboard/data/static_leaderboard_repository.dart';
@@ -250,6 +251,7 @@ class _RuniacAppState extends State<RuniacApp> {
       SelectedRunnerCharacterStore();
   final LocalSelectedRunnerCharacterStorage _selectedCharacterStorage =
       const SharedPreferencesSelectedRunnerCharacterStorage();
+  late final PremiumCharacterEntitlement _characterEntitlement;
   late final ActivityRouteSnapshotThumbnailArtifactLifecycle
   _thumbnailArtifactLifecycle;
   late final SystemRuniacHaptics _haptics = SystemRuniacHaptics();
@@ -289,6 +291,15 @@ class _RuniacAppState extends State<RuniacApp> {
     _characterAccessStore = CurrentSessionCharacterAccess(
       repository: widget.characterAccessRepository,
     );
+    // Watches the live account tier so a lapsed subscription drops a
+    // premium-only guide back to a free one without a restart.
+    _characterEntitlement = PremiumCharacterEntitlement(
+      account: _userAccountStore,
+      paywallConfig: _paywallConfigStore,
+      characterAccess: _characterAccessStore,
+      selectedCharacter: _selectedCharacterStore,
+      onReverted: _persistSelectedCharacter,
+    )..start();
     _thumbnailArtifactLifecycle =
         ActivityRouteSnapshotThumbnailArtifactLifecycle(
           initialOwnerUid: initialOwnerUid,
@@ -407,6 +418,8 @@ class _RuniacAppState extends State<RuniacApp> {
     if (_ownsGeneratedPlanStore) {
       _generatedPlanStore.dispose();
     }
+    // Detaches from the four stores before any of them is disposed.
+    _characterEntitlement.dispose();
     _userProgressStore.dispose();
     _userAccountStore.dispose();
     _paywallConfigStore.dispose();
