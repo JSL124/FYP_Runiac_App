@@ -40,13 +40,14 @@ class LeaderboardTab extends StatefulWidget {
 DateTime _systemClock() => DateTime.timestamp().toLocal();
 
 class _LeaderboardTabState extends State<LeaderboardTab> {
-  // Tall enough for the two-line unranked encouragement card in the My Rank
-  // Preview section; device fonts render taller than the test-only font.
-  // Each preview row is sized by `LeaderboardInitialBadge`, so both heights
-  // carry the ~17px per row the enlarged profile badge added: four rows for
-  // the user region (three top ranks plus My Rank), three otherwise.
-  static const double _userRegionExpandedSheetHeight = 540;
-  static const double _regionalExpandedSheetHeight = 425;
+  // The sheet sizes itself to its content and reports the result back, so no
+  // constant can describe it: row count, the presence of the My Rank Preview
+  // section, message-card line wrapping and the device text scale all move it.
+  // These are only the placeholders used for the first frame, before the first
+  // measurement lands — the sheet is fully expanded then, so nothing depends
+  // on them being exact.
+  static const double _userRegionSheetHeightEstimate = 540;
+  static const double _regionalSheetHeightEstimate = 425;
   static const double _collapsedSheetHeight = 46;
   static const _expiredRetryDelays = [
     Duration.zero,
@@ -57,6 +58,7 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
   ];
 
   double _sheetProgress = 1;
+  double? _measuredSheetHeight;
   bool _loading = true;
   Object? _loadError;
   LeaderboardReadModel? _readModel;
@@ -384,21 +386,31 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
               ),
             ),
           ),
+          // Anchored to the full tab area rather than to the sheet's own box:
+          // the sheet has no fixed height any more, and this is what hands it
+          // the bounded height it caps itself against.
           AnimatedPositioned(
             duration: const Duration(milliseconds: 220),
             curve: Curves.easeOutCubic,
             left: 0,
             right: 0,
+            top: 0,
             bottom: -hiddenSheetHeight,
-            child: LeaderboardRegionPreviewSheet(
-              height: expandedSheetHeight,
-              snapshot: snapshot,
-              onVerticalDragUpdate: _handleSheetDragUpdate,
-              onVerticalDragEnd: _handleSheetDragEnd,
-              onViewMoreRanking: _openRankingPage,
-              onShareMyRank: _openShareRankPanel,
-              onProfileSelected: _openRunnerProfile,
-              clock: widget.clock,
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: SizedBox(
+                width: double.infinity,
+                child: LeaderboardRegionPreviewSheet(
+                  snapshot: snapshot,
+                  onVerticalDragUpdate: _handleSheetDragUpdate,
+                  onVerticalDragEnd: _handleSheetDragEnd,
+                  onViewMoreRanking: _openRankingPage,
+                  onShareMyRank: _openShareRankPanel,
+                  onProfileSelected: _openRunnerProfile,
+                  onHeightMeasured: _handleSheetMeasured,
+                  clock: widget.clock,
+                ),
+              ),
             ),
           ),
           if (_loading)
@@ -434,9 +446,19 @@ class _LeaderboardTabState extends State<LeaderboardTab> {
   }
 
   double get _expandedSheetHeight {
-    return _selectedRegion?.isUserRegion == true
-        ? _userRegionExpandedSheetHeight
-        : _regionalExpandedSheetHeight;
+    return _measuredSheetHeight ??
+        (_selectedRegion?.isUserRegion == true
+            ? _userRegionSheetHeightEstimate
+            : _regionalSheetHeightEstimate);
+  }
+
+  void _handleSheetMeasured(double height) {
+    if (!mounted || _measuredSheetHeight == height) {
+      return;
+    }
+    setState(() {
+      _measuredSheetHeight = height;
+    });
   }
 }
 

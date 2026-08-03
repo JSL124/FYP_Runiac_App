@@ -760,7 +760,8 @@ void main() {
           )
           .width;
       // A region that is not the runner's own drops the My Rank Preview row,
-      // so its sheet stays shorter than the user-region sheet (540).
+      // and the sheet is sized by its content, so it comes back shorter than
+      // the user-region sheet.
       expect(sheetHeight, lessThan(455));
       expect(viewMoreWidth, greaterThan(sheetWidth * 0.84));
 

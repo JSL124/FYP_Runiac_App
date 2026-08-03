@@ -63,6 +63,25 @@ Future<void> _pumpTab(WidgetTester tester, LeaderboardReadModel model) async {
   await tester.pumpAndSettle();
 }
 
+// Distance between the bottom of the actions row and the bottom of the sheet.
+// It must stay equal to the sheet's own bottom padding in every status: any
+// more than that is dead space the sheet is holding open for content it is not
+// showing.
+double _slackBelowActions(WidgetTester tester) {
+  return tester
+          .getRect(find.byKey(const Key('leaderboard_sheet_surface')))
+          .bottom -
+      tester
+          .getRect(find.byKey(const Key('leaderboard_view_more_ranking_button')))
+          .bottom;
+}
+
+double _sheetHeight(WidgetTester tester) {
+  return tester
+      .getSize(find.byKey(const Key('leaderboard_sheet_surface')))
+      .height;
+}
+
 void _expectNoErrorCopy() {
   expect(find.text(_initialErrorText), findsNothing);
   expect(find.text(_bannerErrorText), findsNothing);
@@ -156,6 +175,41 @@ void main() {
 
     expect(find.text(leaderboardIneligibleBody), findsOneWidget);
     _expectNoErrorCopy();
+  });
+
+  testWidgets('sheet height tracks the content each status renders', (
+    tester,
+  ) async {
+    const sheetBottomPadding = 14.0;
+
+    // A one-line message card carries far less content than a full board plus
+    // the My Rank Preview section, so no single constant height can close both
+    // without leaving dead space under the actions in one of them.
+    await _pumpTab(
+      tester,
+      _model(status: LeaderboardReadStatus.ineligiblePremium),
+    );
+    final messageStateHeight = _sheetHeight(tester);
+    expect(_slackBelowActions(tester), closeTo(sheetBottomPadding, 0.5));
+
+    await _pumpTab(tester, _model(status: LeaderboardReadStatus.empty));
+    final emptyStateHeight = _sheetHeight(tester);
+    expect(_slackBelowActions(tester), closeTo(sheetBottomPadding, 0.5));
+
+    await _pumpTab(
+      tester,
+      _model(
+        status: LeaderboardReadStatus.data,
+        entries: _sampleBoard,
+        nearbyEntries: _sampleBoard,
+        currentRunnerRankLabel: '#2',
+      ),
+    );
+    final rankedStateHeight = _sheetHeight(tester);
+    expect(_slackBelowActions(tester), closeTo(sheetBottomPadding, 0.5));
+
+    expect(messageStateHeight, lessThan(emptyStateHeight));
+    expect(emptyStateHeight, lessThan(rankedStateHeight));
   });
 }
 

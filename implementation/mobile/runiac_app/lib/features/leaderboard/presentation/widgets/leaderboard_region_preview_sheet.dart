@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/scheduler.dart';
 
 import '../../../../core/theme/runiac_colors.dart';
 import '../../../../core/widgets/runiac_bottom_sheet_handle.dart';
@@ -19,23 +21,27 @@ const String _secondaryActionLabel = 'Share My Rank';
 class LeaderboardRegionPreviewSheet extends StatelessWidget {
   const LeaderboardRegionPreviewSheet({
     super.key,
-    required this.height,
     required this.snapshot,
     required this.onVerticalDragUpdate,
     required this.onVerticalDragEnd,
     required this.onViewMoreRanking,
     required this.onShareMyRank,
     required this.onProfileSelected,
+    required this.onHeightMeasured,
     this.clock,
   });
 
-  final double height;
   final LeaderboardDetailDisplaySnapshot snapshot;
   final GestureDragUpdateCallback onVerticalDragUpdate;
   final GestureDragEndCallback onVerticalDragEnd;
   final VoidCallback onViewMoreRanking;
   final VoidCallback onShareMyRank;
   final ValueChanged<RunnerAchievementProfileSnapshot> onProfileSelected;
+
+  /// Reports the height the sheet actually laid out to. The sheet hugs its
+  /// content, so the collapse animation and the drag maths cannot be derived
+  /// from a constant; the owner feeds this measurement back into both.
+  final ValueChanged<double> onHeightMeasured;
 
   /// Injected clock so the live refresh countdown ticks deterministically in
   /// tests; production falls back to the system clock.
@@ -52,79 +58,154 @@ class LeaderboardRegionPreviewSheet extends StatelessWidget {
         (snapshot.status == LeaderboardReadStatus.data ||
             snapshot.status == LeaderboardReadStatus.unranked);
 
-    return GestureDetector(
-      key: const Key('leaderboard_sheet_surface'),
-      behavior: HitTestBehavior.opaque,
-      onVerticalDragUpdate: onVerticalDragUpdate,
-      onVerticalDragEnd: onVerticalDragEnd,
-      child: SizedBox(
-        height: height,
-        child: DecoratedBox(
-          decoration: const BoxDecoration(
-            color: Color(0xFAFFFFFF),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
-            border: Border.fromBorderSide(BorderSide(color: Color(0x332F50C7))),
-            boxShadow: [
-              BoxShadow(
-                color: Color(0x30172033),
-                blurRadius: 28,
-                offset: Offset(0, -12),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Content-sized, so a short state (a message card, a region with no
+        // My Rank section) never leaves dead space under the actions. The cap
+        // is the space the tab gives us, so an unusually tall state stops at
+        // the top of the tab instead of running off it.
+        final maxSheetHeight = constraints.hasBoundedHeight
+            ? constraints.maxHeight
+            : double.infinity;
+        final previewList = _RegionPreviewList(
+          snapshot: snapshot,
+          onProfileSelected: onProfileSelected,
+        );
+
+        return GestureDetector(
+          key: const Key('leaderboard_sheet_surface'),
+          behavior: HitTestBehavior.opaque,
+          onVerticalDragUpdate: onVerticalDragUpdate,
+          onVerticalDragEnd: onVerticalDragEnd,
+          child: _MeasuredHeight(
+            onHeightMeasured: onHeightMeasured,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: maxSheetHeight),
+              child: DecoratedBox(
+                decoration: const BoxDecoration(
+                  color: Color(0xFAFFFFFF),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+                  border: Border.fromBorderSide(
+                    BorderSide(color: Color(0x332F50C7)),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0x30172033),
+                      blurRadius: 28,
+                      offset: Offset(0, -12),
+                    ),
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const _LeaderboardSheetHandleArea(),
+                      const _LeaderboardAccentStrip(),
+                      const SizedBox(height: 10),
+                      Text(
+                        snapshot.regionName,
+                        style: const TextStyle(
+                          color: RuniacColors.textPrimary,
+                          fontSize: 21,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      LeaderboardRefreshCountdown(
+                        periodEndsAt: snapshot.periodEndsAt,
+                        staticLabel: snapshot.refreshLabel,
+                        live: snapshot.refreshLabelIsLive,
+                        clock: clock,
+                        style: const TextStyle(
+                          color: RuniacColors.primaryBlue,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      // At an outsized text scale the rank list is what gives
+                      // way, so the actions below it stay reachable. Flex is
+                      // only legal against a bounded main axis.
+                      if (constraints.hasBoundedHeight)
+                        Flexible(child: previewList)
+                      else
+                        previewList,
+                      if (showMyRankSection) ...[
+                        const SizedBox(height: 12),
+                        _MyRankPreviewCard(
+                          snapshot: snapshot,
+                          currentUserRow: hasMyRank ? currentUserRow : null,
+                          onProfileSelected: onProfileSelected,
+                        ),
+                      ],
+                      const SizedBox(height: 12),
+                      _RegionPreviewActions(
+                        showShareMyRank: snapshot.isUserRegion,
+                        onViewMoreRanking: onViewMoreRanking,
+                        onShareMyRank: onShareMyRank,
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const _LeaderboardSheetHandleArea(),
-                const _LeaderboardAccentStrip(),
-                const SizedBox(height: 10),
-                Text(
-                  snapshot.regionName,
-                  style: const TextStyle(
-                    color: RuniacColors.textPrimary,
-                    fontSize: 21,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                LeaderboardRefreshCountdown(
-                  periodEndsAt: snapshot.periodEndsAt,
-                  staticLabel: snapshot.refreshLabel,
-                  live: snapshot.refreshLabelIsLive,
-                  clock: clock,
-                  style: const TextStyle(
-                    color: RuniacColors.primaryBlue,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                _RegionPreviewList(
-                  snapshot: snapshot,
-                  onProfileSelected: onProfileSelected,
-                ),
-                if (showMyRankSection) ...[
-                  const SizedBox(height: 12),
-                  _MyRankPreviewCard(
-                    snapshot: snapshot,
-                    currentUserRow: hasMyRank ? currentUserRow : null,
-                    onProfileSelected: onProfileSelected,
-                  ),
-                ],
-                const SizedBox(height: 12),
-                _RegionPreviewActions(
-                  showShareMyRank: snapshot.isUserRegion,
-                  onViewMoreRanking: onViewMoreRanking,
-                  onShareMyRank: onShareMyRank,
-                ),
-              ],
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
+  }
+}
+
+/// Reports its child's laid-out height to the owner after layout settles.
+///
+/// The sheet hugs its content, so its height is only known once it has been
+/// laid out; the owner needs that number to place the collapsed sheet and to
+/// scale drag deltas.
+class _MeasuredHeight extends SingleChildRenderObjectWidget {
+  const _MeasuredHeight({
+    required this.onHeightMeasured,
+    required Widget super.child,
+  });
+
+  final ValueChanged<double> onHeightMeasured;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      _RenderMeasuredHeight(onHeightMeasured);
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    _RenderMeasuredHeight renderObject,
+  ) {
+    renderObject.onHeightMeasured = onHeightMeasured;
+  }
+}
+
+class _RenderMeasuredHeight extends RenderProxyBox {
+  _RenderMeasuredHeight(this.onHeightMeasured);
+
+  ValueChanged<double> onHeightMeasured;
+  double? _reportedHeight;
+
+  @override
+  void performLayout() {
+    super.performLayout();
+    final measuredHeight = size.height;
+    if (_reportedHeight == measuredHeight) {
+      return;
+    }
+    _reportedHeight = measuredHeight;
+    // The owner rebuilds on this callback, which layout itself may not
+    // trigger, so hand the measurement over once the frame has finished.
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (attached) {
+        onHeightMeasured(measuredHeight);
+      }
+    });
   }
 }
 
@@ -227,6 +308,7 @@ class _RegionPreviewList extends StatelessWidget {
       );
     }
     return Column(
+      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _RegionPreviewRankCard(
@@ -265,6 +347,7 @@ class _RegionPreviewRankCard extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             for (var index = 0; index < rows.length; index++) ...[
               _RegionPreviewRankRow(
@@ -459,6 +542,7 @@ class _MyRankPreviewCard extends StatelessWidget {
     final row = currentUserRow;
 
     return Column(
+      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
