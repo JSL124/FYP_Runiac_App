@@ -86,6 +86,7 @@ class UserProfileManageRowReadModel {
 enum UserProfileManageAction {
   snackBar,
   editProfile,
+  runningBuddy,
   notifications,
   watchHealthApps,
   privacySafety,

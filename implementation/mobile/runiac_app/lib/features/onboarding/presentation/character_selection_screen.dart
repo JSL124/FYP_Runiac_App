@@ -7,8 +7,21 @@ import '../../../core/theme/runiac_colors.dart';
 import '../../paywall/presentation/current_session_character_access.dart';
 import '../../paywall/presentation/premium_gate.dart';
 
-/// Warm, playful screen where a new user picks one of four guide characters
-/// before the onboarding question flow begins.
+const _defaultCharacterSelectionSubtitle =
+    "Pick a friendly guide to cheer you on. They'll pop in "
+    'with gentle tips while you set things up. You can enjoy '
+    'any of them — this is just for fun.';
+
+String _defaultCharacterConfirmLabel(RunnerCharacter character) {
+  return "Let's go with ${character.displayName}";
+}
+
+/// Warm, playful screen where a user picks one of four guide characters.
+///
+/// Used twice: as the onboarding step before the question flow (no [header],
+/// default copy), and as the "Running buddy" change screen reached from the
+/// Account tab, which supplies a back [header], its own copy, and the current
+/// choice as [initialSelection].
 ///
 /// The selection is display-only personalization. Confirming calls [onConfirm]
 /// with the chosen character; the caller persists it locally. This screen never
@@ -18,11 +31,25 @@ class CharacterSelectionScreen extends StatefulWidget {
   const CharacterSelectionScreen({
     required this.onConfirm,
     this.initialSelection,
+    this.header,
+    this.title = 'Choose your running buddy',
+    this.subtitle = _defaultCharacterSelectionSubtitle,
+    this.confirmLabelBuilder = _defaultCharacterConfirmLabel,
     super.key,
   });
 
   final ValueChanged<RunnerCharacter> onConfirm;
   final RunnerCharacter? initialSelection;
+
+  /// Optional chrome above the heading — the change flow passes a
+  /// [RuniacBackHeader]. Onboarding leaves it null, since that step has no
+  /// route to go back to.
+  final Widget? header;
+  final String title;
+  final String subtitle;
+
+  /// Builds the confirm button label for the pending choice.
+  final String Function(RunnerCharacter) confirmLabelBuilder;
 
   @override
   State<CharacterSelectionScreen> createState() =>
@@ -137,26 +164,30 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen>
         child: SafeArea(
           child: Column(
             children: [
-              const Padding(
-                padding: EdgeInsets.fromLTRB(24, 24, 24, 8),
+              if (widget.header != null) widget.header!,
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  24,
+                  widget.header == null ? 24 : 4,
+                  24,
+                  8,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Choose your running buddy',
-                      style: TextStyle(
+                      widget.title,
+                      style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.w800,
                         color: RuniacColors.textPrimary,
                         height: 1.15,
                       ),
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
-                      "Pick a friendly guide to cheer you on. They'll pop in "
-                      'with gentle tips while you set things up. You can enjoy '
-                      'any of them — this is just for fun.',
-                      style: TextStyle(
+                      widget.subtitle,
+                      style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                         color: RuniacColors.textSecondary,
@@ -231,7 +262,7 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen>
                         child: Text(
                           selected == null
                               ? 'Pick a buddy to continue'
-                              : "Let's go with ${selected.displayName}",
+                              : widget.confirmLabelBuilder(selected),
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,

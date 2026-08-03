@@ -22,12 +22,17 @@ void main() {
     );
   });
 
+  // Scrolls like AccountProfileScreen does (the section lives inside that
+  // screen's SingleChildScrollView), so the row count is free to grow without
+  // overflowing the default test surface.
   Widget buildManageSection() {
     return MaterialApp(
       home: Scaffold(
-        body: AccountManageSection(
-          rows: accountProfileDemoSnapshot.manageRows,
-          authRepository: FakeRuniacAuthRepository(),
+        body: SingleChildScrollView(
+          child: AccountManageSection(
+            rows: accountProfileDemoSnapshot.manageRows,
+            authRepository: FakeRuniacAuthRepository(),
+          ),
         ),
       ),
     );
@@ -40,6 +45,7 @@ void main() {
 
     expect(find.byType(AboutRuniacScreen), findsNothing);
 
+    await tester.ensureVisible(find.text('About Runiac'));
     await tester.tap(find.text('About Runiac'));
     await tester.pumpAndSettle();
 

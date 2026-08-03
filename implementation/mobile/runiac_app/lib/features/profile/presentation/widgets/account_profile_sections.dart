@@ -11,6 +11,7 @@ import '../data/account_profile_demo_snapshots.dart';
 import '../feedback_screen.dart';
 import '../notification_center_screen.dart';
 import '../privacy_safety_screen.dart';
+import '../running_buddy_screen.dart';
 import '../watch_health_apps_screen.dart';
 import 'account_sign_out_row.dart';
 
@@ -136,6 +137,7 @@ class AccountManageSection extends StatelessWidget {
         for (final row in rows) ...[
           _ManageRow(
             row: row,
+            authRepository: authRepository,
             onEditProfile: onEditProfile,
             onNotificationSettingsChanged: onNotificationSettingsChanged,
             homeGuideConsentRepository: homeGuideConsentRepository,
@@ -198,12 +200,14 @@ class _SetupRow extends StatelessWidget {
 class _ManageRow extends StatelessWidget {
   const _ManageRow({
     required this.row,
+    required this.authRepository,
     required this.homeGuideConsentRepository,
     this.onEditProfile,
     this.onNotificationSettingsChanged,
   });
 
   final AccountProfileManageRow row;
+  final RuniacAuthRepository authRepository;
   final VoidCallback? onEditProfile;
   final VoidCallback? onNotificationSettingsChanged;
   final HomeGuideConsentRepository homeGuideConsentRepository;
@@ -234,6 +238,19 @@ class _ManageRow extends StatelessWidget {
           Navigator.of(context).push(
             MaterialPageRoute<void>(
               builder: (_) => const WatchHealthAppsScreen(),
+            ),
+          );
+          return;
+        }
+        if (row.action == UserProfileManageAction.runningBuddy) {
+          // No paywall intercept on the row itself: the buddy is cosmetic and
+          // every runner keeps a free choice (Bolt, Mila). The per-character
+          // Premium lock lives inside the picker, driven by the same
+          // `config/characterAccess` list onboarding uses.
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) =>
+                  RunningBuddyScreen(authRepository: authRepository),
             ),
           );
           return;

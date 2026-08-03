@@ -68,6 +68,13 @@ const accountProfileDemoSnapshot = AccountProfileDemoSnapshot(
     // Settings is deliberately absent: it lives in the Profile header's
     // overflow menu, not in this list.
     AccountProfileManageRow(
+      icon: Icons.directions_run,
+      title: 'Running buddy',
+      subtitle: 'Change the guide character who cheers you on',
+      snackBarMessage: '',
+      action: UserProfileManageAction.runningBuddy,
+    ),
+    AccountProfileManageRow(
       icon: Icons.shield_outlined,
       title: 'Privacy & Safety',
       subtitle: 'Personalized guide data use and sharing controls',
