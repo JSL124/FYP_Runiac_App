@@ -242,6 +242,16 @@ class _OnboardingFlowScreenState extends State<OnboardingFlowScreen> {
       final selectedDays = _answers[step.answerKey] as Set<String>? ?? {};
       return requiredDays != null && selectedDays.length >= requiredDays;
     }
+    if (step.kind == OnboardingStepKind.multi && step.noneValue != null) {
+      // A multi-select that offers an explicit "none of these" option is a
+      // safety-style screen: leaving it untouched must not silently pass as
+      // an answer, because an empty selection is otherwise indistinguishable
+      // from a deliberate "no symptoms" pick downstream (SafetyGateResolver
+      // treats absent and empty answers the same way). Require the user to
+      // tap something — including "none of these" — before continuing.
+      final selected = _answers[step.answerKey] as Set<String>? ?? {};
+      return selected.isNotEmpty;
+    }
     return true;
   }
 
