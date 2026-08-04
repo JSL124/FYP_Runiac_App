@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_back_header.dart';
 import '../../../core/widgets/runiac_buttons.dart';
+import '../../paywall/presentation/premium_paywall_sheet.dart';
 import '../../profile/presentation/widgets/runner_profile_avatar_link.dart';
 import '../domain/challenge_copy.dart';
 import '../domain/challenge_countdown.dart';
@@ -15,6 +16,7 @@ import '../domain/models/challenge_enums.dart';
 import '../domain/models/challenge_participant_row.dart';
 import '../domain/repositories/challenge_repository.dart';
 import 'widgets/challenge_badge_image.dart';
+import 'widgets/challenge_premium_lapse_banner.dart';
 import 'widgets/challenge_widgets.dart';
 
 /// The active-challenge Progress surface: team-progress ring, personal-minimum
@@ -382,6 +384,12 @@ class _ChallengeProgressScreenState extends State<ChallengeProgressScreen> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
             children: [
+              // Above the ring on purpose: a runner about to lose the challenge
+              // should see that before they see their progress in it.
+              ChallengePremiumLapseBanner(
+                hold: challenge.premiumHold,
+                onUpgrade: () => PremiumPaywallSheet.show(context),
+              ),
               Center(
                 child: _TeamProgressRing(
                   tierId: challenge.tierId,

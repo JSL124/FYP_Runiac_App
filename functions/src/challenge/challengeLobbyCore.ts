@@ -501,6 +501,12 @@ export async function respondToChallengeInvitationForCallable(
   const uid = requireAuthUid(request);
   const inviteId = requireInviteId(request.data);
   const response = requireResponse(request.data);
+  // Entitlement gate (config/challengeAccess), the acceptance half of the gate
+  // `createChallengeLobby` applies at creation: a premium-only tier requires
+  // premium of every participant, not only of the runner who opened the lobby.
+  // Loaded outside the transaction for the same reason it is there — the config
+  // document is not part of the transactional state.
+  const premiumOnlyTiers = (await loadChallengeAccessConfig(firestore)).premiumOnlyTiers;
 
   const result = await firestore.runTransaction(async (transaction) => {
     // Defence-in-depth (see accountStatus.ts): this callable never otherwise
@@ -518,6 +524,9 @@ export async function respondToChallengeInvitationForCallable(
     const loaded = await loadLobby(transaction, firestore, challengeId);
     const recipientSlotSnap = await transaction.get(slotRef(firestore, uid));
     const profileSnap = await transaction.get(profileRef(firestore, uid));
+    // Needed only on the accept path, but reads must precede writes and the
+    // lazy-expiry seam below can write.
+    const recipientUserSnap = await transaction.get(firestore.doc(`users/${uid}`));
     // Reciprocal relationship read up front (needed only for accept, but reads
     // must precede writes).
     const relationship = await readReciprocalRelationship(
@@ -561,6 +570,18 @@ export async function respondToChallengeInvitationForCallable(
     // accept
     if (recipientSlotSnap.exists) throw challengeError("ALREADY_HOLDS_SLOT");
     if (relationship.kind !== "allowed_friend") throw challengeError("NOT_RECIPROCAL_FRIEND");
+    // Declining is never gated: it is not entitled access, and rejecting it
+    // would strand the invitation as PENDING until it expired. The INVITE path
+    // is not gated either, deliberately — refusing to send an invitation to a
+    // Basic friend would disclose that friend's subscription status to the
+    // owner. The recipient learns it about themselves, here, and the client
+    // turns this reason into their own paywall.
+    if (
+      premiumOnlyTiers.includes(readString(loaded.data, "tierId")) &&
+      !isPremiumSubscription(recipientUserSnap.data(), nowMs)
+    ) {
+      throw challengeError("PREMIUM_REQUIRED");
+    }
     const maxParticipants = readNumber(loaded.data, "maxParticipants");
     if (loaded.roster.length >= maxParticipants) throw challengeError("LOBBY_FULL");
 
@@ -847,6 +868,11 @@ export type ActiveChallengeView = {
     readonly instance: ChallengeInstanceView;
     readonly participants: readonly ChallengeParticipantView[];
   } | null;
+  // The CALLER's own premium-lapse grace window, or null. Never another roster
+  // member's: `challengePremiumHolds` is denied to every client precisely so
+  // that one runner's subscription state is not visible to their lobby-mates,
+  // and this relay keeps that property by reading only `{uid}`.
+  readonly premiumHold: { readonly graceExpiresAtMs: number } | null;
 };
 
 export async function getActiveChallengeForCallable(
@@ -862,16 +888,24 @@ export async function getActiveChallengeForCallable(
 
   return firestore.runTransaction(async (transaction) => {
     const nowMs = Date.now();
-    const slotSnap = await transaction.get(slotRef(firestore, uid));
-    if (!slotSnap.exists) return { challenge: null };
+    const [slotSnap, holdSnap] = await transaction.getAll(
+      slotRef(firestore, uid),
+      firestore.doc(`challengePremiumHolds/${uid}`),
+    );
+    const premiumHold =
+      holdSnap !== undefined && holdSnap.exists
+        ? { graceExpiresAtMs: timestampToMillis(holdSnap.data()?.["graceExpiresAt"]) }
+        : null;
+
+    if (slotSnap === undefined || !slotSnap.exists) return { challenge: null, premiumHold };
     const challengeId = readString(slotSnap.data(), "challengeId");
-    if (challengeId.length === 0) return { challenge: null };
+    if (challengeId.length === 0) return { challenge: null, premiumHold };
 
     let loaded: LoadedLobby;
     try {
       loaded = await loadLobby(transaction, firestore, challengeId);
     } catch {
-      return { challenge: null };
+      return { challenge: null, premiumHold };
     }
 
     if (
@@ -879,7 +913,7 @@ export async function getActiveChallengeForCallable(
       shouldExpireLobby({ status: loaded.status, lobbyExpiresAtMs: loaded.lobbyExpiresAtMs, nowMs })
     ) {
       applyLobbyExpiry(transaction, firestore, loaded, challengeId, nowMs);
-      return { challenge: null };
+      return { challenge: null, premiumHold };
     }
 
     // Level and avatar are both backend-owned and display-only: resolve each
@@ -898,6 +932,7 @@ export async function getActiveChallengeForCallable(
         instance: serializeInstance(challengeId, loaded.data),
         participants: sortedParticipantViews(loaded.participants, liveDisplayByUid),
       },
+      premiumHold,
     };
   });
 }

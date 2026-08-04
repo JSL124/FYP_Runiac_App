@@ -108,6 +108,15 @@ const grantDoc = () => ({
   grantedAt: 88,
 });
 
+const holdDoc = () => ({
+  uid: 'alice',
+  challengeId: CHALLENGE_ID,
+  tierId: TIER_ID,
+  role: 'owner',
+  lapsedAt: 88,
+  graceExpiresAt: 99,
+});
+
 async function seedActiveChallenge() {
   await seed(`challengeInstances/${CHALLENGE_ID}`, instanceDoc('ACTIVE'));
   await seed(`challengeInstances/${CHALLENGE_ID}/participants/alice`, participantDoc('alice', 'owner'));
@@ -118,6 +127,7 @@ async function seedActiveChallenge() {
   await seed(`users/alice/challengeHistory/${CHALLENGE_ID}`, historyDoc());
   await seed(`users/alice/challengeBadges/${TIER_ID}`, badgeDoc());
   await seed(`challengeRewardGrants/${CHALLENGE_ID}_alice`, grantDoc());
+  await seed('challengePremiumHolds/alice', holdDoc());
 }
 
 describe('trusted Challenge Firestore rules — member reads', () => {
@@ -214,6 +224,19 @@ describe('trusted Challenge Firestore rules — denied reads', () => {
     await assertFails(getDoc(doc(dbFor('carol'), `challengeInvitations/${INVITE_ID}`)));
     await assertFails(getDocs(query(collection(dbFor('alice'), 'challengeSlots'), limit(20))));
   });
+
+  it('denies premium-lapse holds to every client, including the runner they belong to', async () => {
+    // Stricter than challengeSlots on purpose: a readable hold would expose
+    // that a runner's subscription lapsed, and — because the id is the uid — a
+    // lobby-mate could probe for it directly. The runner sees their own grace
+    // window only through the getActiveChallenge callable.
+    await seedActiveChallenge();
+
+    await assertFails(getDoc(doc(dbFor('alice'), 'challengePremiumHolds/alice')));
+    await assertFails(getDoc(doc(dbFor('bob'), 'challengePremiumHolds/alice')));
+    await assertFails(getDoc(doc(dbFor('carol'), 'challengePremiumHolds/alice')));
+    await assertFails(getDocs(query(collection(dbFor('alice'), 'challengePremiumHolds'), limit(20))));
+  });
 });
 
 describe('trusted Challenge Firestore rules — all client writes denied', () => {
@@ -251,6 +274,12 @@ describe('trusted Challenge Firestore rules — all client writes denied', () =>
     await assertFails(setDoc(doc(alice, `users/alice/challengeHistory/${CHALLENGE_ID}`), historyDoc()));
     await assertFails(setDoc(doc(alice, `users/alice/challengeBadges/${TIER_ID}`), badgeDoc()));
     await assertFails(deleteDoc(doc(alice, `users/alice/challengeBadges/${TIER_ID}`)));
+
+    // A client must not be able to grant itself an unlimited grace window, nor
+    // delete a hold to escape eviction.
+    await assertFails(setDoc(doc(alice, 'challengePremiumHolds/alice'), holdDoc()));
+    await assertFails(updateDoc(doc(alice, 'challengePremiumHolds/alice'), { graceExpiresAt: 99999999 }));
+    await assertFails(deleteDoc(doc(alice, 'challengePremiumHolds/alice')));
   });
 });
 

@@ -9,6 +9,7 @@ import '../domain/models/challenge_invitation_summary.dart';
 import '../domain/models/challenge_parse.dart';
 import '../domain/models/challenge_parse_exception.dart';
 import '../domain/models/challenge_participant_row.dart';
+import '../domain/models/challenge_premium_hold.dart';
 import '../domain/models/challenge_rules_snapshot.dart';
 import '../domain/models/challenge_tier.dart';
 import '../domain/repositories/challenge_repository.dart';
@@ -45,6 +46,7 @@ ActiveChallenge? mapActiveChallengeView(
   required String? currentUid,
   Map<String, String> avatarUrlSeed = const <String, String>{},
   Map<String, int> levelProgressPercentSeed = const <String, int>{},
+  ChallengePremiumHold? premiumHold,
 }) {
   if (view == null) {
     return null;
@@ -67,7 +69,11 @@ ActiveChallenge? mapActiveChallengeView(
       ...view,
       'participants': seededParticipants,
     };
-    return ActiveChallenge.fromChallengeMap(seededView, currentUid: currentUid);
+    return ActiveChallenge.fromChallengeMap(
+      seededView,
+      currentUid: currentUid,
+      premiumHold: premiumHold,
+    );
   } on ChallengeParseException catch (error) {
     throw ChallengeFailure(
       reason: 'INVALID_RESPONSE',
@@ -209,6 +215,10 @@ class FirebaseChallengeRepository implements ChallengeRepository {
       return ActiveChallenge.fromChallengeMap(
         ChallengeParse.asMap(challenge, field: 'challenge'),
         currentUid: currentUid(),
+        // Sibling of `challenge`, scoped to the caller by the callable. The
+        // hold document itself is unreadable from any client, so this response
+        // is the only channel through which the app can learn about it.
+        premiumHold: ChallengePremiumHold.fromMap(data['premiumHold']),
       );
     });
   }
@@ -270,8 +280,16 @@ class FirebaseChallengeRepository implements ChallengeRepository {
     var levelLabelSeed = const <String, String>{};
     var avatarUrlSeed = const <String, String>{};
     var levelProgressPercentSeed = const <String, int>{};
+    // Same hybrid as the level/avatar seeds: the live Firestore snapshots
+    // cannot carry the premium hold, because `challengePremiumHolds` is denied
+    // to every client, so the callable seed is the only source. A runner who
+    // lapses DURING an open stream therefore sees the warning on the next
+    // callable refresh rather than instantly — an accepted limitation, and a
+    // benign one against a 24-hour window.
+    ChallengePremiumHold? premiumHoldSeed;
     try {
       final seeded = await activeChallenge();
+      premiumHoldSeed = seeded?.premiumHold;
       levelLabelSeed = <String, String>{
         for (final row
             in seeded?.participants ?? const <ChallengeParticipantRow>[])
@@ -300,6 +318,7 @@ class FirebaseChallengeRepository implements ChallengeRepository {
             avatarUrlSeed: avatarUrlSeed,
             levelProgressPercentSeed: levelProgressPercentSeed,
             currentUid: currentUid(),
+            premiumHold: premiumHoldSeed,
           ),
         );
   }

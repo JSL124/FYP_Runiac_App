@@ -186,7 +186,11 @@ enum ChallengeTerminalReason {
   deadlineFailed('DEADLINE_FAILED'),
   ownerAbandoned('OWNER_ABANDONED'),
   lobbyCancelled('LOBBY_CANCELLED'),
-  lobbyExpired('LOBBY_EXPIRED');
+  lobbyExpired('LOBBY_EXPIRED'),
+
+  /// The owner's premium subscription lapsed on a premium-only tier and no
+  /// remaining participant was eligible to inherit the challenge.
+  ownerPremiumLapsed('OWNER_PREMIUM_LAPSED');
 
   const ChallengeTerminalReason(this.wireValue);
 
@@ -199,6 +203,7 @@ enum ChallengeTerminalReason {
       'OWNER_ABANDONED' => ChallengeTerminalReason.ownerAbandoned,
       'LOBBY_CANCELLED' => ChallengeTerminalReason.lobbyCancelled,
       'LOBBY_EXPIRED' => ChallengeTerminalReason.lobbyExpired,
+      'OWNER_PREMIUM_LAPSED' => ChallengeTerminalReason.ownerPremiumLapsed,
       _ => throw ChallengeParseException('unknown_terminal_reason',
           field: 'terminalReason'),
     };

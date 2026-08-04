@@ -159,9 +159,17 @@ export function transitionInvitation(
 // Participant state machine
 // ---------------------------------------------------------------------------
 
-// LEAVE/WITHDRAW are self-service exits; the owner may never leave individually
-// (they abandon the whole instance instead).
-const PARTICIPANT_SELF_EXIT_ACTIONS: readonly ParticipantAction["type"][] = ["WITHDRAW", "LEAVE"];
+// Actions that may never be applied to an owner. LEAVE/WITHDRAW are the
+// self-service exits (the owner abandons the whole instance instead). REMOVE is
+// a system action rather than a self-exit, but it is guarded identically on
+// purpose: it makes "an owner is never silently dropped out of their own
+// challenge" a property of the machine, so the premium-lapse eviction path is
+// forced either to transfer ownership first or to cancel the instance.
+const PARTICIPANT_OWNER_BLOCKED_ACTIONS: readonly ParticipantAction["type"][] = [
+  "WITHDRAW",
+  "LEAVE",
+  "REMOVE",
+];
 
 function participantEdge(
   state: ParticipantState,
@@ -170,11 +178,13 @@ function participantEdge(
   if (state === "ACCEPTED") {
     if (action === "ACTIVATE") return { to: "ACTIVE", actors: ["system"] };
     if (action === "WITHDRAW") return { to: "LEFT", actors: ["self"] };
+    if (action === "REMOVE") return { to: "LEFT", actors: ["system"] };
     if (action === "CANCEL") return { to: "CANCELLED", actors: ["system"] };
     return null;
   }
   if (state === "ACTIVE") {
     if (action === "LEAVE") return { to: "LEFT", actors: ["self"] };
+    if (action === "REMOVE") return { to: "LEFT", actors: ["system"] };
     if (action === "CANCEL") return { to: "CANCELLED", actors: ["system"] };
     if (action === "SETTLE_SUCCEEDED") return { to: "SUCCEEDED", actors: ["system"] };
     if (action === "SETTLE_INELIGIBLE") return { to: "INELIGIBLE", actors: ["system"] };
@@ -193,7 +203,7 @@ export function transitionParticipant(
   const edge = participantEdge(context.state, action.type);
   if (edge === null) return fail({ ok: false, error: "ILLEGAL_TRANSITION" });
   if (!actorAllowed(actor, edge.actors)) return fail({ ok: false, error: "FORBIDDEN_ACTOR" });
-  if (PARTICIPANT_SELF_EXIT_ACTIONS.includes(action.type) && context.role === "owner") {
+  if (PARTICIPANT_OWNER_BLOCKED_ACTIONS.includes(action.type) && context.role === "owner") {
     return fail({ ok: false, error: "OWNER_CANNOT_LEAVE" });
   }
   return ok(edge.to);

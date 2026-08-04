@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_back_header.dart';
 import '../../../core/widgets/runiac_buttons.dart';
+import '../../paywall/presentation/premium_gate.dart';
 import '../domain/challenge_copy.dart';
 import '../domain/challenge_countdown.dart';
 import '../domain/models/challenge_invitation_summary.dart';
@@ -292,6 +293,17 @@ class _ChallengeInvitationDetailScreenState
         return;
       }
       setState(() => _busy = false);
+      if (failure.reason == 'PREMIUM_REQUIRED') {
+        // Premium-only tiers now require premium of invited members too, and
+        // the invite path is deliberately not gated (that would tell the owner
+        // which friends are not paying), so this is where a Basic recipient
+        // first learns of it. Same treatment as tier detail: prefer the
+        // paywall, fall back to copy when the sheet cannot show.
+        if (!interceptWithPaywallIfBasic(context)) {
+          _showError(ChallengeCopy.failureMessage(failure.reason));
+        }
+        return;
+      }
       _showError(ChallengeCopy.failureMessage(failure.reason));
     } catch (_) {
       if (!mounted) {

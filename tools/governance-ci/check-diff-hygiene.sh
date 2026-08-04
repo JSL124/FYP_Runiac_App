@@ -97,6 +97,35 @@ is_challenge_distance_system_path() {
   esac
 }
 
+is_challenge_premium_lapse_capsule_active() {
+  grep -Eq '^- Newly routed challenge premium-lapse eviction on 2026-08-04 Asia/Singapore: `implementation/roadmap/capsules/challenge-premium-lapse-eviction\.md`' implementation/roadmap/CURRENT.md
+}
+
+# Paths touched by the routed challenge premium-lapse eviction capsule. Most of
+# the challenge surface is already claimed by is_challenge_distance_system_path
+# above; this predicate adds the two paths that capsule does not cover — the
+# subscription-expiry sweep this one hooks into, and this capsule's own routing
+# document — and restates the challenge paths so the allowlist still holds if
+# the distance-system routing line is ever superseded.
+is_challenge_premium_lapse_path() {
+  case "$1" in
+    implementation/roadmap/capsules/challenge-premium-lapse-eviction.md|\
+    functions/src/challenge/*|\
+    functions/test/challenge*.ts|\
+    functions/src/progression/subscriptionExpiryCore.ts|\
+    functions/test/subscriptionExpiry.test.ts|\
+    functions/src/index.ts|\
+    functions/package.json|\
+    firestore.rules|\
+    tests/firebase-rules/challenge.firestore.rules.test.mjs)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_cool_down_stretch_xp_bonus_capsule_active() {
   grep -Eq '^- Newly routed cool-down stretch completion XP bonus on 2026-07-14 Asia/Singapore: `implementation/roadmap/capsules/cool-down-stretch-completion-xp-bonus\.md`' implementation/roadmap/CURRENT.md
 }
@@ -1443,6 +1472,11 @@ is_allowed_path() {
     return 0
   fi
 
+  if is_challenge_premium_lapse_path "$1" && is_challenge_premium_lapse_capsule_active; then
+    return 0
+  fi
+
+
   if is_cool_down_stretch_xp_bonus_path "$1" && is_cool_down_stretch_xp_bonus_capsule_active; then
     return 0
   fi
@@ -1770,6 +1804,11 @@ is_forbidden_path() {
   if is_challenge_distance_system_path "$1" && is_challenge_distance_system_capsule_active; then
     return 1
   fi
+
+  if is_challenge_premium_lapse_path "$1" && is_challenge_premium_lapse_capsule_active; then
+    return 1
+  fi
+
 
   if is_cool_down_stretch_xp_bonus_path "$1" && is_cool_down_stretch_xp_bonus_capsule_active; then
     return 1

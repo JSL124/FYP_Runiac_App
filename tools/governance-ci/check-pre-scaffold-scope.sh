@@ -239,6 +239,29 @@ is_challenge_distance_system_functions_path() {
   esac
 }
 
+is_challenge_premium_lapse_capsule_active() {
+  grep -Eq '^- Newly routed challenge premium-lapse eviction on 2026-08-04 Asia/Singapore: `implementation/roadmap/capsules/challenge-premium-lapse-eviction\.md`' implementation/roadmap/CURRENT.md
+}
+
+# New files introduced by the routed challenge premium-lapse eviction capsule.
+# functions/src/challenge/* and functions/test/challenge*.ts already sit under
+# is_challenge_distance_system_functions_path; this predicate additionally
+# covers the capsule's own routing document, for symmetry with the diff-hygiene
+# allowlist.
+is_challenge_premium_lapse_path() {
+  case "$1" in
+    implementation/roadmap/capsules/challenge-premium-lapse-eviction.md|\
+    functions/src/challenge/challengePremiumLapse.ts|\
+    functions/src/challenge/challengePremiumLapseTrigger.ts|\
+    functions/test/challengePremiumLapse.test.ts)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_cool_down_stretch_xp_bonus_capsule_active() {
   grep -Eq '^- Newly routed cool-down stretch completion XP bonus on 2026-07-14 Asia/Singapore: `implementation/roadmap/capsules/cool-down-stretch-completion-xp-bonus\.md`' implementation/roadmap/CURRENT.md
 }
@@ -992,6 +1015,11 @@ is_forbidden_config_or_secret() {
   if is_run_payload_pace_consistency_path "$1" && is_run_payload_pace_consistency_capsule_active; then
     return 1
   fi
+
+  if is_challenge_premium_lapse_path "$1" && is_challenge_premium_lapse_capsule_active; then
+    return 1
+  fi
+
 
   if is_exception_queue_moderation_path "$1" && is_exception_queue_moderation_capsule_active; then
     return 1

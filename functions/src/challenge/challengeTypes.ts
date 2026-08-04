@@ -94,7 +94,11 @@ export type ChallengeTerminalReason =
   | "DEADLINE_FAILED"
   | "OWNER_ABANDONED"
   | "LOBBY_CANCELLED"
-  | "LOBBY_EXPIRED";
+  | "LOBBY_EXPIRED"
+  // The owner's premium subscription lapsed on a premium-only tier and no
+  // remaining participant was eligible to inherit the instance. Distinct from
+  // OWNER_ABANDONED because the owner did not choose to end it.
+  | "OWNER_PREMIUM_LAPSED";
 
 // ---------------------------------------------------------------------------
 // State machine actors, actions, and results
@@ -139,6 +143,11 @@ export type ParticipantAction =
   | { readonly type: "ACTIVATE" }
   | { readonly type: "WITHDRAW" }
   | { readonly type: "LEAVE" }
+  // Server-initiated removal (premium-lapse eviction). Same destination as
+  // LEAVE, but only `system` may perform it, and — like the self-exits — it
+  // may never be applied to an owner, so the eviction path has to transfer
+  // ownership (demoting them to `member`) or cancel the instance first.
+  | { readonly type: "REMOVE" }
   | { readonly type: "CANCEL" }
   | { readonly type: "SETTLE_SUCCEEDED" }
   | { readonly type: "SETTLE_INELIGIBLE" }
@@ -222,6 +231,23 @@ export type ChallengeSlotDoc = {
   readonly tierId: ChallengeTierId;
   readonly role: ParticipantRole;
   readonly reservedAt: ServerTimestamp;
+};
+
+// challengePremiumHolds/{uid} — the premium-lapse grace window.
+//
+// Written only by the server, denied to every client in `firestore.rules`. It
+// is keyed by uid, not by challenge, because `challengeSlots/{uid}` already
+// guarantees at most one live challenge per runner. It is deliberately NOT
+// stored on the participant document: that subcollection is readable by every
+// roster member, so a field there would broadcast one runner's subscription
+// state to their whole challenge.
+export type ChallengePremiumHoldDoc = {
+  readonly uid: string;
+  readonly challengeId: string;
+  readonly tierId: string;
+  readonly role: ParticipantRole;
+  readonly lapsedAt: ServerTimestamp;
+  readonly graceExpiresAt: ServerTimestamp;
 };
 
 // challengeRewardGrants/{challengeId_uid} — idempotent grant ledger.

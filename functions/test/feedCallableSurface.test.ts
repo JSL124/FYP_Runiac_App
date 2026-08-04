@@ -19,6 +19,10 @@ const expectedExports = [
   "activityFeedbackAgent",
   "blockUser",
   "cancelChallengeLobby",
+  // users/{uid} update trigger opening/clearing the challenge premium-lapse
+  // grace hold. Deploying it is what makes an admin-console downgrade visible
+  // to the challenge system at all.
+  "challengeSubscriptionChanged",
   "cancelFriendRequest",
   "checkNicknameAvailability",
   "cleanupDeletedFeedActivity",

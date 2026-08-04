@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:runiac_app/features/challenge/domain/challenge_copy.dart';
 import 'package:runiac_app/features/challenge/domain/challenge_countdown.dart';
 import 'package:runiac_app/features/challenge/domain/models/active_challenge.dart';
 import 'package:runiac_app/features/challenge/domain/models/challenge_enums.dart';
 import 'package:runiac_app/features/challenge/domain/models/challenge_participant_row.dart';
+import 'package:runiac_app/features/challenge/domain/models/challenge_premium_hold.dart';
 import 'package:runiac_app/features/challenge/domain/models/challenge_rules_snapshot.dart';
 import 'package:runiac_app/features/challenge/domain/repositories/challenge_repository.dart';
 import 'package:runiac_app/features/challenge/presentation/challenge_progress_screen.dart';
@@ -79,8 +81,10 @@ ActiveChallenge _challenge({
   required bool isCurrentUserOwner,
   required String ownerUid,
   ChallengeInstanceStatus status = ChallengeInstanceStatus.active,
+  ChallengePremiumHold? premiumHold,
 }) {
   return ActiveChallenge(
+    premiumHold: premiumHold,
     challengeId: _challengeId,
     ownerUid: ownerUid,
     tierId: rules.tierId,
@@ -246,6 +250,59 @@ Future<void> _pump(
 }
 
 void main() {
+  testWidgets('no premium-lapse warning for a runner in good standing', (
+    tester,
+  ) async {
+    final repository = FakeChallengeRepository(activeOverride: _solo);
+    await _pump(tester, repository);
+
+    // The banner collapses to a zero-extent box, which a lazy sliver list may
+    // not even keep in the tree — the contract that matters is that nothing
+    // about it is visible. `renders nothing when there is no hold` in
+    // challenge_premium_lapse_ui_test.dart covers the widget itself.
+    expect(find.text(ChallengeCopy.premiumLapseTitle), findsNothing);
+    expect(find.text(ChallengeCopy.premiumLapseCta), findsNothing);
+  });
+
+  testWidgets('premium-lapse warning renders above the progress ring', (
+    tester,
+  ) async {
+    // The relay is server-scoped to the caller, so a rendered banner always
+    // concerns the runner looking at it — never a lobby-mate.
+    final lapsed = _challenge(
+      mode: ChallengeMode.solo,
+      rules: _rulesSolo,
+      teamMeters: 6000,
+      rosterUids: const <String>['me'],
+      ownerUid: 'me',
+      isCurrentUserOwner: true,
+      participants: <ChallengeParticipantRow>[
+        _row(
+          uid: 'me',
+          name: 'Runner Me',
+          initials: 'ME',
+          role: ChallengeParticipantRole.owner,
+          status: ChallengeParticipantStatus.active,
+          meters: 6000,
+          isCurrentUser: true,
+        ),
+      ],
+      premiumHold: ChallengePremiumHold(
+        graceExpiresAtMs:
+            DateTime.now().add(const Duration(hours: 8)).millisecondsSinceEpoch,
+      ),
+    );
+    final repository = FakeChallengeRepository(activeOverride: () => lapsed);
+    await _pump(tester, repository);
+
+    expect(find.text(ChallengeCopy.premiumLapseTitle), findsOneWidget);
+    expect(find.text(ChallengeCopy.premiumLapseCta), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.text(ChallengeCopy.premiumLapseTitle)).dy,
+      lessThan(tester.getTopLeft(find.byType(ChallengeBadgeImage).first).dy),
+    );
+  });
+
   testWidgets('solo variant shows Solo challenge and no personal-minimum bar', (
     tester,
   ) async {

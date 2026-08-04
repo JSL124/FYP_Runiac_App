@@ -17,6 +17,7 @@
 import { Timestamp, type Firestore } from "firebase-admin/firestore";
 
 import { isPremiumSubscription } from "./progressionAuditHelpers.js";
+import { syncChallengePremiumHold } from "../challenge/challengePremiumLapse.js";
 
 const ADMIN_AUDIT_LOGS = "adminAuditLogs";
 const USER_PROFILES = "userProfiles";
@@ -179,6 +180,20 @@ export async function runSubscriptionExpirySweep(
 
     if (applied) {
       expiredCount += 1;
+      // A materialised downgrade is a lapse for challenge purposes too. The
+      // same shared core runs from the `users/{uid}` update trigger, which this
+      // write also fires; calling it here as well is deliberate belt-and-braces
+      // and costs nothing, because opening a hold is idempotent and never
+      // extends an existing one. Failure to open a hold must not fail the
+      // downgrade itself, which is the more important of the two writes.
+      try {
+        await syncChallengePremiumHold(firestore, candidate.id, nowMs);
+      } catch (error) {
+        console.warn(
+          `subscriptionExpiry: challenge premium hold sync failed for ${candidate.id}`,
+          error,
+        );
+      }
     }
   }
 

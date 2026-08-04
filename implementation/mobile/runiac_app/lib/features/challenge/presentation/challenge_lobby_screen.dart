@@ -6,6 +6,7 @@ import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_back_header.dart';
 import '../../../core/widgets/runiac_buttons.dart';
 import '../../../core/widgets/runiac_level_profile_badge.dart';
+import '../../paywall/presentation/premium_paywall_sheet.dart';
 import '../../profile/presentation/widgets/runner_profile_avatar_link.dart';
 import '../domain/challenge_copy.dart';
 import '../domain/challenge_countdown.dart';
@@ -17,6 +18,7 @@ import '../domain/repositories/challenge_repository.dart';
 import 'challenge_friend_picker_screen.dart';
 import 'challenge_progress_screen.dart';
 import 'widgets/challenge_badge_image.dart';
+import 'widgets/challenge_premium_lapse_banner.dart';
 import 'widgets/challenge_widgets.dart';
 
 /// The RECRUITING lobby: roster, closes-in countdown, owner start/cancel/invite
@@ -450,6 +452,13 @@ class _ChallengeLobbyScreenState extends State<ChallengeLobbyScreen> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
+        // A lapse inside a still-recruiting lobby is the same 24h window, and
+        // for an owner the stakes are higher: with no eligible member to
+        // inherit it, the lobby is cancelled rather than handed over.
+        ChallengePremiumLapseBanner(
+          hold: challenge.premiumHold,
+          onUpgrade: () => PremiumPaywallSheet.show(context),
+        ),
         Row(
           children: [
             ChallengeBadgeImage(tierId: challenge.tierId, size: 56),

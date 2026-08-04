@@ -250,12 +250,18 @@ const PARTICIPANT_PERMITTED: readonly ParticipantPermitted[] = [
   { from: "ACTIVE", role: "owner", action: { type: "SETTLE_SUCCEEDED" }, actor: "system", to: "SUCCEEDED" },
   { from: "ACTIVE", role: "member", action: { type: "SETTLE_INELIGIBLE" }, actor: "system", to: "INELIGIBLE" },
   { from: "ACTIVE", role: "member", action: { type: "SETTLE_FAILED" }, actor: "system", to: "FAILED" },
+  // Server-initiated removal (premium-lapse eviction). Same destination as a
+  // self-service LEAVE, but only the system may perform it, from either
+  // pre-start (ACCEPTED) or in-flight (ACTIVE) participation.
+  { from: "ACCEPTED", role: "member", action: { type: "REMOVE" }, actor: "system", to: "LEFT" },
+  { from: "ACTIVE", role: "member", action: { type: "REMOVE" }, actor: "system", to: "LEFT" },
 ];
 
 const PARTICIPANT_ALL_ACTIONS: readonly ParticipantAction[] = [
   { type: "ACTIVATE" },
   { type: "WITHDRAW" },
   { type: "LEAVE" },
+  { type: "REMOVE" },
   { type: "CANCEL" },
   { type: "SETTLE_SUCCEEDED" },
   { type: "SETTLE_INELIGIBLE" },
@@ -317,6 +323,21 @@ describe("participant state machine — rejections leave source unchanged", () =
       actor("self"),
     );
     assertRejectedContext(ownerWithdraw, "OWNER_CANNOT_LEAVE", { state: "ACCEPTED", role: "owner" });
+  });
+
+  it("rejects removing an owner, so eviction must demote before it removes", () => {
+    // REMOVE is a system action, not a self-exit, but it stays subject to the
+    // owner guard on purpose: it makes "an owner is never silently dropped out
+    // of their own challenge" a machine-checked invariant. The premium-lapse
+    // eviction path must either transfer ownership first (demoting this
+    // participant to `member`) or cancel the whole instance.
+    for (const state of ["ACCEPTED", "ACTIVE"] as const) {
+      assertRejectedContext(
+        transitionParticipant({ state, role: "owner" }, { type: "REMOVE" }, actor("system")),
+        "OWNER_CANNOT_LEAVE",
+        { state, role: "owner" },
+      );
+    }
   });
 
   it("rejects actions with no edge from the current non-terminal state", () => {

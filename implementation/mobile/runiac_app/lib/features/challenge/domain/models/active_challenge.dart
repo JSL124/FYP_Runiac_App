@@ -2,6 +2,7 @@ import 'challenge_enums.dart';
 import 'challenge_parse.dart';
 import 'challenge_parse_exception.dart';
 import 'challenge_participant_row.dart';
+import 'challenge_premium_hold.dart';
 import 'challenge_rules_snapshot.dart';
 
 /// The caller's current live Challenge (recruiting, active, or settling), as
@@ -28,6 +29,7 @@ class ActiveChallenge {
     required this.terminalReason,
     required this.participants,
     required this.isCurrentUserOwner,
+    this.premiumHold,
   });
 
   final String challengeId;
@@ -49,6 +51,11 @@ class ActiveChallenge {
   final List<ChallengeParticipantRow> participants;
   final bool isCurrentUserOwner;
 
+  /// The CALLER's own premium-lapse grace window, or null. Never any other
+  /// roster member's: it is relayed as a sibling of `challenge` in the
+  /// `getActiveChallenge` response and is scoped to the caller server-side.
+  final ChallengePremiumHold? premiumHold;
+
   bool get isSettling => status == ChallengeInstanceStatus.settling;
 
   DateTime? get scheduledEndsAt => scheduledEndsAtMs == null
@@ -63,6 +70,7 @@ class ActiveChallenge {
   static ActiveChallenge fromChallengeMap(
     Map<String, Object?> map, {
     required String? currentUid,
+    ChallengePremiumHold? premiumHold,
   }) {
     final instance = ChallengeParse.asMap(map['instance'], field: 'instance');
     final rawParticipants =
@@ -113,6 +121,7 @@ class ActiveChallenge {
           : ChallengeTerminalReason.parse(terminalReasonRaw),
       participants: List<ChallengeParticipantRow>.unmodifiable(participants),
       isCurrentUserOwner: currentUid != null && currentUid == ownerUid,
+      premiumHold: premiumHold,
     );
   }
 }

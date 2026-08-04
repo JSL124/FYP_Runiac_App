@@ -46,6 +46,7 @@ export {
   abandonChallenge,
 } from "./challenge/callable.js";
 export { settleChallengeDeadlines } from "./challenge/challengeSettlementSchedule.js";
+export { challengeSubscriptionChanged } from "./challenge/challengePremiumLapseTrigger.js";
 export {
   checkNicknameAvailability,
   upsertNickname,

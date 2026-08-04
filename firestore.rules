@@ -1145,6 +1145,17 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Premium-lapse grace windows. Denied to every client INCLUDING the runner
+    // the hold belongs to, which is stricter than challengeSlots above and is
+    // deliberate: subscription state is private, and a readable hold — even an
+    // owner-scoped one — would be a lookup another roster member could probe
+    // for. The runner learns about their own grace window through the
+    // getActiveChallenge callable, which returns only the caller's, and the
+    // server is the only writer.
+    match /challengePremiumHolds/{uid} {
+      allow read, write: if false;
+    }
+
     // config/paywall, config/featureAccess, and config/characterAccess are the
     // only client-readable config docs: display-only paywall copy/pricing, the
     // feature-tier map the premium upsell lists, and the premium-only character

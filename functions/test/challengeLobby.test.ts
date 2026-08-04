@@ -74,6 +74,7 @@ beforeEach(async () => {
   await firestore.recursiveDelete(firestore.collection("challengeInstances"));
   await deleteCollection("challengeInvitations");
   await deleteCollection("challengeSlots");
+  await deleteCollection("challengePremiumHolds");
   await firestore.doc("config/challengeAccess").delete();
   await Promise.all(ALL_UIDS.map((uid) => firestore.doc(`users/${uid}`).delete()));
   await Promise.all(
@@ -481,6 +482,120 @@ describe("challenge tier entitlement", () => {
     await firestore.doc("config/challengeAccess").set({ premiumOnlyTiers: ["NOT_A_TIER"] });
     await rejectsReason(() => createChallengeLobbyForCallable(req(OWNER, { tierId: "500K" }), firestore), "PREMIUM_REQUIRED");
   });
+
+  // The gate extends from creation to acceptance: a premium-only tier requires
+  // premium of every participant, not just the runner who opened the lobby.
+  it("rejects a basic recipient accepting a premium-only tier invitation", async () => {
+    await firestore.doc(`users/${OWNER}`).set({ subscriptionStatus: "premium" });
+    const { challengeId } = await createChallengeLobbyForCallable(req(OWNER, { tierId: "100K" }), firestore);
+    await inviteChallengeFriendsForCallable(req(OWNER, { challengeId, uids: [A] }), firestore);
+
+    await rejectsReason(
+      () => respondToChallengeInvitationForCallable(req(A, { inviteId: inviteId(challengeId, A), response: "accept" }), firestore),
+      "PREMIUM_REQUIRED",
+    );
+
+    assert.deepEqual((await instanceDoc(challengeId)).get("rosterUids"), [OWNER]);
+    assert.equal((await participantDoc(challengeId, A)).exists, false);
+    assert.equal((await slotDoc(A)).exists, false);
+    assert.equal((await invitationDoc(challengeId, A)).get("status"), "PENDING");
+  });
+
+  it("allows a premium recipient to accept a premium-only tier invitation", async () => {
+    await firestore.doc(`users/${OWNER}`).set({ subscriptionStatus: "premium" });
+    await firestore.doc(`users/${A}`).set({ subscriptionStatus: "premium" });
+    const { challengeId } = await createChallengeLobbyForCallable(req(OWNER, { tierId: "100K" }), firestore);
+    await inviteChallengeFriendsForCallable(req(OWNER, { challengeId, uids: [A] }), firestore);
+
+    const result = await respondToChallengeInvitationForCallable(
+      req(A, { inviteId: inviteId(challengeId, A), response: "accept" }),
+      firestore,
+    );
+
+    assert.equal(result.outcome, "accepted");
+    assert.equal((await participantDoc(challengeId, A)).get("role"), "member");
+  });
+
+  it("still lets a basic recipient accept an open-tier invitation", async () => {
+    const { challengeId } = await createChallengeLobbyForCallable(req(OWNER, { tierId: "42K" }), firestore);
+    await inviteChallengeFriendsForCallable(req(OWNER, { challengeId, uids: [A] }), firestore);
+
+    const result = await respondToChallengeInvitationForCallable(
+      req(A, { inviteId: inviteId(challengeId, A), response: "accept" }),
+      firestore,
+    );
+
+    assert.equal(result.outcome, "accepted");
+  });
+
+  it("lets a basic recipient DECLINE a premium-only tier invitation", async () => {
+    // Declining is not entitled access; gating it would strand the invitation
+    // as PENDING until it expired.
+    await firestore.doc(`users/${OWNER}`).set({ subscriptionStatus: "premium" });
+    const { challengeId } = await createChallengeLobbyForCallable(req(OWNER, { tierId: "100K" }), firestore);
+    await inviteChallengeFriendsForCallable(req(OWNER, { challengeId, uids: [A] }), firestore);
+
+    const result = await respondToChallengeInvitationForCallable(
+      req(A, { inviteId: inviteId(challengeId, A), response: "decline" }),
+      firestore,
+    );
+
+    assert.equal(result.outcome, "declined");
+    assert.equal((await invitationDoc(challengeId, A)).get("status"), "DECLINED");
+  });
+
+  it("does not gate the invite path, so an owner never learns a friend's tier", async () => {
+    await firestore.doc(`users/${OWNER}`).set({ subscriptionStatus: "premium" });
+    const { challengeId } = await createChallengeLobbyForCallable(req(OWNER, { tierId: "100K" }), firestore);
+
+    const invited = await inviteChallengeFriendsForCallable(req(OWNER, { challengeId, uids: [A] }), firestore);
+
+    assert.deepEqual(invited.invited, [A]);
+    assert.equal((await invitationDoc(challengeId, A)).get("status"), "PENDING");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Premium-lapse grace relay
+// ---------------------------------------------------------------------------
+
+describe("getActiveChallenge premium-lapse relay", () => {
+  it("returns premiumHold: null when the caller has no hold", async () => {
+    await firestore.doc(`users/${OWNER}`).set({ subscriptionStatus: "premium" });
+    await createChallengeLobbyForCallable(req(OWNER, { tierId: "100K" }), firestore);
+
+    const view = await getActiveChallengeForCallable(req(OWNER, {}), firestore);
+
+    assert.notEqual(view.challenge, null);
+    assert.equal(view.premiumHold, null);
+  });
+
+  it("relays the caller's own grace deadline", async () => {
+    await firestore.doc(`users/${OWNER}`).set({ subscriptionStatus: "premium" });
+    const { challengeId } = await createChallengeLobbyForCallable(req(OWNER, { tierId: "100K" }), firestore);
+    const graceExpiresAtMs = Date.now() + 12 * 60 * 60 * 1000;
+    await seedPremiumHold(OWNER, challengeId, graceExpiresAtMs);
+
+    const view = await getActiveChallengeForCallable(req(OWNER, {}), firestore);
+
+    assert.equal(view.premiumHold?.graceExpiresAtMs, graceExpiresAtMs);
+  });
+
+  it("never relays another roster member's hold", async () => {
+    // Subscription state is private: a lobby-mate must not be able to tell
+    // that another runner stopped paying.
+    await firestore.doc(`users/${OWNER}`).set({ subscriptionStatus: "premium" });
+    await firestore.doc(`users/${A}`).set({ subscriptionStatus: "premium" });
+    const { challengeId } = await createChallengeLobbyForCallable(req(OWNER, { tierId: "100K" }), firestore);
+    await inviteChallengeFriendsForCallable(req(OWNER, { challengeId, uids: [A] }), firestore);
+    await respondToChallengeInvitationForCallable(req(A, { inviteId: inviteId(challengeId, A), response: "accept" }), firestore);
+    await seedPremiumHold(A, challengeId, Date.now() + 12 * 60 * 60 * 1000);
+
+    const ownerView = await getActiveChallengeForCallable(req(OWNER, {}), firestore);
+
+    assert.equal(ownerView.premiumHold, null);
+    assert.equal(ownerView.challenge?.participants.length, 2);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -803,6 +918,17 @@ async function seedPendingInvitation(challengeId: string, tierId: string, recipi
     status: "PENDING",
     createdAt: Timestamp.now(),
     expiresAt: Timestamp.fromMillis(Date.now() + 3_600_000),
+  });
+}
+
+async function seedPremiumHold(uid: string, challengeId: string, graceExpiresAtMs: number): Promise<void> {
+  await firestore.doc(`challengePremiumHolds/${uid}`).set({
+    uid,
+    challengeId,
+    tierId: "100K",
+    role: uid === OWNER ? "owner" : "member",
+    lapsedAt: Timestamp.fromMillis(graceExpiresAtMs - 24 * 60 * 60 * 1000),
+    graceExpiresAt: Timestamp.fromMillis(graceExpiresAtMs),
   });
 }
 

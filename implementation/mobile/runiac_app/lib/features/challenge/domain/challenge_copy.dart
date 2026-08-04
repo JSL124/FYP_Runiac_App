@@ -40,6 +40,25 @@ abstract final class ChallengeCopy {
   /// backend `PREMIUM_REQUIRED` gate on lobby creation is the enforcement).
   static const premiumTier = 'Premium';
 
+  // --- Premium-lapse grace window ---
+  // Shown while the runner is inside the server's 24h grace window after their
+  // subscription lapsed on a premium-only tier. The wording promises nothing
+  // the backend does not guarantee: removal is what happens when the window
+  // closes, and renewing before then keeps everything.
+  static const premiumLapseTitle = 'Premium ended';
+
+  /// `Renew within X to stay in this challenge. …`
+  static String premiumLapseBody(String remainingLabel) =>
+      'Renew within $remainingLabel to stay in this challenge. '
+      'Otherwise you will be removed and stop earning towards this badge.';
+
+  /// Used once less than a minute is left, where a countdown would imply more
+  /// precision than the one-minute sweep can honour.
+  static const premiumLapseImminentBody =
+      'You will be removed from this challenge shortly. '
+      'Renew Premium now to stay in it.';
+  static const premiumLapseCta = 'Keep Premium';
+
   // --- Explore / states ---
   static const exploreLoading = 'Loading challenges…';
   static const exploreError = 'Challenges are temporarily unavailable.';
