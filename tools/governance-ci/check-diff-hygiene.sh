@@ -1314,7 +1314,27 @@ is_android_native_haptics_path() {
   esac
 }
 
+is_user_manual_capsule_active() {
+  grep -Eq '^- Newly routed user manual screenshots on 2026-08-04 Asia/Singapore: `implementation/roadmap/capsules/user-manual-screenshots\.md`' implementation/roadmap/CURRENT.md
+}
+
+is_user_manual_path() {
+  case "$1" in
+    implementation/roadmap/capsules/user-manual-screenshots.md|\
+    docs/user-manual/*)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_allowed_path() {
+  if is_user_manual_path "$1" && is_user_manual_capsule_active; then
+    return 0
+  fi
+
   if is_android_native_haptics_path "$1" && is_android_native_haptics_capsule_active; then
     return 0
   fi
