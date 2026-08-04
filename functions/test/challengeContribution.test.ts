@@ -187,7 +187,18 @@ describe("contribution idempotency", () => {
     await assert.rejects(
       () =>
         completeRunForCallable(
-          { auth: { uid: OWNER }, data: { ...payload, distanceMeters: 5000 } },
+          {
+            auth: { uid: OWNER },
+            data: {
+              ...payload,
+              distanceMeters: 5000,
+              // Implied pace at durationSeconds 1200 / distanceMeters 5000 is
+              // 1200 * 1000 / 5000 = 240; keep the fixture internally
+              // consistent so the payload reaches replay detection instead of
+              // being turned away by the pace-consistency check first.
+              avgPaceSecondsPerKm: 240,
+            },
+          },
           firestore,
         ),
       (error: { code?: string }) => error.code === "already-exists",
