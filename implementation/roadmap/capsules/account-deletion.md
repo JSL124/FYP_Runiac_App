@@ -374,18 +374,54 @@ emulator plus two full-suite runs, all green.
 - Any evidence that the erase stage can leave an account signed-in or its data partially readable.
 - Any Auth deletion occurring before the Firestore fan-out has converged.
 
-## Deliberately not done, and why
+## Production deploy record — 2026-08-04 Asia/Singapore
 
-- **The hosted `/legal/account-deletion` page still describes the email request path only.** It
-  lives in the separate, git-ignored `website/` repository and ships through its own PR and Vercel
-  deployment, so it cannot be part of this commit. Until it is updated, the app and the Play listing
-  disagree about how deletion works. This is the one outstanding item before the store-policy claim
-  is actually true end to end.
-- **No production deploy.** `requestAccountDeletion` and `accountDeletionCommandCreated` are new
-  exports and are inert in production until a separately authorized deploy ships them, together with
-  `firestore.rules` (which the deploy replaces wholesale — check the live ruleset diff first, per
-  `implementation/release/`).
-- **No device QA.** Owner-held.
+The user explicitly authorized the deploy and the app release after being shown the alternative
+(a one-line interim note on the web page instead). Scope was limited to
+`functions:requestAccountDeletion`, `functions:accountDeletionCommandCreated`, and
+`firestore:rules`, executed at commit `7fee80f5` against `runiac-fypp`.
+
+- Both functions were **creates**, not updates — neither existed in production. `firebase
+  functions:list` now reports `requestAccountDeletion` as `callable` and
+  `accountDeletionCommandCreated` as `google.cloud.firestore.document.v1.created`, both v2,
+  `asia-southeast1`, `nodejs22`.
+- **Pre-deploy live-ruleset diff, per `DEPLOY_RUNBOOK.md` §2.** Live ruleset was
+  `02339859-a025-4d29-8aa4-a619d72a58ba` (`createTime 2026-06-28T06:21:49Z`). The diff against the
+  working tree contained **two** capsules' changes, not one: this capsule's `deleting` blocking
+  status and `accountDeletionCommands` denial, **and** the `challengePremiumHolds` denial from
+  `challenge-premium-lapse-eviction` (`9ab7fa0b`), committed but never deployed. That second change
+  is `allow read, write: if false` for a collection that does not exist in production and was
+  already covered by the terminal catch-all denial, so shipping it changes nothing observable — but
+  it shipped, and this record exists so it did not ship silently. This is exactly the failure mode
+  §2 was written to catch.
+- New ruleset `f5aebf37-4e27-47f9-8b8e-09f394db008b` (`createTime 2026-08-04T14:38:35Z`), verified
+  byte-identical to the working tree after release.
+- **Deliberately excluded:** every function that imports `accountStatus.ts` also carries the new
+  `deleting` blocking value in its bundle, but only these two were deployed, so the other callables
+  keep the previous two-value set until they are next deployed for their own reasons. This is
+  acceptable because the primary control is the Auth disable plus token revocation that
+  `requestAccountDeletion` performs, and the rules-level guard — which IS live — already covers the
+  client write paths. `challengeSubscriptionChanged` and the rest of the challenge premium-lapse
+  work remain undeployed.
+
+### App release
+
+`android-v0.8.0` published to GitHub Releases from `7fee80f571a787db5a45ad9e39262b7854f9bd6d`
+(154.5 MB), built with the `dart_define.android.local.json` defines plus the two Mapbox defines.
+The website download button streams the `latest` alias, so it re-pointed with no edit; verified by
+`/api/download/android` returning `content-length: 154487462`, matching the new APK.
+
+The ordering mattered and was chosen deliberately: functions and rules first, then the app. A
+release whose Delete account button called a callable that did not exist would have failed at the
+moment of highest user commitment.
+
+## Still not done
+
+- **No iOS release.** This ships on Android only; the iOS build is a separate distribution step.
+- **No end-to-end verification against the live callable.** Proving it would mean destroying a real
+  account, so the deployed path is covered by emulator tests and the simulator QA surface, not by a
+  production run. The first real deletion will be the first real exercise of it.
+- **No device QA on the released APK.** Owner-held.
 
 ## Exit Criteria
 
