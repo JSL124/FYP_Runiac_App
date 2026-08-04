@@ -6,6 +6,41 @@ service firebase.storage {
       return request.auth != null && request.auth.uid == uid;
     }
 
+    // Mirrors functions/src/config/featureEntitlement.ts:isPremiumGatedFeature
+    // exactly: shareCards is gated only when config/featureAccess names it
+    // "premium" AND has not been released via enabled: false. The tier is read
+    // live from Firestore rather than hardcoded so a Platform Administrator's
+    // console flip takes effect immediately, with no rules redeploy, exactly
+    // like the server-side check. A key this deployment's catalog does not
+    // know about (including the whole document being absent) reads as Basic —
+    // fail-open by design, matching the shipped default
+    // (configLoader.ts:202 has shareCards: { minimumTier: "basic" }).
+    // `enabled: false` RELEASES the gate rather than disabling the feature;
+    // getting that backwards is the documented failure mode of the server
+    // helper this mirrors, so it is called out here too.
+    function isShareCardUploadGated() {
+      let configPath = /databases/(default)/documents/config/featureAccess;
+      return firestore.exists(configPath) &&
+        firestore.get(configPath).data.get(['features', 'shareCards', 'minimumTier'], 'basic') == 'premium' &&
+        firestore.get(configPath).data.get(['features', 'shareCards', 'enabled'], true) != false;
+    }
+
+    // Costs one extra Firestore read per upload attempt (the users/{uid} doc),
+    // paid only when isShareCardUploadGated() is true. subscriptionExpiresAt
+    // is deliberately NOT evaluated here: rules can only read the materialised
+    // subscriptionStatus, not run the expiry-sweep logic, so this mirrors
+    // isPremiumSubscription's server contract of trusting the materialised
+    // status as-is (see progressionAuditHelpers.ts's readSubscriptionExpiresAtMs
+    // comment on why that keeps rules, the sweep, and the in-request check
+    // consistent by construction). Both subscriptionStatus spellings
+    // ("premium" and "Premium") are accepted, matching isPremiumSubscription.
+    function isShareCardUploadEntitled(uid) {
+      let userPath = /databases/(default)/documents/users/$(uid);
+      return !isShareCardUploadGated() ||
+        (firestore.exists(userPath) &&
+          firestore.get(userPath).data.get('subscriptionStatus', '') in ['premium', 'Premium']);
+    }
+
     function hasExpectedStagingMetadata(uid, activityId, uploadName) {
       return request.resource.metadata.keys().hasAll([
           'ownerUid',
@@ -48,7 +83,8 @@ service firebase.storage {
         fileName.matches('^[A-Za-z0-9_-]+\\.png$') &&
         request.resource.size > 0 &&
         request.resource.size <= 4 * 1024 * 1024 &&
-        request.resource.contentType == 'image/png';
+        request.resource.contentType == 'image/png' &&
+        isShareCardUploadEntitled(uid);
       allow read, delete: if isOwner(uid);
     }
 
