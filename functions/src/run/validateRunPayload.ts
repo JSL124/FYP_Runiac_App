@@ -145,6 +145,24 @@ export function parseRunCompletionPayload(
   });
   const elevationSeries = readOptionalElevationSeries(data, { distanceMeters });
 
+  const avgPaceSecondsPerKm = readPaceSecondsPerKm(data, {
+    userConfirmedLowDataSave,
+    distanceMeters,
+  });
+
+  if (distanceMeters > 0) {
+    const impliedPace = (durationSeconds * 1000) / distanceMeters;
+    // The client floors the pace (up to 1 s/km low) and computes it against
+    // the raw unrounded distance while only the rounded integer metre count
+    // is transmitted. At the client's own minimum submittable run (50 m /
+    // 60 s) that rounding is worth ~12 s/km, so 15 s/km absolute is the
+    // floor, with 2% relative taking over for slower paces.
+    const tolerance = Math.max(15, Math.ceil(impliedPace * 0.02));
+    if (Math.abs(avgPaceSecondsPerKm - impliedPace) > tolerance) {
+      throw invalid("avgPaceSecondsPerKm is not consistent with durationSeconds and distanceMeters.");
+    }
+  }
+
   return {
     clientRunSessionId: readString(data, "clientRunSessionId"),
     startedAt,
@@ -154,10 +172,7 @@ export function parseRunCompletionPayload(
     elapsedWallSeconds,
     pausedDurationSeconds,
     distanceMeters,
-    avgPaceSecondsPerKm: readPaceSecondsPerKm(data, {
-      userConfirmedLowDataSave,
-      distanceMeters,
-    }),
+    avgPaceSecondsPerKm,
     source: readMobileSource(data),
     routePrivacy: readRoutePrivacy(data),
     ...(userConfirmedLowDataSave ? { userConfirmedLowDataSave: true } : {}),
