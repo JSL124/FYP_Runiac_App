@@ -262,10 +262,7 @@ void main() {
       await tester.tap(find.text('Clear all'));
       await tester.pumpAndSettle();
       await tester.tap(
-        find.descendant(
-          of: find.byType(AlertDialog),
-          matching: find.widgetWithText(TextButton, 'Clear all'),
-        ),
+        find.byKey(const ValueKey<String>('notification-inbox-clear-confirm')),
       );
       await tester.pump();
 
@@ -319,10 +316,7 @@ void main() {
     await tester.tap(find.text('Clear all'));
     await tester.pumpAndSettle();
     await tester.tap(
-      find.descendant(
-        of: find.byType(AlertDialog),
-        matching: find.widgetWithText(TextButton, 'Clear all'),
-      ),
+      find.byKey(const ValueKey<String>('notification-inbox-clear-confirm')),
     );
     await tester.pumpAndSettle();
 

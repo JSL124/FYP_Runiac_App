@@ -6,6 +6,7 @@ import '../../../core/haptics/runiac_haptics.dart';
 import '../../../core/haptics/runiac_haptics_scope.dart';
 import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_back_header.dart';
+import '../../../core/widgets/runiac_confirm_dialog.dart';
 import '../domain/models/notification_inbox_item.dart';
 import '../domain/repositories/notification_inbox_repository.dart';
 
@@ -139,35 +140,19 @@ class _NotificationInboxPageState extends State<NotificationInboxPage> {
       return;
     }
     final haptics = RuniacHapticsScope.maybeOf(context);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('Clear all notifications?'),
-          content: Text(
-            items.length == 1
-                ? 'This removes your notification from the inbox. '
-                      'You can’t undo this.'
-                : 'This removes all ${items.length} notifications from your '
-                      'inbox. You can’t undo this.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              style: TextButton.styleFrom(
-                foregroundColor: RuniacColors.errorRed,
-              ),
-              child: const Text('Clear all'),
-            ),
-          ],
-        );
-      },
+    final confirmed = await showRuniacConfirmDialog(
+      context,
+      icon: Icons.notifications_off_rounded,
+      title: 'Clear all notifications?',
+      body: items.length == 1
+          ? 'This removes your notification from the inbox. '
+                'You can’t undo this.'
+          : 'This removes all ${items.length} notifications from your inbox. '
+                'You can’t undo this.',
+      confirmLabel: 'Clear all',
+      confirmKey: const ValueKey<String>('notification-inbox-clear-confirm'),
     );
-    if (confirmed != true || !mounted) {
+    if (!confirmed || !mounted) {
       return;
     }
     await _clearAll(items, haptics: haptics);
