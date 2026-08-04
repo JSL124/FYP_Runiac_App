@@ -268,9 +268,9 @@ class _FeedCommentSheetState extends State<FeedCommentSheet> {
   void _commentTextChanged(String _) => setState(() => _validationError = null);
 
   Future<void> _confirmDelete(FeedCommentReadModel comment) async {
-    if (!await confirmFeedCommentDelete(context) ||
-        _isOffline ||
-        _isSubmitting) {
+    final confirmed = await confirmFeedCommentDelete(context);
+    if (!mounted) return;
+    if (!confirmed || _isOffline || _isSubmitting) {
       return;
     }
     try {

@@ -252,6 +252,9 @@ class _AccountEditProfileScreenState extends State<AccountEditProfileScreen> {
         uid: user.uid,
         nickname: draft.nickname,
       );
+      if (!mounted) {
+        return;
+      }
       if (!available) {
         setState(() {
           _nicknameAvailable = false;
