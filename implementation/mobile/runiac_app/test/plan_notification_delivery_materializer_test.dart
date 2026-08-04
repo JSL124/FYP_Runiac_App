@@ -418,6 +418,9 @@ class _ThrowingNotificationInboxRepository extends NotificationInboxRepository {
 
   @override
   Future<void> softDelete(String itemId) async {}
+
+  @override
+  Future<void> clearAll() async {}
 }
 
 /// Delegates to [inner] but flips the signed-in runner on the first write, so
@@ -461,4 +464,7 @@ class _OwnerSwitchingInboxRepository implements NotificationInboxRepository {
 
   @override
   Future<void> softDelete(String itemId) => inner.softDelete(itemId);
+
+  @override
+  Future<void> clearAll() => inner.clearAll();
 }

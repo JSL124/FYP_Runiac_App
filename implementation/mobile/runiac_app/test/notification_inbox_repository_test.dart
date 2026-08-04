@@ -117,6 +117,63 @@ void main() {
         _WriteCall('runner-1', 'item-2', DateTime.utc(2026, 7, 8, 12, 30)),
       ]);
     });
+
+    test(
+      'clears every visible item in one bulk write and skips deleted ones',
+      () async {
+        final store = _FakeNotificationInboxDocumentStore(
+          items: [
+            _document(id: 'newer', createdAt: DateTime.utc(2026, 7, 8, 9)),
+            _document(id: 'older', createdAt: DateTime.utc(2026, 7, 7, 9)),
+            _document(
+              id: 'already-deleted',
+              createdAt: DateTime.utc(2026, 7, 8, 10),
+              deletedAt: DateTime.utc(2026, 7, 8, 11),
+            ),
+          ],
+        );
+        final repository = FirestoreNotificationInboxRepository(
+          ownerUid: 'runner-1',
+          documentStore: store,
+          clock: () => DateTime.utc(2026, 7, 8, 13),
+        );
+
+        await repository.clearAll();
+
+        expect(store.softDeleteAllCalls, hasLength(1));
+        final call = store.softDeleteAllCalls.single;
+        expect(call.uid, 'runner-1');
+        expect(call.itemIds, ['newer', 'older']);
+        expect(call.timestamp, DateTime.utc(2026, 7, 8, 13));
+        expect(store.softDeleteCalls, isEmpty);
+      },
+    );
+
+    test('does not write when there is nothing left to clear', () async {
+      final store = _FakeNotificationInboxDocumentStore();
+      final repository = FirestoreNotificationInboxRepository(
+        ownerUid: 'runner-1',
+        documentStore: store,
+      );
+
+      await repository.clearAll();
+
+      expect(store.softDeleteAllCalls, isEmpty);
+    });
+
+    test('does not clear the inbox without an owner uid', () async {
+      final store = _FakeNotificationInboxDocumentStore(
+        items: [_document(id: 'item-1')],
+      );
+      final repository = FirestoreNotificationInboxRepository(
+        ownerUid: '',
+        documentStore: store,
+      );
+
+      await repository.clearAll();
+
+      expect(store.softDeleteAllCalls, isEmpty);
+    });
   });
 }
 
@@ -149,6 +206,7 @@ class _FakeNotificationInboxDocumentStore
   final clearReadStateCalls = <bool>[];
   final markReadCalls = <_WriteCall>[];
   final softDeleteCalls = <_WriteCall>[];
+  final softDeleteAllCalls = <_BulkWriteCall>[];
 
   @override
   Stream<List<NotificationInboxDocument>> watchInboxItems({
@@ -185,6 +243,23 @@ class _FakeNotificationInboxDocumentStore
   }) async {
     softDeleteCalls.add(_WriteCall(uid, itemId, deletedAt));
   }
+
+  @override
+  Future<void> softDeleteAll({
+    required String uid,
+    required List<String> itemIds,
+    required DateTime deletedAt,
+  }) async {
+    softDeleteAllCalls.add(_BulkWriteCall(uid, itemIds, deletedAt));
+  }
+}
+
+class _BulkWriteCall {
+  const _BulkWriteCall(this.uid, this.itemIds, this.timestamp);
+
+  final String uid;
+  final List<String> itemIds;
+  final DateTime timestamp;
 }
 
 class _SaveCall {

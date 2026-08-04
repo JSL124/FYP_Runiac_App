@@ -46,6 +46,10 @@ class CloudFirestoreNotificationInboxDocumentStore
 
   final FirebaseFirestore _firestore;
 
+  /// Kept under Firestore's 500-write batch ceiling with room to spare; an
+  /// inbox large enough to need a second batch is already an outlier.
+  static const int _maxWritesPerBatch = 400;
+
   CollectionReference<Map<String, dynamic>> _items(String uid) {
     return _firestore
         .collection('notificationInbox')
@@ -110,6 +114,33 @@ class CloudFirestoreNotificationInboxDocumentStore
       'deletedAt': Timestamp.fromDate(deletedAt.toUtc()),
       'updatedAt': Timestamp.fromDate(DateTime.now().toUtc()),
     });
+  }
+
+  @override
+  Future<void> softDeleteAll({
+    required String uid,
+    required List<String> itemIds,
+    required DateTime deletedAt,
+  }) async {
+    if (itemIds.isEmpty) {
+      return;
+    }
+    final collection = _items(uid);
+    final deletedTimestamp = Timestamp.fromDate(deletedAt.toUtc());
+    final updatedTimestamp = Timestamp.fromDate(DateTime.now().toUtc());
+    for (var start = 0; start < itemIds.length; start += _maxWritesPerBatch) {
+      final end = (start + _maxWritesPerBatch) < itemIds.length
+          ? start + _maxWritesPerBatch
+          : itemIds.length;
+      final batch = _firestore.batch();
+      for (final itemId in itemIds.sublist(start, end)) {
+        batch.update(collection.doc(itemId), {
+          'deletedAt': deletedTimestamp,
+          'updatedAt': updatedTimestamp,
+        });
+      }
+      await batch.commit();
+    }
   }
 
   NotificationInboxDocument? _fromSnapshot(

@@ -28,6 +28,14 @@ abstract class NotificationInboxRepository {
   Future<void> markRead(String itemId);
 
   Future<void> softDelete(String itemId);
+
+  /// Soft-deletes every item currently visible in the inbox.
+  ///
+  /// This is the bulk form of [softDelete] and carries the same semantics: the
+  /// documents keep their `deletedAt` marker rather than being removed, so a
+  /// later delivery reusing a deterministic id still surfaces (see
+  /// [recordDelivery]). Items already dismissed are left alone.
+  Future<void> clearAll();
 }
 
 class StaticNotificationInboxRepository implements NotificationInboxRepository {
@@ -59,6 +67,9 @@ class StaticNotificationInboxRepository implements NotificationInboxRepository {
   Future<void> softDelete(String itemId) async {}
 
   @override
+  Future<void> clearAll() async {}
+
+  @override
   Stream<List<NotificationInboxItem>> watchInboxItems() {
     return Stream<List<NotificationInboxItem>>.value(_visibleItems);
   }
@@ -86,6 +97,7 @@ class InMemoryNotificationInboxRepository
   final _itemsController =
       StreamController<List<NotificationInboxItem>>.broadcast();
   final List<String> deletedItemIds = <String>[];
+  int clearAllCallCount = 0;
 
   List<NotificationInboxItem> get _visibleItems {
     final visible = _items.where((item) => !item.isDeleted).toList();
@@ -149,6 +161,24 @@ class InMemoryNotificationInboxRepository
     deletedItemIds.add(itemId);
     _items[index] = _items[index].copyWith(deletedAt: _clock());
     _emit();
+  }
+
+  @override
+  Future<void> clearAll() async {
+    final deletedAt = _clock();
+    var changed = false;
+    for (var index = 0; index < _items.length; index++) {
+      if (_items[index].isDeleted) {
+        continue;
+      }
+      deletedItemIds.add(_items[index].id);
+      _items[index] = _items[index].copyWith(deletedAt: deletedAt);
+      changed = true;
+    }
+    clearAllCallCount++;
+    if (changed) {
+      _emit();
+    }
   }
 
   @override

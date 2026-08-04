@@ -64,6 +64,18 @@ abstract class NotificationInboxDocumentStore {
     required String itemId,
     required DateTime deletedAt,
   });
+
+  /// Soft-deletes [itemIds] in as few round trips as the backing store allows.
+  ///
+  /// Deliberately separate from repeated [softDelete] calls: clearing a full
+  /// inbox one write at a time would leave the list half-emptied if the
+  /// connection dropped midway, and the UI's clear-all animation would then be
+  /// telling the runner something untrue.
+  Future<void> softDeleteAll({
+    required String uid,
+    required List<String> itemIds,
+    required DateTime deletedAt,
+  });
 }
 
 class FirestoreNotificationInboxRepository
@@ -163,6 +175,26 @@ class FirestoreNotificationInboxRepository
     return documentStore.softDelete(
       uid: uid,
       itemId: itemId,
+      deletedAt: _clock(),
+    );
+  }
+
+  @override
+  Future<void> clearAll() async {
+    final uid = ownerUid;
+    if (uid.isEmpty) {
+      return;
+    }
+    // Read the visible set rather than trusting a caller-supplied list, so an
+    // item that arrived while the confirmation dialog was open is cleared too
+    // instead of surviving an action the runner read as "clear all".
+    final items = await listInboxItems();
+    if (items.isEmpty) {
+      return;
+    }
+    await documentStore.softDeleteAll(
+      uid: uid,
+      itemIds: items.map((item) => item.id).toList(growable: false),
       deletedAt: _clock(),
     );
   }
