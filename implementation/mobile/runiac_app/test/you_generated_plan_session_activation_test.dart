@@ -321,6 +321,88 @@ void main() {
     expect(sundayGoal!.weeks[1].status, GoalPlanWeekStatus.current);
   });
 
+  // Regression coverage for the week-1-hardcode bug: a past week whose
+  // weekday label happens to match today must not act like today, and the
+  // plan's real active week must keep its "today" action even when the user
+  // has never rescheduled (currentWeekDisplay omitted / null).
+  test(
+    'stale week matching today is not marked startable once the active week '
+    'has advanced',
+    () {
+      final plan = _tenKPerformancePlan().withStartsOnDate('2026-07-06');
+      // 2026-07-13 is the Monday that starts week 2; week 1's own Monday
+      // workout shares that weekday label but must no longer act like today.
+      final currentDate = DateTime(2026, 7, 13);
+      expect(
+        activeGeneratedPlanWeekFor(plan, currentDate: currentDate)?.weekNumber,
+        2,
+      );
+
+      final goalDisplay = generatedGoalPlanDisplayFromSnapshot(
+        plan,
+        currentDate: currentDate,
+      );
+
+      expect(goalDisplay, isNotNull);
+      final week1Monday = goalDisplay!.weeks[0].dailyPlan.firstWhere(
+        (row) => row.weekday == 'Monday',
+      );
+
+      expect(week1Monday.workoutDetail, isNotNull);
+      expect(week1Monday.workoutDetail!.startActionLabel, isNull);
+      expect(week1Monday.workoutDetail!.plannedRunContext, isNull);
+    },
+  );
+
+  test(
+    'active week today row stays startable when no reschedule has happened',
+    () {
+      final plan = _tenKPerformancePlan().withStartsOnDate('2026-07-06');
+      final currentDate = DateTime(2026, 7, 13);
+
+      // currentWeekDisplay is intentionally omitted (null): this is the
+      // never-rescheduled case, exactly what You Plans passes before the
+      // user edits a schedule.
+      final goalDisplay = generatedGoalPlanDisplayFromSnapshot(
+        plan,
+        currentDate: currentDate,
+      );
+
+      expect(goalDisplay, isNotNull);
+      final week2Monday = goalDisplay!.weeks[1].dailyPlan.firstWhere(
+        (row) => row.weekday == 'Monday',
+      );
+
+      expect(week2Monday.workoutDetail, isNotNull);
+      expect(week2Monday.workoutDetail!.startActionLabel, 'Start this run');
+      expect(week2Monday.workoutDetail!.plannedRunContext, isNotNull);
+    },
+  );
+
+  test(
+    'startable active-week row schedules progress against the active week, '
+    'not week 1',
+    () {
+      final plan = _tenKPerformancePlan().withStartsOnDate('2026-07-06');
+      final currentDate = DateTime(2026, 7, 13);
+
+      final goalDisplay = generatedGoalPlanDisplayFromSnapshot(
+        plan,
+        currentDate: currentDate,
+      );
+
+      final week2Monday = goalDisplay!.weeks[1].dailyPlan.firstWhere(
+        (row) => row.weekday == 'Monday',
+      );
+      final scheduledWorkoutId =
+          week2Monday.workoutDetail!.plannedRunContext!.scheduledWorkoutId;
+
+      expect(scheduledWorkoutId, isNotNull);
+      expect(scheduledWorkoutId, startsWith('week-2-mon-'));
+      expect(scheduledWorkoutId, isNot(startsWith('week-1-')));
+    },
+  );
+
   testWidgets('You Plans shows week 2 on the next Monday after plan start', (
     WidgetTester tester,
   ) async {

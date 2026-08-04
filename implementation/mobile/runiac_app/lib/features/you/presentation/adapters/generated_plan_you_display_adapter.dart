@@ -557,6 +557,7 @@ GoalPlanDisplaySnapshot? generatedGoalPlanDisplayFromSnapshot(
                   week,
                   snapshot,
                   currentWeekdayIndex: currentWeekdayIndex,
+                  activeWeekNumber: activeWeek?.weekNumber ?? 1,
                 ),
         ),
     ],
@@ -593,6 +594,7 @@ List<GoalPlanDayDisplaySnapshot> _goalPlanDailyRowsFor(
   BeginnerAdaptivePlanWeek week,
   BeginnerAdaptivePlanSnapshot snapshot, {
   required int currentWeekdayIndex,
+  required int activeWeekNumber,
 }) {
   final workoutsByDay = {
     for (final workout in week.workouts) workout.dayLabel: workout,
@@ -611,6 +613,7 @@ List<GoalPlanDayDisplaySnapshot> _goalPlanDailyRowsFor(
         snapshot,
         occupiedWeekdayIndexes: occupiedWeekdayIndexes,
         currentWeekdayIndex: currentWeekdayIndex,
+        activeWeekNumber: activeWeekNumber,
       ),
   ];
 }
@@ -622,6 +625,7 @@ GoalPlanDayDisplaySnapshot _goalPlanDailyRowFor(
   BeginnerAdaptivePlanSnapshot snapshot, {
   required Set<int> occupiedWeekdayIndexes,
   required int currentWeekdayIndex,
+  required int activeWeekNumber,
 }) {
   if (workout == null || !isGeneratedPlanSession(workout)) {
     return GoalPlanDayDisplaySnapshot(
@@ -632,8 +636,12 @@ GoalPlanDayDisplaySnapshot _goalPlanDailyRowFor(
   }
 
   final weekdayIndex = _weekdayIndexFor(dayLabel);
+  // Only the plan's actual active week can produce a startable "today" row.
+  // Every other week's matching weekday is either already elapsed or still
+  // ahead, even when its weekday label happens to match today's.
   final isCurrentWeekToday =
-      week.weekNumber == 1 && weekdayIndex == currentWeekdayIndex;
+      week.weekNumber == activeWeekNumber &&
+      weekdayIndex == currentWeekdayIndex;
   return GoalPlanDayDisplaySnapshot(
     weekday: _fullWeekdayLabelFor(dayLabel),
     workoutType: workout.title,
