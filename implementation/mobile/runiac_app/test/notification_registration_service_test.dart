@@ -355,6 +355,136 @@ void main() {
       },
     );
 
+    test(
+      'two concurrent start() calls register and subscribe exactly once',
+      () async {
+        // app.dart calls _startPushNotificationsForCurrentUser() -> start()
+        // from initState, didUpdateWidget, and the auth gate. On a warm start
+        // where auth restores quickly, two of those can both pass the
+        // "not started yet" check before the first start() resolves. Without
+        // memoizing the in-flight call, both run the full permission/token
+        // sequence and both subscribe to every stream.
+        final client = FakePushNotificationClient(
+          permissionStatus: PushNotificationPermissionStatus.authorized,
+          token: 'initial-token',
+        );
+        final callable = FakeNotificationDeviceCallable();
+        final service = NotificationRegistrationService(
+          client: client,
+          callable: callable,
+          ownerUidProvider: () => 'runner-1',
+        );
+
+        final first = service.start();
+        final second = service.start();
+        await Future.wait([first, second]);
+
+        expect(client.permissionRequests, 1);
+        expect(client.tokenRequests, 1);
+        expect(callable.registerCalls, [
+          const RegisterNotificationDeviceRequest(
+            uid: 'runner-1',
+            token: 'initial-token',
+            platform: PushNotificationPlatform.android,
+          ),
+        ]);
+
+        // A single token refresh triggers exactly one more registration call.
+        // If tokenRefreshes had two listeners (one per start() call) this
+        // would be two.
+        client.emitTokenRefresh('refreshed-token');
+        await pumpEventQueue();
+        expect(callable.registerCalls.map((call) => call.token), [
+          'initial-token',
+          'refreshed-token',
+        ]);
+
+        // A single foreground and a single opened message are each delivered
+        // exactly once. If foregroundMessages/openedMessages had two
+        // listeners, each message would appear twice.
+        final received = <String>[];
+        final subscription = service.messages.listen(
+          (message) => received.add(message.id),
+        );
+        client.emitForegroundMessage(
+          const PushNotificationMessage(id: 'foreground'),
+        );
+        client.emitOpenedMessage(const PushNotificationMessage(id: 'opened'));
+        await pumpEventQueue();
+
+        expect(received, ['foreground', 'opened']);
+        await subscription.cancel();
+        await service.dispose();
+      },
+    );
+
+    test(
+      'a push message received after two concurrent start() calls is '
+      'emitted only once',
+      () async {
+        // This is the user-visible symptom of the double-subscription bug:
+        // every later push gets forwarded into the message stream twice.
+        final client = FakePushNotificationClient(
+          permissionStatus: PushNotificationPermissionStatus.authorized,
+          token: 'initial-token',
+        );
+        final callable = FakeNotificationDeviceCallable();
+        final service = NotificationRegistrationService(
+          client: client,
+          callable: callable,
+          ownerUidProvider: () => 'runner-1',
+        );
+        final received = <String>[];
+        final subscription = service.messages.listen(
+          (message) => received.add(message.id),
+        );
+
+        final first = service.start();
+        final second = service.start();
+        await Future.wait([first, second]);
+
+        client.emitForegroundMessage(
+          const PushNotificationMessage(id: 'push-1'),
+        );
+        await pumpEventQueue();
+
+        expect(received, ['push-1']);
+        await subscription.cancel();
+        await service.dispose();
+      },
+    );
+
+    test('start() retries after the first attempt throws', () async {
+      // A naive `_started = true` set at the top of start() would
+      // permanently wedge push notifications for a user whose first attempt
+      // failed (e.g. a transient token registration failure). The in-flight
+      // future must be cleared on failure so a later call can genuinely
+      // retry.
+      final client = FakePushNotificationClient(
+        permissionStatus: PushNotificationPermissionStatus.authorized,
+        token: 'initial-token',
+      );
+      final baseCallable = FakeNotificationDeviceCallable();
+      final callable = _ThrowOnceNotificationDeviceCallable(baseCallable);
+      final service = NotificationRegistrationService(
+        client: client,
+        callable: callable,
+        ownerUidProvider: () => 'runner-1',
+      );
+
+      await expectLater(service.start(), throwsStateError);
+      await service.start();
+
+      expect(baseCallable.registerCalls, [
+        const RegisterNotificationDeviceRequest(
+          uid: 'runner-1',
+          token: 'initial-token',
+          platform: PushNotificationPlatform.android,
+        ),
+      ]);
+      await service.dispose();
+    });
+
     test('iOS entitlements do not require Apple Push Notifications', () {
       final entitlement = File(
         'ios/Runner/Runner.entitlements',
@@ -363,4 +493,28 @@ void main() {
       expect(entitlement, isNot(contains('aps-environment')));
     });
   });
+}
+
+/// Wraps a [FakeNotificationDeviceCallable] so its first `registerDevice`
+/// call throws (simulating a transient failure, e.g. a dropped network call
+/// during token registration) and every call after that delegates normally.
+class _ThrowOnceNotificationDeviceCallable implements NotificationDeviceCallable {
+  _ThrowOnceNotificationDeviceCallable(this._inner);
+
+  final FakeNotificationDeviceCallable _inner;
+  var _hasThrown = false;
+
+  @override
+  Future<void> registerDevice(RegisterNotificationDeviceRequest request) async {
+    if (!_hasThrown) {
+      _hasThrown = true;
+      throw StateError('transient registration failure');
+    }
+    await _inner.registerDevice(request);
+  }
+
+  @override
+  Future<void> unregisterDevice(
+    UnregisterNotificationDeviceRequest request,
+  ) => _inner.unregisterDevice(request);
 }
