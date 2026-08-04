@@ -5,6 +5,7 @@ import '../../../../core/widgets/runiac_buttons.dart';
 import '../../../auth/domain/runiac_auth_service.dart';
 import '../../../home/domain/guide/home_guide_consent.dart';
 import '../../../paywall/presentation/premium_gate.dart';
+import '../../data/firebase_account_deletion_repository.dart';
 import '../../domain/models/user_profile_read_model.dart';
 import '../about_runiac_screen.dart';
 import '../data/account_profile_demo_snapshots.dart';
@@ -13,6 +14,7 @@ import '../notification_center_screen.dart';
 import '../privacy_safety_screen.dart';
 import '../running_buddy_screen.dart';
 import '../watch_health_apps_screen.dart';
+import 'account_delete_row.dart';
 import 'account_sign_out_row.dart';
 
 class AccountSectionLabel extends StatelessWidget {
@@ -121,6 +123,7 @@ class AccountManageSection extends StatelessWidget {
     this.onNotificationSettingsChanged,
     this.homeGuideConsentRepository =
         const AlwaysGrantedHomeGuideConsentRepository(),
+    this.accountDeletionRepository,
     super.key,
   });
 
@@ -129,6 +132,10 @@ class AccountManageSection extends StatelessWidget {
   final VoidCallback? onEditProfile;
   final VoidCallback? onNotificationSettingsChanged;
   final HomeGuideConsentRepository homeGuideConsentRepository;
+
+  /// Test seam for the delete-account flow. Null in production, where the row
+  /// builds the real callable-backed repository on tap.
+  final AccountDeletionRepository? accountDeletionRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -145,6 +152,14 @@ class AccountManageSection extends StatelessWidget {
           const SizedBox(height: 8),
         ],
         AccountSignOutRow(authRepository: authRepository),
+        const SizedBox(height: 8),
+        // Last, and visually apart: the only row here whose outcome cannot be
+        // undone. Store policy (Apple 5.1.1(v), Google Play data deletion)
+        // requires this entry point to exist inside the app.
+        AccountDeleteRow(
+          authRepository: authRepository,
+          deletionRepository: accountDeletionRepository,
+        ),
       ],
     );
   }

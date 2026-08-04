@@ -11,6 +11,7 @@ import 'core/observability/runiac_error_reporter.dart';
 import 'features/feed/presentation/qa/feed_mvp_qa_launcher.dart';
 import 'features/home/presentation/qa/plan_completion_qa_launcher.dart';
 import 'features/leaderboard/presentation/qa/leaderboard_ranking_qa_launcher.dart';
+import 'features/profile/presentation/qa/delete_account_qa_launcher.dart';
 import 'features/run/data/run_repository_factory.dart';
 import 'features/paywall/presentation/qa/premium_paywall_qa_launcher.dart';
 import 'features/run/presentation/qa/xp_update_qa_launcher.dart';
@@ -58,6 +59,12 @@ Future<void> main() async {
       final appTourQaApp = buildAppTourQaAppFromEnvironment();
       if (appTourQaApp != null) {
         runApp(appTourQaApp);
+        return;
+      }
+
+      final deleteAccountQaApp = buildDeleteAccountQaAppFromEnvironment();
+      if (deleteAccountQaApp != null) {
+        runApp(deleteAccountQaApp);
         return;
       }
 

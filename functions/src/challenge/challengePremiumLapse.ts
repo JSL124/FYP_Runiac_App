@@ -46,7 +46,7 @@ import {
   timestampToMillis,
   type LoadedInstance,
 } from "./challengeSettlementSupport.js";
-import type { ParticipantState } from "./challengeTypes.js";
+import type { ChallengeTerminalReason, ParticipantState } from "./challengeTypes.js";
 
 // The user-specified grace window. Deliberately a module constant rather than a
 // `config/challengeAccess` field: adding one would require mirroring the
@@ -332,12 +332,12 @@ async function applyPremiumLapseEviction(
       loaded.ownerUid === uid || readString(selfData, "role") === "owner";
 
     if (!isOwner) {
-      removeParticipant(transaction, firestore, loaded, challengeId, uid, selfState, selfData, nowMs);
+      removeParticipantAsSystem(transaction, firestore, loaded, challengeId, uid, selfState, selfData, nowMs);
       transaction.delete(holdRef);
       return { kind: "evicted", challengeId };
     }
 
-    const successor = await findSuccessor(transaction, firestore, loaded, uid, nowMs);
+    const successor = await findEligibleSuccessor(transaction, firestore, loaded, uid, nowMs, true);
     if (successor === undefined) {
       // Read before writing, exactly as abandonChallenge does. A single
       // equality filter keeps this on the automatic index; the PENDING subset
@@ -345,7 +345,15 @@ async function applyPremiumLapseEviction(
       const invitations = await transaction.get(
         firestore.collection("challengeInvitations").where("challengeId", "==", challengeId),
       );
-      cancelInstanceForPremiumLapse(transaction, firestore, loaded, challengeId, invitations.docs, nowMs);
+      cancelInstanceAsSystem(
+        transaction,
+        firestore,
+        loaded,
+        challengeId,
+        invitations.docs,
+        nowMs,
+        "OWNER_PREMIUM_LAPSED",
+      );
       return { kind: "cancelled", challengeId };
     }
 
@@ -362,7 +370,7 @@ async function applyPremiumLapseEviction(
     // Demote before removing. `transitionParticipant` refuses REMOVE on an
     // owner, so this ordering is enforced by the state machine, not merely
     // observed by convention.
-    removeParticipant(
+    removeParticipantAsSystem(
       transaction,
       firestore,
       loaded,
@@ -377,20 +385,27 @@ async function applyPremiumLapseEviction(
   });
 }
 
-// The earliest-joined remaining participant who is currently premium.
+// The earliest-joined remaining participant eligible to inherit the instance.
 // `rosterUids` is append-ordered (owner first, then acceptance order), so it is
-// the join order. Eligibility is decided on the CURRENT subscription rather
-// than on the absence of a hold, so a member who re-subscribed but whose stale
-// hold has not been swept yet can still inherit.
-async function findSuccessor(
+// the join order.
+//
+// `requirePremium` exists because the two callers face different tiers. Premium
+// lapse only ever fires on a premium-only tier, so it always requires premium
+// and decides eligibility on the CURRENT subscription rather than on the
+// absence of a hold — a member who re-subscribed but whose stale hold has not
+// been swept yet can still inherit. Account deletion can fire on ANY tier, so
+// on an open tier it must not reject an otherwise-valid Basic successor and
+// cancel a challenge that has no premium requirement at all.
+export async function findEligibleSuccessor(
   transaction: Transaction,
   firestore: Firestore,
   loaded: LoadedInstance,
-  lapsedUid: string,
+  departingUid: string,
   nowMs: number,
+  requirePremium: boolean,
 ): Promise<string | undefined> {
   const candidates = readRoster(loaded.data).filter((uid) => {
-    if (uid === lapsedUid) return false;
+    if (uid === departingUid) return false;
     const doc = loaded.participants.docs.find((participant) => participant.id === uid);
     const data = doc?.data();
     if (doc === undefined || data === undefined) return false;
@@ -398,6 +413,7 @@ async function findSuccessor(
   });
 
   if (candidates.length === 0) return undefined;
+  if (!requirePremium) return candidates[0];
 
   const userSnaps = await transaction.getAll(
     ...candidates.map((uid) => firestore.doc(`users/${uid}`)),
@@ -411,7 +427,14 @@ async function findSuccessor(
 // LEFT, their slot is released, a history document freezes their progress, and
 // their credited metres stay in `teamMeters`. Reward eligibility is already
 // NOT_ELIGIBLE for anyone who has not reached settlement, so no badge follows.
-function removeParticipant(
+//
+// Exported because account deletion needs the identical effect for a different
+// reason. Both callers must agree on what "removed by the system" means to a
+// challenge, so the rule lives here once rather than being reimplemented per
+// caller. The self-service path in `challengeSettlementCore.ts` deliberately
+// does NOT route through this: it additionally asserts the caller is not
+// suspended, which is exactly the assertion a system actor must bypass.
+export function removeParticipantAsSystem(
   transaction: Transaction,
   firestore: Firestore,
   loaded: LoadedInstance,
@@ -446,22 +469,29 @@ function removeParticipant(
   );
 }
 
-// Same terminal effects as an owner abandon, under a distinct terminal reason:
-// participants CANCELLED, slots released, PENDING invitations REVOKED, and
-// every roster member's hold resolved so a later sweep has nothing to retry.
-function cancelInstanceForPremiumLapse(
+// Same terminal effects as an owner abandon, under a caller-supplied terminal
+// reason: participants CANCELLED, slots released, PENDING invitations REVOKED,
+// and every roster member's hold resolved so a later sweep has nothing to
+// retry. Clearing holds is correct for every caller, not just premium lapse: a
+// cancelled instance can never evict anyone, so any hold naming it is stale.
+//
+// Exported for account deletion, which needs identical effects under
+// OWNER_ACCOUNT_DELETED. The reason is a parameter rather than a branch so the
+// two callers cannot drift in what "the owner is gone" does to the instance.
+export function cancelInstanceAsSystem(
   transaction: Transaction,
   firestore: Firestore,
   loaded: LoadedInstance,
   challengeId: string,
   invitations: readonly QueryDocumentSnapshot[],
   nowMs: number,
+  terminalReason: ChallengeTerminalReason,
 ): void {
   const settledAt = Timestamp.fromMillis(nowMs);
 
   transaction.update(loaded.ref, {
     status: "CANCELLED",
-    terminalReason: "OWNER_PREMIUM_LAPSED",
+    terminalReason,
     settledAt,
   });
 
@@ -473,7 +503,7 @@ function cancelInstanceForPremiumLapse(
       // A leaver keeps their LEFT snapshot; only the terminal reason merges in.
       transaction.set(
         historyRef(firestore, doc.id, challengeId),
-        { terminalReason: "OWNER_PREMIUM_LAPSED" },
+        { terminalReason },
         { merge: true },
       );
       continue;
@@ -488,7 +518,7 @@ function cancelInstanceForPremiumLapse(
         instanceData: loaded.data,
         participantData: data,
         outcome: "CANCELLED",
-        terminalReason: "OWNER_PREMIUM_LAPSED",
+        terminalReason,
         endedAtMs: nowMs,
       }),
     );

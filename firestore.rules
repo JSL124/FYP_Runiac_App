@@ -571,6 +571,13 @@ service cloud.firestore {
     // unrecognised accountStatus value, is treated as NOT suspended, so every
     // already-stored document keeps its current behaviour.
     //
+    // 'deleting' is in the same list for the same reason, under a different
+    // primary control: requestAccountDeletion revokes refresh tokens and
+    // disables the Auth user in the same call that sets the status, so this
+    // again only closes the unexpired-ID-token window — here, the window in
+    // which a runner who has just deleted their account could still write
+    // something that the erase fan-out has already swept past.
+    //
     // Every get() here bills a document read, so this is applied only to the
     // specific client write paths where a suspended user could still
     // plausibly harm another user or game moderation (see firestore.rules
@@ -580,7 +587,7 @@ service cloud.firestore {
       return !isSignedIn()
         || !exists(/databases/$(database)/documents/users/$(request.auth.uid))
         || !('accountStatus' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data)
-        || !(get(/databases/$(database)/documents/users/$(request.auth.uid)).data.accountStatus in ['suspended', 'banned']);
+        || !(get(/databases/$(database)/documents/users/$(request.auth.uid)).data.accountStatus in ['suspended', 'banned', 'deleting']);
     }
 
     function isPremiumUser() {
@@ -1034,6 +1041,16 @@ service cloud.firestore {
         ])
         && doesNotTouchBackendOwnedKeys();
       allow update, delete: if false;
+    }
+
+    // accountDeletionCommands is written only by the requestAccountDeletion
+    // callable via Admin SDK and consumed only by the
+    // accountDeletionCommandCreated trigger. Denied to every client INCLUDING
+    // the runner whose deletion it records: the document is an operational
+    // record with a resume cursor, and a client that could write it could
+    // forge a completed erase or point one at another uid.
+    match /accountDeletionCommands/{uid} {
+      allow read, write: if false;
     }
 
     // moderationCommands is written only by the admin console (Admin SDK)

@@ -61,4 +61,6 @@ export {
 } from "./friends/callable.js";
 export { getFriendLevels } from "./friends/friendLevels/callable.js";
 export { getRunnerPublicProfile } from "./profile/publicProfile/callable.js";
+export { requestAccountDeletion } from "./account/requestAccountDeletion.js";
+export { accountDeletionCommandCreated } from "./account/accountDeletionCommand.js";
 export { setProfileAvatar, clearProfileAvatar } from "./profile/avatar/callable.js";

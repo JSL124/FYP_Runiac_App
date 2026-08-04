@@ -126,6 +126,46 @@ is_challenge_premium_lapse_path() {
   esac
 }
 
+is_account_deletion_capsule_active() {
+  grep -Eq '^- Newly routed account deletion on 2026-08-04 Asia/Singapore: `implementation/roadmap/capsules/account-deletion\.md`' implementation/roadmap/CURRENT.md
+}
+
+# Paths touched by the routed account-deletion capsule. The erase fan-out reads
+# from nearly every collection in the app, but it only WRITES through its own
+# module plus the shared seams it reuses rather than duplicates: the
+# accountStatus lockout predicate, the feed-post cleanup path, and the
+# challenge eviction core. Everything else it touches it touches through
+# existing exported functions, so no other functions/src path belongs here.
+is_account_deletion_path() {
+  case "$1" in
+    implementation/roadmap/capsules/account-deletion.md|\
+    functions/src/account/*|\
+    functions/test/accountDeletion.test.ts|\
+    functions/src/security/accountStatus.ts|\
+    functions/src/challenge/challengePremiumLapse.ts|\
+    functions/src/challenge/challengeTypes.ts|\
+    functions/test/feedCallableSurface.test.ts|\
+    functions/src/index.ts|\
+    functions/package.json|\
+    firestore.rules|\
+    tests/firebase-rules/accountDeletion.firestore.rules.test.mjs|\
+    tests/firebase-rules/package.json|\
+    implementation/mobile/runiac_app/test/account_profile_manage_routing_test.dart|\
+    implementation/mobile/runiac_app/lib/features/profile/data/firebase_account_deletion_repository.dart|\
+    implementation/mobile/runiac_app/lib/features/profile/presentation/delete_account_screen.dart|\
+    implementation/mobile/runiac_app/lib/features/profile/presentation/widgets/account_delete_row.dart|\
+    implementation/mobile/runiac_app/lib/features/profile/presentation/widgets/account_profile_sections.dart|\
+    implementation/mobile/runiac_app/lib/features/profile/presentation/qa/delete_account_qa_launcher.dart|\
+    implementation/mobile/runiac_app/lib/main.dart|\
+    implementation/mobile/runiac_app/test/delete_account_flow_test.dart)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_cool_down_stretch_xp_bonus_capsule_active() {
   grep -Eq '^- Newly routed cool-down stretch completion XP bonus on 2026-07-14 Asia/Singapore: `implementation/roadmap/capsules/cool-down-stretch-completion-xp-bonus\.md`' implementation/roadmap/CURRENT.md
 }
@@ -1476,6 +1516,10 @@ is_allowed_path() {
     return 0
   fi
 
+  if is_account_deletion_path "$1" && is_account_deletion_capsule_active; then
+    return 0
+  fi
+
 
   if is_cool_down_stretch_xp_bonus_path "$1" && is_cool_down_stretch_xp_bonus_capsule_active; then
     return 0
@@ -1806,6 +1850,10 @@ is_forbidden_path() {
   fi
 
   if is_challenge_premium_lapse_path "$1" && is_challenge_premium_lapse_capsule_active; then
+    return 1
+  fi
+
+  if is_account_deletion_path "$1" && is_account_deletion_capsule_active; then
     return 1
   fi
 

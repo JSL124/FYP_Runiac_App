@@ -262,6 +262,39 @@ is_challenge_premium_lapse_path() {
   esac
 }
 
+is_account_deletion_capsule_active() {
+  grep -Eq '^- Newly routed account deletion on 2026-08-04 Asia/Singapore: `implementation/roadmap/capsules/account-deletion\.md`' implementation/roadmap/CURRENT.md
+}
+
+# New files introduced by the routed account-deletion capsule. Every existing
+# file the capsule edits (functions/src/index.ts, accountStatus.ts,
+# challengePremiumLapse.ts, firestore.rules, account_profile_sections.dart) is
+# an edit rather than a scaffold and so belongs only in the diff-hygiene
+# allowlist, not here.
+is_account_deletion_path() {
+  case "$1" in
+    implementation/roadmap/capsules/account-deletion.md|\
+    functions/src/account/accountDeletionCore.ts|\
+    functions/src/account/accountDeletionInventory.ts|\
+    functions/src/account/accountChallengeExit.ts|\
+    functions/src/account/requestAccountDeletion.ts|\
+    functions/src/account/accountDeletionCommand.ts|\
+    functions/src/account/accountDeletionCommandTypes.ts|\
+    functions/test/accountDeletion.test.ts|\
+    tests/firebase-rules/accountDeletion.firestore.rules.test.mjs|\
+    implementation/mobile/runiac_app/lib/features/profile/data/firebase_account_deletion_repository.dart|\
+    implementation/mobile/runiac_app/lib/features/profile/presentation/delete_account_screen.dart|\
+    implementation/mobile/runiac_app/lib/features/profile/presentation/widgets/account_delete_row.dart|\
+    implementation/mobile/runiac_app/lib/features/profile/presentation/qa/delete_account_qa_launcher.dart|\
+    implementation/mobile/runiac_app/test/delete_account_flow_test.dart)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_cool_down_stretch_xp_bonus_capsule_active() {
   grep -Eq '^- Newly routed cool-down stretch completion XP bonus on 2026-07-14 Asia/Singapore: `implementation/roadmap/capsules/cool-down-stretch-completion-xp-bonus\.md`' implementation/roadmap/CURRENT.md
 }
@@ -1017,6 +1050,10 @@ is_forbidden_config_or_secret() {
   fi
 
   if is_challenge_premium_lapse_path "$1" && is_challenge_premium_lapse_capsule_active; then
+    return 1
+  fi
+
+  if is_account_deletion_path "$1" && is_account_deletion_capsule_active; then
     return 1
   fi
 

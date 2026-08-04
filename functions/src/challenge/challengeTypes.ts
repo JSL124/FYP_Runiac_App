@@ -98,7 +98,13 @@ export type ChallengeTerminalReason =
   // The owner's premium subscription lapsed on a premium-only tier and no
   // remaining participant was eligible to inherit the instance. Distinct from
   // OWNER_ABANDONED because the owner did not choose to end it.
-  | "OWNER_PREMIUM_LAPSED";
+  | "OWNER_PREMIUM_LAPSED"
+  // The owner deleted their Runiac account and no remaining participant was
+  // eligible to inherit the instance. Distinct from OWNER_ABANDONED because the
+  // owner ended their account rather than this challenge, and distinct from
+  // OWNER_PREMIUM_LAPSED because it can fire on any tier, not only premium-only
+  // ones, and is never recoverable by re-subscribing.
+  | "OWNER_ACCOUNT_DELETED";
 
 // ---------------------------------------------------------------------------
 // State machine actors, actions, and results

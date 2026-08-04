@@ -16,6 +16,10 @@ import * as productionFunctions from "../src/index.js";
  */
 const expectedExports = [
   "abandonChallenge",
+  // Firestore trigger running the account-deletion erase fan-out. Separate from
+  // requestAccountDeletion because the fan-out is unbounded and cannot be
+  // guaranteed to fit a callable's execution budget.
+  "accountDeletionCommandCreated",
   "activityFeedbackAgent",
   "blockUser",
   "cancelChallengeLobby",
@@ -64,6 +68,10 @@ const expectedExports = [
   "reportAppError",
   "reportCreated",
   "reportFeedPost",
+  // Stage A of account deletion: locks the account out, releases the nickname,
+  // and enqueues the erase. Store policy (Apple 5.1.1(v), Google Play data
+  // deletion) requires this path to exist inside the app.
+  "requestAccountDeletion",
   "respondToChallengeInvitation",
   "respondToFriendRequest",
   "searchFriends",

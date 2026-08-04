@@ -99,10 +99,13 @@ void main() {
     await tester.pumpAndSettle();
 
     final cards = find.byType(RuniacTappableSurface);
-    // Every manage row plus the sign-out row below them.
+    // Every manage row, plus the sign-out and delete-account rows below them.
+    // The delete row is styled apart (red border and label) but is deliberately
+    // built to the same metrics, so it belongs in this height assertion rather
+    // than being excluded from it.
     expect(
       cards,
-      findsNWidgets(accountProfileDemoSnapshot.manageRows.length + 1),
+      findsNWidgets(accountProfileDemoSnapshot.manageRows.length + 2),
     );
 
     final heights = <double>{
