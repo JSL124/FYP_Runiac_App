@@ -452,6 +452,34 @@ is_feed_engagement_push_test_race_capsule_active() {
   grep -Eq '^- Newly routed feed engagement push test race on 2026-07-31 Asia/Singapore: `implementation/roadmap/capsules/feed-engagement-push-test-race\.md`' implementation/roadmap/CURRENT.md
 }
 
+is_run_payload_pace_consistency_capsule_active() {
+  grep -Eq '^- Newly routed run payload pace consistency on 2026-08-04 Asia/Singapore: `implementation/roadmap/capsules/run-payload-pace-consistency\.md`' implementation/roadmap/CURRENT.md
+}
+
+# Cross-field consistency capsule for the completeRun payload validator.
+# Exact file list only, deliberately not a functions/src/run/* or
+# functions/test/* glob: both directories are shared with other capsules'
+# negative-space regression probes, and this capsule's routing bullet is
+# append-only/permanent, so a broad glob would permanently widen scope once
+# it goes stale. functions/src/run/validateRunPayload.ts and
+# functions/test/completeRun.test.ts are already unconditionally allowed via
+# the legacy complete-run functions-path case block further below (shared
+# with several other capsules' gated entries there); this dedicated
+# predicate is the current-pattern routing surface and also covers the
+# capsule's own routing document.
+is_run_payload_pace_consistency_path() {
+  case "$1" in
+    implementation/roadmap/capsules/run-payload-pace-consistency.md|\
+    functions/src/run/validateRunPayload.ts|\
+    functions/test/completeRun.test.ts)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 # Test-reliability capsule. One test file only, named exactly: functions/test/
 # is shared with every other capsule's suites, so a directory glob here would
 # permanently widen scope once this capsule's append-only routing bullet goes
@@ -1472,6 +1500,10 @@ is_allowed_path() {
   fi
 
   if is_feed_engagement_push_test_race_path "$1" && is_feed_engagement_push_test_race_capsule_active; then
+    return 0
+  fi
+
+  if is_run_payload_pace_consistency_path "$1" && is_run_payload_pace_consistency_capsule_active; then
     return 0
   fi
 

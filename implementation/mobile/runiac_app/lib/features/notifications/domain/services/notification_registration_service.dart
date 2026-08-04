@@ -119,13 +119,32 @@ class NotificationRegistrationService {
   /// message subscriptions.
   int _generation = 0;
 
+  /// The in-flight `_start()` call, if any. `start()` is called from three
+  /// places in `app.dart` (initState, didUpdateWidget, the auth gate) and on
+  /// a warm start two of them can land before the first `start()` resolves.
+  /// `_started` alone can't gate that: it was only ever flipped true at the
+  /// END of the sequence, so a second caller would sail through the
+  /// `if (_started)` check and re-run permission/token registration and
+  /// re-subscribe to every stream while the first call was still awaiting.
+  /// Memoizing the future instead means every concurrent caller before the
+  /// first completion awaits the SAME `_start()` run.
+  Future<void>? _startFuture;
+
   Stream<PushNotificationMessage> get messages => _messageController.stream;
 
-  Future<void> start() async {
+  Future<void> start() {
     if (_started) {
-      return;
+      return Future.value();
     }
+    return _startFuture ??= _start().whenComplete(() {
+      // Cleared unconditionally (success, early return, or failure) so a
+      // start that didn't succeed can be genuinely retried by the next
+      // caller instead of permanently returning the failed attempt's future.
+      _startFuture = null;
+    });
+  }
 
+  Future<void> _start() async {
     final generation = _generation;
     final startingUid = _currentOwnerUid();
     try {

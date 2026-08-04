@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runiac_app/app.dart';
 import 'package:runiac_app/features/onboarding/domain/models/local_onboarding_draft.dart';
+import 'package:runiac_app/features/onboarding/domain/services/safety_gate_resolver.dart';
 import 'package:runiac_app/features/onboarding/presentation/widgets/onboarding_preview_body.dart';
 
 import 'support/onboarding_flow_test_helpers.dart';
@@ -202,6 +203,83 @@ void main() {
     expect(completedDraft, isNotNull);
     expect(completedDraft!.activitySymptoms, [OnboardingActivitySymptom.none]);
   });
+
+  testWidgets(
+    'symptoms step disables Continue until an option is selected',
+    (tester) async {
+      await tester.pumpWidget(
+        const RuniacApp(
+          showSplash: false,
+          showOnboarding: true,
+          enableForegroundGps: false,
+        ),
+      );
+
+      await advanceToSymptoms(tester);
+
+      expect(primaryContinueButton(tester).onPressed, isNull);
+    },
+  );
+
+  testWidgets(
+    'symptoms step enables Continue after selecting None of these',
+    (tester) async {
+      await tester.pumpWidget(
+        const RuniacApp(
+          showSplash: false,
+          showOnboarding: true,
+          enableForegroundGps: false,
+        ),
+      );
+
+      await advanceToSymptoms(tester);
+      expect(primaryContinueButton(tester).onPressed, isNull);
+
+      await tapText(tester, 'None of these');
+      expect(primaryContinueButton(tester).onPressed, isNotNull);
+
+      await tapText(tester, 'Continue');
+      expect(
+        find.text('How would you like your training plan to feel?'),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'symptoms step enables Continue after selecting a real symptom and '
+    'still resolves to needsClearance',
+    (tester) async {
+      LocalOnboardingDraft? completedDraft;
+
+      await tester.pumpWidget(
+        RuniacApp(
+          showSplash: false,
+          showOnboarding: true,
+          enableForegroundGps: false,
+          onOnboardingCompleted: (draft) {
+            completedDraft = draft;
+          },
+        ),
+      );
+
+      await advanceToSymptoms(tester);
+      expect(primaryContinueButton(tester).onPressed, isNull);
+
+      await tapText(tester, 'Chest pain or discomfort');
+      expect(primaryContinueButton(tester).onPressed, isNotNull);
+
+      await tapText(tester, 'Continue');
+      await answerSingle(tester, 'Balanced progression');
+      await tapText(tester, 'Finish for now');
+
+      expect(completedDraft, isNotNull);
+      expect(
+        const SafetyGateResolver().resolve(completedDraft!),
+        SafetyGateState.needsClearance,
+      );
+    },
+  );
 
   testWidgets('needs clearance preview does not show normal plan rows', (
     tester,

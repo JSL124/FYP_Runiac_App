@@ -502,6 +502,27 @@ is_review_triage_notification_privacy_quota_capsule_active() {
   grep -Eq '^- Newly routed review-triage on 2026-07-30 Asia/Singapore: `implementation/roadmap/capsules/review-triage-notification-privacy-quota\.md`' implementation/roadmap/CURRENT.md
 }
 
+is_run_payload_pace_consistency_capsule_active() {
+  grep -Eq '^- Newly routed run payload pace consistency on 2026-08-04 Asia/Singapore: `implementation/roadmap/capsules/run-payload-pace-consistency\.md`' implementation/roadmap/CURRENT.md
+}
+
+# functions/src/run/validateRunPayload.ts and functions/test/completeRun.test.ts
+# are already unconditionally allowed via is_historical_backend_functions_path;
+# this predicate additionally covers the capsule's own routing document, for
+# symmetry with the diff-hygiene allowlist.
+is_run_payload_pace_consistency_path() {
+  case "$1" in
+    implementation/roadmap/capsules/run-payload-pace-consistency.md|\
+    functions/src/run/validateRunPayload.ts|\
+    functions/test/completeRun.test.ts)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 # New source files introduced by the routed review-triage capsule: the shared
 # completedAt future bound and its test. Everything else this capsule touches
 # is an already-tracked file handled by the diff-hygiene allowlist.
@@ -965,6 +986,10 @@ is_forbidden_config_or_secret() {
   fi
 
   if is_review_triage_notification_privacy_quota_path "$1" && is_review_triage_notification_privacy_quota_capsule_active; then
+    return 1
+  fi
+
+  if is_run_payload_pace_consistency_path "$1" && is_run_payload_pace_consistency_capsule_active; then
     return 1
   fi
 

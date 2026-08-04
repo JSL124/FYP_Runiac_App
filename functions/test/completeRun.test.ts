@@ -396,6 +396,86 @@ describe("completeRun callable boundary", () => {
     );
   });
 
+  it("rejects a pace that is not consistent with durationSeconds and distanceMeters", async () => {
+    // Regression test: durationSeconds/distanceMeters/avgPaceSecondsPerKm
+    // were each bounds-checked independently, so a self-contradictory
+    // payload like this (60 s to cover 100 km, at a claimed 600 s/km pace)
+    // used to pass every individual check.
+    await expectRejectsCode(
+      () =>
+        callCompleteRun({
+          auth: { uid: USER_UID },
+          data: {
+            ...validPayload(),
+            clientRunSessionId: "cross-field-pace-consistency-exploit-shape",
+            startedAt: "2026-06-14T09:00:00.000Z",
+            completedAt: "2026-06-14T09:01:00.000Z",
+            durationSeconds: 60,
+            distanceMeters: 100_000,
+            avgPaceSecondsPerKm: 600,
+          },
+        }),
+      "invalid-argument",
+    );
+  });
+
+  it("accepts a run at the sufficient-data floor with a consistent pace", async () => {
+    // 50 m / 60 s is the client's own minimum submittable run
+    // (run_summary_scalar_mapper.dart _hasSufficientSummaryData). Implied
+    // pace: 60 * 1000 / 50 = 1200 s/km.
+    const result = await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: {
+        ...validPayload(),
+        clientRunSessionId: "cross-field-pace-consistency-floor-accept",
+        startedAt: "2026-06-14T09:00:00.000Z",
+        completedAt: "2026-06-14T09:01:00.000Z",
+        durationSeconds: 60,
+        distanceMeters: 50,
+        avgPaceSecondsPerKm: 1200,
+      },
+    });
+
+    assert.equal(result.validationStatus, "validated");
+  });
+
+  it("rejects a pace just outside tolerance at the sufficient-data floor", async () => {
+    // Same floor as above (implied pace 1200 s/km, tolerance
+    // max(15, ceil(1200 * 0.02)) = 24 s/km). 1225 s/km is 25 off, one past
+    // the tolerance boundary, proving the check is a real boundary and not
+    // merely permissive.
+    await expectRejectsCode(
+      () =>
+        callCompleteRun({
+          auth: { uid: USER_UID },
+          data: {
+            ...validPayload(),
+            clientRunSessionId: "cross-field-pace-consistency-floor-reject",
+            startedAt: "2026-06-14T09:00:00.000Z",
+            completedAt: "2026-06-14T09:01:00.000Z",
+            durationSeconds: 60,
+            distanceMeters: 50,
+            avgPaceSecondsPerKm: 1225,
+          },
+        }),
+      "invalid-argument",
+    );
+  });
+
+  it("accepts a realistic paused run, proving pauses are unaffected by the pace consistency check", async () => {
+    // pausedRunPayload: durationSeconds/activeDurationSeconds 3207,
+    // elapsedWallSeconds 3900, pausedDurationSeconds 693, distanceMeters
+    // 8460, avgPaceSecondsPerKm 379. The consistency check compares
+    // durationSeconds (which already excludes paused time) against
+    // distanceMeters, so pause handling needs no special casing.
+    const result = await callCompleteRun({
+      auth: { uid: USER_UID },
+      data: pausedRunPayload(),
+    });
+
+    assert.equal(result.validationStatus, "validated");
+  });
+
   it("accepts user-confirmed low-data saves and rejects raw low-data payloads", async () => {
     await expectRejectsCode(
       () =>
@@ -892,6 +972,9 @@ describe("completeRun callable boundary", () => {
       startedAt: "2026-06-15T09:00:00.000Z",
       completedAt: "2026-06-15T09:25:00.000Z",
       distanceMeters: 4200,
+      // Implied pace at durationSeconds 1500 / distanceMeters 4200 is
+      // 1500 * 1000 / 4200 = 357.14; keep the fixture internally consistent.
+      avgPaceSecondsPerKm: 357,
     });
     await callCompleteRun({ auth: { uid: USER_UID }, data: secondPayload });
 
@@ -1234,6 +1317,9 @@ describe("completeRun callable boundary", () => {
           completedAt: "2026-06-20T10:30:00.000Z",
         }),
         distanceMeters: 5000,
+        // Implied pace at durationSeconds 1500 / distanceMeters 5000 is
+        // 1500 * 1000 / 5000 = 300; keep the fixture internally consistent.
+        avgPaceSecondsPerKm: 300,
         scheduledWorkoutId: "week-1-sat-long-run",
       },
     });
@@ -1658,6 +1744,11 @@ describe("completeRun callable boundary", () => {
             completedAt: "2026-06-14T09:30:00.000Z",
             durationSeconds: 1800,
             distanceMeters: 4000,
+            // Implied pace at durationSeconds 1800 / distanceMeters 4000 is
+            // 1800 * 1000 / 4000 = 450; keep the fixture internally
+            // consistent so this still reaches the replay/already-exists
+            // check instead of failing payload parsing first.
+            avgPaceSecondsPerKm: 450,
           },
         }),
       "already-exists",

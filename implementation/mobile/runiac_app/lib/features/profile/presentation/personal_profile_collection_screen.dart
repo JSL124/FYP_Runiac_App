@@ -88,6 +88,9 @@ class _PersonalProfileCollectionScreenState
         uid: widget.uid,
         nickname: draft.nickname,
       );
+      if (!mounted) {
+        return;
+      }
       if (!available) {
         setState(() {
           _nicknameAvailable = false;
