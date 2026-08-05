@@ -198,7 +198,16 @@ export const DEFAULT_FEATURE_ACCESS_CONFIG: FeatureAccessConfig = deepFreeze({
     // repeatedly without first completing a run, so a "basic" default would
     // have opened model spend on the most reachable surface in the app.
     workoutBriefing: { minimumTier: "premium", enabled: true },
-    shareRouteToFeed: { minimumTier: "premium", enabled: true },
+    // "basic" as of 2026-08-05, correcting a default that had contradicted
+    // production since 2026-07-25: the live `config/featureAccess` document
+    // has stored "basic" for this key since then, and deepMerge means the
+    // stored value wins, so the "premium" default described an environment
+    // that does not exist. Sharing a completed run to the Feed is core social
+    // participation rather than a paid convenience — unlike the three
+    // OpenAI-backed keys above, it costs no model spend — so Basic keeps it.
+    // Still console-flippable: setting "premium" re-locks publishing
+    // immediately, with no redeploy.
+    shareRouteToFeed: { minimumTier: "basic", enabled: true },
     shareCards: { minimumTier: "basic", enabled: true },
     healthWorkoutImport: { minimumTier: "basic", enabled: true },
   },

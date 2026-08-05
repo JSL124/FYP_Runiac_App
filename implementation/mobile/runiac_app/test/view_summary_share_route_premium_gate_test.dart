@@ -94,20 +94,29 @@ Future<void> _teardownTree(WidgetTester tester) async {
   await tester.pumpWidget(const SizedBox());
 }
 
+// Every case here pumps the summary WITHOUT a feature-access scope, so the
+// gate resolves through `FeatureAccessReadModel.defaults`. What this file
+// pins is therefore the shipped-default and fail-open behaviour, not the
+// admin-configured tiers — those live in feature_access_premium_gate_test.dart,
+// which injects an explicit premiumFeatureKeys list for all three directions.
 void main() {
   group('Basic runner', () {
-    testWidgets('Share Route opens the paywall, not the share sheet', (
+    testWidgets('Share Route opens the share sheet: default tier is Basic', (
       tester,
     ) async {
+      // shareRouteToFeed ships Basic (it has been stored Basic in production
+      // since 2026-07-25), so an unread config document must not paywall a
+      // Basic runner out of a feature the callable would have allowed.
       await _pumpSummary(
         tester,
         subscriptionStatus: UserSubscriptionStatus.basic,
       );
 
       await _tapShareRoute(tester);
+      await tester.pumpAndSettle();
 
-      expect(find.byKey(_paywallTitleKey), findsOneWidget);
-      expect(find.byType(ShareRouteToFeedSheet), findsNothing);
+      expect(find.byType(ShareRouteToFeedSheet), findsOneWidget);
+      expect(find.byKey(_paywallTitleKey), findsNothing);
 
       await _teardownTree(tester);
     });

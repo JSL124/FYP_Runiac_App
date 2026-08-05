@@ -31,7 +31,6 @@ class FeatureAccessReadModel {
     'aiHomeCoach',
     'activityFeedback',
     'workoutBriefing',
-    'shareRouteToFeed',
   ];
 
   /// Feature keys whose stored entry is `minimumTier == 'premium'` and

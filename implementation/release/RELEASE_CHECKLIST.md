@@ -95,9 +95,11 @@ These are two separate callables and the cool-down carries its own XP bonus. Sto
 after T1-2, with the four-part evidence bundle below.
 
 **T1-4 Tier boundary.** Three assertions, not one:
-- A Basic User is **denied** at each of the four server-enforced premium gates —
-  `aiHomeCoach`, `activityFeedback`, `workoutBriefing`, `shareRouteToFeed`.
-- A Basic User **can still use** the basic-tier features: `shareCards`, `healthWorkoutImport`.
+- A Basic User is **denied** at each of the three server-enforced premium gates —
+  `aiHomeCoach`, `activityFeedback`, `workoutBriefing`.
+- A Basic User **can still use** the basic-tier features: `shareRouteToFeed`, `shareCards`,
+  `healthWorkoutImport`. `shareRouteToFeed` has a real server gate that is simply open at this
+  tier, so a denial here is a regression, not a pass.
   Testing only the denials would miss a regression that locks Basic Users out of their own
   features.
 - A Premium User passes all of the above.

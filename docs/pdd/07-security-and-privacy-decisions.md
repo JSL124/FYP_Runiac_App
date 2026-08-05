@@ -135,14 +135,23 @@ holds seven keys, and the tiers are not a simple premium/basic split:
 | `aiHomeCoach` | premium | ✅ `assertFeatureEntitlement` in `agent/homeGuideAgentHandler.ts` |
 | `activityFeedback` | premium | ✅ `agent/activityFeedbackAgentHandler.ts` |
 | `workoutBriefing` | premium | ✅ `agent/workoutBriefingAgentHandler.ts` |
-| `shareRouteToFeed` | premium | ✅ `feed/publish/entitlement.ts` |
 | **`advancedAnalysis`** | **premium** | ❌ **none — see below** |
+| `shareRouteToFeed` | **basic** | ✅ `feed/publish/entitlement.ts` — gate wired, inert while basic |
 | `shareCards` | **basic** | — |
 | `healthWorkoutImport` | **basic** | — |
 
-Two things follow that are easy to get wrong. Premium is not "everything": `shareCards` and
-`healthWorkoutImport` are basic-tier, so a change that gated them would be a regression against
-Basic Users, not a tightening. And of the five premium keys, only four have a server-side gate.
+**These tiers are the shipped defaults, and the stored document outranks them.**
+`loadFeatureAccessConfig` merges the live `config/featureAccess` over
+`DEFAULT_FEATURE_ACCESS_CONFIG`, so an admin edit changes behaviour with no redeploy and this
+table then describes intent rather than production. Read the document itself before asserting
+what a tier is today — the repository cannot tell you. `shareRouteToFeed` is recorded as basic
+here precisely because it had been stored basic in production since 2026-07-25 while every
+in-repository signal still said premium.
+
+Two things follow that are easy to get wrong. Premium is not "everything": `shareRouteToFeed`,
+`shareCards` and `healthWorkoutImport` are basic-tier, so a change that gated them would be a
+regression against Basic Users, not a tightening. And of the four premium keys, only three have a
+server-side gate.
 
 **`advancedAnalysis` has no server-side enforcement, and that is defensible rather than an
 oversight.** On inspection it reads as a violation of the rule that premium features must not rely

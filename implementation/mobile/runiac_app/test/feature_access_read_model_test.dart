@@ -16,7 +16,6 @@ void main() {
         'aiHomeCoach',
         'activityFeedback',
         'workoutBriefing',
-        'shareRouteToFeed',
       ]);
     });
 
@@ -56,8 +55,8 @@ void main() {
       expect(model.isPremiumFeature('workoutBriefing'), isTrue);
       expect(model.isPremiumFeature('activityFeedback'), isTrue);
       expect(model.isPremiumFeature('aiHomeCoach'), isTrue);
-      expect(model.isPremiumFeature('shareRouteToFeed'), isTrue);
       // Keys that ship as Basic are not resurrected by the merge.
+      expect(model.isPremiumFeature('shareRouteToFeed'), isFalse);
       expect(model.isPremiumFeature('shareCards'), isFalse);
       expect(model.isPremiumFeature('healthWorkoutImport'), isFalse);
     });
@@ -113,7 +112,6 @@ void main() {
         'aiHomeCoach',
         'activityFeedback',
         'workoutBriefing',
-        'shareRouteToFeed',
       ]);
     });
   });

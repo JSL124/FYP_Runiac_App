@@ -149,10 +149,11 @@ async function actor(uid: (typeof actorIds)[number]): Promise<Actor> {
 
 async function setupProfiles(): Promise<void> {
   await Promise.all(actorIds.map((uid) => db.doc(`userProfiles/${uid}`).set({ displayName: uid, avatarInitials: "T12" })));
-  // The publishing author must be Premium: publishActivityToFeed now enforces
-  // the shareRouteToFeed feature-access tier (premium by default) server-side,
-  // reading users/{uid}.subscriptionStatus. Without this the callable would
-  // reject the author with PERMISSION_DENIED before any post is written.
+  // publishActivityToFeed enforces the shareRouteToFeed feature-access tier
+  // server-side, reading users/{uid}.subscriptionStatus. That tier defaults to
+  // "basic", so this Premium author document is not what makes the test pass
+  // today — it is kept so the suite still exercises publishing if an admin (or
+  // a future default) puts the key back behind Premium.
   await db.doc(`users/task12-author`).set({ subscriptionStatus: "premium" });
 }
 

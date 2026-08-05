@@ -155,8 +155,8 @@ Assert all three directions, not just the denials:
 
 | Check | Expected |
 |---|---|
-| Basic hits `aiHomeCoach`, `activityFeedback`, `workoutBriefing`, `shareRouteToFeed` | **Denied**, server-side |
-| Basic uses `shareCards`, `healthWorkoutImport` | **Works** — these are basic tier |
+| Basic hits `aiHomeCoach`, `activityFeedback`, `workoutBriefing` | **Denied**, server-side |
+| Basic uses `shareRouteToFeed`, `shareCards`, `healthWorkoutImport` | **Works** — these are basic tier. `shareRouteToFeed` is server-gated but open at this tier, so a denial is a regression |
 | Premium hits all of the above | Works |
 | `advancedAnalysis` | Configured premium with **no server gate** — computed on-device, so record what a Basic account actually sees |
 
