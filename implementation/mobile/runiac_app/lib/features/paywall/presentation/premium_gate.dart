@@ -81,7 +81,7 @@ bool _watchIsPremiumFeature(BuildContext context, String featureKey) {
 /// a server-side backstop that re-reads the same document
 /// (`shareRouteToFeed`, `activityFeedback`, `aiHomeCoach`) or are momentary
 /// local actions whose result is not persisted as an entitlement
-/// (`advancedAnalysis`, `shareCards`, `healthWorkoutImport`) — unlike the
+/// (`advancedAnalysis`, `shareCards`) — unlike the
 /// guide character, which is stored on the device forever and therefore uses
 /// the fail-closed [interceptWithPaywallIfHardGated].
 ///

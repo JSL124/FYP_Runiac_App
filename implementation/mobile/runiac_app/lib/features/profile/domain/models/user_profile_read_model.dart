@@ -88,7 +88,6 @@ enum UserProfileManageAction {
   editProfile,
   runningBuddy,
   notifications,
-  watchHealthApps,
   privacySafety,
   feedback,
   settings,
