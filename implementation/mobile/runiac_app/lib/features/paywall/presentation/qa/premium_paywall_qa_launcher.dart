@@ -127,7 +127,7 @@ class _QaFeatureAccessRepository implements FeatureAccessRepository {
         'activityFeedback',
         'workoutBriefing',
         'shareCards',
-        'healthWorkoutImport',
+        'shareRouteToFeed',
       ],
     );
   }

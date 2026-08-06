@@ -31,7 +31,6 @@ import UserNotifications
       forPlugin: "RuniacLiveActivityChannel"
     ) else { return }
     RuniacLiveActivityChannel.register(with: registrar.messenger())
-    RuniacHealthKitImportChannel.register(with: registrar.messenger())
     RuniacPhoneMotionCadenceChannel.register(with: registrar.messenger())
     RuniacPlanNotificationChannel.register(with: registrar.messenger())
     RuniacInstagramStoryChannel.register(with: registrar.messenger())

@@ -173,12 +173,6 @@ class FirestoreUserProfileRepository implements UserProfileRepository {
           action: UserProfileManageAction.notifications,
         ),
         UserProfileManageRowReadModel(
-          title: 'Watch & Health Apps',
-          subtitle: 'Connect watch runs and health apps',
-          snackBarMessage: 'Adding watch runs comes next.',
-          action: UserProfileManageAction.watchHealthApps,
-        ),
-        UserProfileManageRowReadModel(
           title: 'About Runiac',
           subtitle: 'App version and project information',
           snackBarMessage: '',

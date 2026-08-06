@@ -47,10 +47,6 @@ const Map<String, PremiumFeatureDisplay> premiumFeatureCatalog = {
     label: 'Share cards',
     icon: Icons.ios_share_rounded,
   ),
-  'healthWorkoutImport': PremiumFeatureDisplay(
-    label: 'Health workout import',
-    icon: Icons.monitor_heart_rounded,
-  ),
 };
 
 /// Static upsell teaser for the premium-only challenge tiers (100K and up).
@@ -77,7 +73,7 @@ PremiumFeatureDisplay premiumFeatureDisplayFor(String key) {
   );
 }
 
-/// `healthWorkoutImport` -> `Health workout import`.
+/// `shareRouteToFeed` -> `Share route to feed`.
 String _humanizeFeatureKey(String key) {
   final buffer = StringBuffer();
   for (var i = 0; i < key.length; i++) {

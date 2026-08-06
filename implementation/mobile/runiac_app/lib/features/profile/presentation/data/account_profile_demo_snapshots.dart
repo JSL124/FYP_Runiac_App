@@ -89,13 +89,6 @@ const accountProfileDemoSnapshot = AccountProfileDemoSnapshot(
       action: UserProfileManageAction.notifications,
     ),
     AccountProfileManageRow(
-      icon: Icons.watch_outlined,
-      title: 'Watch & Health Apps',
-      subtitle: 'Connect watch runs and health apps',
-      snackBarMessage: 'Adding watch runs comes next.',
-      action: UserProfileManageAction.watchHealthApps,
-    ),
-    AccountProfileManageRow(
       icon: Icons.info_outline,
       title: 'About Runiac',
       subtitle: 'App version and project information',
