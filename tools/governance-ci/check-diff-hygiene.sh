@@ -130,6 +130,37 @@ is_account_deletion_capsule_active() {
   grep -Eq '^- Newly routed account deletion on 2026-08-04 Asia/Singapore: `implementation/roadmap/capsules/account-deletion\.md`' implementation/roadmap/CURRENT.md
 }
 
+is_system_health_degraded_triage_capsule_active() {
+  grep -Eq '^- Newly routed system health degraded triage on 2026-08-06 Asia/Singapore: `implementation/roadmap/capsules/system-health-degraded-triage\.md`' implementation/roadmap/CURRENT.md
+}
+
+# Paths touched by the routed system-health triage capsule. Two unrelated
+# production defects share it because one admin-console panel surfaced both.
+#
+# firestore.indexes.json is here deliberately: its ABSENCE from the
+# account-deletion allowlist is why the missing collection-group index for
+# `likes`/`userUid` was never gated, and the erase fan-out aborted mid-way on
+# a real account. The accountDeletionInventory.ts edit is comment-only — the
+# step list itself is out of scope.
+is_system_health_degraded_triage_path() {
+  case "$1" in
+    implementation/roadmap/capsules/system-health-degraded-triage.md|\
+    firestore.indexes.json|\
+    functions/src/account/accountDeletionInventory.ts|\
+    tests/cross-system/account-deletion-index-drift.mjs|\
+    tests/governance/account_deletion_index_drift_test.sh|\
+    tools/governance-ci/run-all-checks.sh|\
+    implementation/mobile/runiac_app/lib/features/notifications/domain/services/notification_registration_service.dart|\
+    implementation/mobile/runiac_app/test/notification_registration_service_test.dart|\
+    implementation/mobile/runiac_app/test/support/fake_notification_services.dart)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 # Paths touched by the routed account-deletion capsule. The erase fan-out reads
 # from nearly every collection in the app, but it only WRITES through its own
 # module plus the shared seams it reuses rather than duplicates: the
@@ -1520,6 +1551,10 @@ is_allowed_path() {
     return 0
   fi
 
+  if is_system_health_degraded_triage_path "$1" && is_system_health_degraded_triage_capsule_active; then
+    return 0
+  fi
+
 
   if is_cool_down_stretch_xp_bonus_path "$1" && is_cool_down_stretch_xp_bonus_capsule_active; then
     return 0
@@ -1854,6 +1889,10 @@ is_forbidden_path() {
   fi
 
   if is_account_deletion_path "$1" && is_account_deletion_capsule_active; then
+    return 1
+  fi
+
+  if is_system_health_degraded_triage_path "$1" && is_system_health_degraded_triage_capsule_active; then
     return 1
   fi
 

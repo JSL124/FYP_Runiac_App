@@ -295,6 +295,27 @@ is_account_deletion_path() {
   esac
 }
 
+is_system_health_degraded_triage_capsule_active() {
+  grep -Eq '^- Newly routed system health degraded triage on 2026-08-06 Asia/Singapore: `implementation/roadmap/capsules/system-health-degraded-triage\.md`' implementation/roadmap/CURRENT.md
+}
+
+# New files introduced by the routed system-health triage capsule. The four
+# existing files it edits (firestore.indexes.json, accountDeletionInventory.ts,
+# run-all-checks.sh, and the notification service plus its two test files) are
+# edits rather than scaffolds and so belong only in the diff-hygiene allowlist.
+is_system_health_degraded_triage_path() {
+  case "$1" in
+    implementation/roadmap/capsules/system-health-degraded-triage.md|\
+    tests/cross-system/account-deletion-index-drift.mjs|\
+    tests/governance/account_deletion_index_drift_test.sh)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_cool_down_stretch_xp_bonus_capsule_active() {
   grep -Eq '^- Newly routed cool-down stretch completion XP bonus on 2026-07-14 Asia/Singapore: `implementation/roadmap/capsules/cool-down-stretch-completion-xp-bonus\.md`' implementation/roadmap/CURRENT.md
 }
@@ -1054,6 +1075,10 @@ is_forbidden_config_or_secret() {
   fi
 
   if is_account_deletion_path "$1" && is_account_deletion_capsule_active; then
+    return 1
+  fi
+
+  if is_system_health_degraded_triage_path "$1" && is_system_health_degraded_triage_capsule_active; then
     return 1
   fi
 

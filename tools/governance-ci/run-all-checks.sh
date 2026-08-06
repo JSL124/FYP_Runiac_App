@@ -20,6 +20,7 @@ checks=(
   "tests/governance/config_contract_drift_test.sh"
   "tests/governance/avatar_path_contract_drift_test.sh"
   "tests/governance/paywall_config_drift_test.sh"
+  "tests/governance/account_deletion_index_drift_test.sh"
 )
 
 failures=0

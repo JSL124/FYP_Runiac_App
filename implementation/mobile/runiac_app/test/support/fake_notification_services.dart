@@ -16,6 +16,10 @@ class FakePushNotificationClient implements PushNotificationClient {
   final PushNotificationPermissionStatus permissionStatus;
   String? apnsToken;
   String? token;
+  // When set, getToken() throws instead of returning. Models
+  // `[firebase_messaging/apns-token-not-set]`, which FirebaseMessaging raises
+  // on iOS whenever APNs has not yet handed the device its token.
+  Object? tokenError;
   final PushNotificationMessage? initialMessage;
   final _tokenRefreshController = StreamController<String>.broadcast();
   final _foregroundController =
@@ -41,6 +45,10 @@ class FakePushNotificationClient implements PushNotificationClient {
   @override
   Future<String?> getToken() async {
     tokenRequests += 1;
+    final error = tokenError;
+    if (error != null) {
+      throw error;
+    }
     return token;
   }
 

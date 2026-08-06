@@ -242,6 +242,96 @@ void main() {
     );
 
     test(
+      'tears down locally when the platform cannot supply a token at sign-out',
+      () async {
+        // On iOS FirebaseMessaging.getToken() throws
+        // `[firebase_messaging/apns-token-not-set]` until APNs hands the
+        // device its token. Resolving the token used to happen BEFORE the
+        // local teardown, so a sign-out in that window skipped teardown
+        // entirely and the throw escaped app.dart's unawaited call as a fatal
+        // uncaught error — 38 occurrences across 17 runners in production.
+        final client = FakePushNotificationClient(
+          permissionStatus: PushNotificationPermissionStatus.authorized,
+          token: 'initial-token',
+        );
+        final callable = FakeNotificationDeviceCallable();
+        String? uid = 'runner-1';
+        final service = NotificationRegistrationService(
+          client: client,
+          callable: callable,
+          ownerUidProvider: () => uid,
+        );
+        final received = <String>[];
+        final subscription = service.messages.listen(
+          (message) => received.add(message.id),
+        );
+
+        // No registration ran, so nothing is cached and the sign-out has to
+        // ask the platform — which is exactly when the platform refuses.
+        client.tokenError = StateError('apns-token-not-set');
+        uid = null;
+        await service.unregisterCurrentDevice();
+
+        // No remote call was attempted, and no exception escaped.
+        expect(callable.unregisterCalls, isEmpty);
+
+        // The teardown still ran: the previous owner's stream is detached and
+        // the next runner registers rather than being skipped as started.
+        client.emitForegroundMessage(
+          const PushNotificationMessage(id: 'late-for-runner-1'),
+        );
+        await pumpEventQueue();
+        expect(received, isEmpty);
+
+        uid = 'runner-2';
+        client.tokenError = null;
+        client.token = 'next-token';
+        await service.start();
+        expect(
+          callable.registerCalls.map((call) => '${call.uid}:${call.token}'),
+          ['runner-2:next-token'],
+        );
+
+        await subscription.cancel();
+        await service.dispose();
+      },
+    );
+
+    test(
+      'still unregisters remotely using the token cached at registration',
+      () async {
+        // The cached token is what a normal sign-out uses, so a platform that
+        // would throw must not be consulted at all on that path.
+        final client = FakePushNotificationClient(
+          permissionStatus: PushNotificationPermissionStatus.authorized,
+          token: 'initial-token',
+        );
+        final callable = FakeNotificationDeviceCallable();
+        String? uid = 'runner-1';
+        final service = NotificationRegistrationService(
+          client: client,
+          callable: callable,
+          ownerUidProvider: () => uid,
+        );
+
+        await service.start();
+        final tokenRequestsAfterStart = client.tokenRequests;
+        client.tokenError = StateError('apns-token-not-set');
+        uid = null;
+        await service.unregisterCurrentDevice();
+
+        expect(client.tokenRequests, tokenRequestsAfterStart);
+        expect(callable.unregisterCalls, [
+          const UnregisterNotificationDeviceRequest(
+            uid: 'runner-1',
+            token: 'initial-token',
+          ),
+        ]);
+        await service.dispose();
+      },
+    );
+
+    test(
       'does not unregister the next runner when the account switches first',
       () async {
         // The callable sends only the token; the server resolves the owner from

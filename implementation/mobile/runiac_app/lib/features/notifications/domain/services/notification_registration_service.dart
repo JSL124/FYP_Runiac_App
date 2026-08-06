@@ -217,7 +217,7 @@ class NotificationRegistrationService {
     // already dropped to null, and during an account switch it has already
     // moved on to the next runner.
     final previousUid = _currentUid ?? _currentOwnerUid();
-    final token = _currentToken ?? await client.getToken();
+    final registeredToken = _currentToken;
 
     // Local teardown happens first and unconditionally. The remote call is the
     // part that can fail — a sign-out while offline is the ordinary case — and
@@ -228,15 +228,21 @@ class NotificationRegistrationService {
     // account's inbox (the inbox repository resolves the owner uid at write
     // time). Isolating the device from the previous owner must not depend on
     // the network.
+    //
+    // Nothing above this block may await the platform either, for the same
+    // reason. Resolving the token used to sit here, and on iOS
+    // `FirebaseMessaging.getToken()` throws
+    // `[firebase_messaging/apns-token-not-set]` when APNs has not handed the
+    // device its token yet — a signed-in-then-signed-out session that never
+    // reached that point skipped the whole teardown, and the throw escaped the
+    // unawaited call in app.dart as a fatal uncaught error.
     _generation += 1;
     _currentUid = null;
     _started = false;
-    if (token != null && _currentToken == token) {
-      _currentToken = null;
-    }
+    _currentToken = null;
     await _cancelSubscriptions();
 
-    if (previousUid == null || token == null || token.isEmpty) {
+    if (previousUid == null) {
       return;
     }
     // `unregisterNotificationDevice` carries only the token: the server
@@ -252,6 +258,17 @@ class NotificationRegistrationService {
     if (ownerNow != null && ownerNow != previousUid) {
       return;
     }
+
+    // Only reached when there is a device row worth disabling. A token cached
+    // from registration is used as-is; asking the platform for one is
+    // best-effort, because failing to tell the server about a sign-out is
+    // recoverable (the row is re-registered on the next sign-in, and the
+    // teardown above already stopped this device from receiving the previous
+    // owner's pushes) while crashing on the way to it is not.
+    final token = registeredToken ?? await _platformTokenOrNull();
+    if (token == null || token.isEmpty) {
+      return;
+    }
     await callable.unregisterDevice(
       UnregisterNotificationDeviceRequest(uid: previousUid, token: token),
     );
@@ -260,6 +277,18 @@ class NotificationRegistrationService {
   Future<void> dispose() async {
     await _cancelSubscriptions();
     await _messageController.close();
+  }
+
+  // Deliberately catches everything rather than matching on the APNs error
+  // code: this is the sign-out path, every caller of it treats a missing token
+  // as "skip the remote call", and there is no failure here worth propagating
+  // to a user who has already signed out.
+  Future<String?> _platformTokenOrNull() async {
+    try {
+      return await client.getToken();
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> _cancelSubscriptions() async {

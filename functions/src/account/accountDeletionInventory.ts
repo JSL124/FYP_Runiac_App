@@ -59,6 +59,15 @@ export type DeletionStep =
   // Documents whose id is `{uid}_{suffix}` and which carry no owner field.
   | { readonly id: string; readonly kind: "documentIdPrefix"; readonly collection: string }
   // Rows other users hold about this runner, found by collection-group query.
+  //
+  // EVERY group/field pair below needs an ASCENDING COLLECTION_GROUP entry in
+  // the `fieldOverrides` array of firestore.indexes.json. Firestore creates
+  // single-field indexes implicitly only at COLLECTION scope, so an
+  // undeclared pair does not degrade — it throws FAILED_PRECONDITION, and
+  // because accountDeletionCommand.ts has already disabled the Auth user by
+  // then, the runner is locked out of an account that was never erased. That
+  // shipped once (the `likes`/`userUid` pair, 2026-08-05); the pairing is now
+  // enforced by tests/cross-system/account-deletion-index-drift.mjs.
   | {
       readonly id: string;
       readonly kind: "collectionGroup";
@@ -119,8 +128,9 @@ export const ACCOUNT_DELETION_STEPS: readonly DeletionStep[] = [
     field: "authorUid",
   },
   // The mirror rows other runners hold. This is the same collection-group shape
-  // `nicknameFanoutReferences` already queries to fan a rename out, so the
-  // required indexes exist.
+  // `nicknameFanoutReferences` already queries to fan a rename out, so these
+  // three indexes predate this step rather than being added for it — which is
+  // why the gap in the other steps went unnoticed until a real deletion ran.
   {
     id: "social-mirrors",
     kind: "collectionGroup",
