@@ -1442,6 +1442,45 @@ is_android_native_haptics_path() {
   esac
 }
 
+is_feed_entitlement_test_tier_capsule_active() {
+  grep -Eq '^- Newly routed feed entitlement test ambient tier on 2026-08-06 Asia/Singapore: `implementation/roadmap/capsules/feed-entitlement-test-ambient-tier\.md`' implementation/roadmap/CURRENT.md
+}
+
+# Test-only. The entitlement gate in functions/src is correct and out of scope;
+# the test simply never provisioned the tier it asserts against.
+is_feed_entitlement_test_tier_path() {
+  case "$1" in
+    implementation/roadmap/capsules/feed-entitlement-test-ambient-tier.md|\
+    functions/test/feedEmulatorIntegration.test.ts)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+is_final_report_authoring_capsule_active() {
+  grep -Eq '^- Newly routed final report authoring on 2026-08-06 Asia/Singapore: `implementation/roadmap/capsules/final-report-authoring\.md`' implementation/roadmap/CURRENT.md
+}
+
+# The CSCI321 Final Project Document deliverable. Chapters, annexes, PlantUML
+# sources with their rendered PNGs, the build-docx.js assembly script, and the
+# generated .docx/.xlsx outputs all live under one directory, so one prefix
+# covers the capsule. Same shape as is_user_manual_path below, routed for the
+# same reason.
+is_final_report_authoring_path() {
+  case "$1" in
+    implementation/roadmap/capsules/final-report-authoring.md|\
+    docs/final-report/*)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_user_manual_capsule_active() {
   grep -Eq '^- Newly routed user manual screenshots on 2026-08-04 Asia/Singapore: `implementation/roadmap/capsules/user-manual-screenshots\.md`' implementation/roadmap/CURRENT.md
 }
@@ -1460,6 +1499,14 @@ is_user_manual_path() {
 
 is_allowed_path() {
   if is_user_manual_path "$1" && is_user_manual_capsule_active; then
+    return 0
+  fi
+
+  if is_final_report_authoring_path "$1" && is_final_report_authoring_capsule_active; then
+    return 0
+  fi
+
+  if is_feed_entitlement_test_tier_path "$1" && is_feed_entitlement_test_tier_capsule_active; then
     return 0
   fi
 

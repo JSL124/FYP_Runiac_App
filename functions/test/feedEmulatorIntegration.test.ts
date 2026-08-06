@@ -125,15 +125,36 @@ test("rejects a Basic subscriber from publishing to Feed and writes nothing (pre
   await db.doc(`users/${basic.uid}`).set({ subscriptionStatus: "basic" });
   await stageActivity(basic.uid, "task12-basic-activity");
 
-  const result = await call(basic, "publishActivityToFeed", publishData(basic.uid, "task12-basic-activity"));
+  // The contract under test is "when shareRouteToFeed requires Premium, a
+  // Basic subscriber is refused" — not whatever tier the shipped default
+  // happens to carry. This test used to read the tier ambiently and so broke
+  // when 4287e786 moved the default to "basic" to match production, even
+  // though the gate itself never changed. Pinning the stored document keeps
+  // the assertion about the mechanism and makes it survive a console flip in
+  // either direction. loadFeatureAccessConfig re-reads config/featureAccess on
+  // every call with no caching, so the next invocation observes this write,
+  // and deepMerge over DEFAULT_FEATURE_ACCESS_CONFIG means only the one key
+  // needs stating.
+  await db.doc("config/featureAccess").set(
+    { features: { shareRouteToFeed: { minimumTier: "premium", enabled: true } } },
+    { merge: true },
+  );
 
-  assert.equal(result.ok, false, "a Basic user must not be able to publish to Feed");
-  if (!result.ok) assert.equal(result.status, "PERMISSION_DENIED");
-  // The gate runs in the onCall wrapper before publishFeedActivity, so no post
-  // document is created and the staging object is left intact (only a
-  // successful publish promotes and deletes staging).
-  assert.equal((await db.doc("feedPosts/task12-basic-activity").get()).exists, false);
-  assert.equal((await bucket.file(stagingPath(basic.uid, "task12-basic-activity")).exists())[0], true);
+  try {
+    const result = await call(basic, "publishActivityToFeed", publishData(basic.uid, "task12-basic-activity"));
+
+    assert.equal(result.ok, false, "a Basic user must not be able to publish to Feed");
+    if (!result.ok) assert.equal(result.status, "PERMISSION_DENIED");
+    // The gate runs in the onCall wrapper before publishFeedActivity, so no post
+    // document is created and the staging object is left intact (only a
+    // successful publish promotes and deletes staging).
+    assert.equal((await db.doc("feedPosts/task12-basic-activity").get()).exists, false);
+    assert.equal((await bucket.file(stagingPath(basic.uid, "task12-basic-activity")).exists())[0], true);
+  } finally {
+    // In a finally block because leaving Premium pinned would silently change
+    // what every later publish in this project is allowed to do.
+    await db.doc("config/featureAccess").delete();
+  }
 });
 
 async function actor(uid: (typeof actorIds)[number]): Promise<Actor> {
@@ -151,9 +172,11 @@ async function setupProfiles(): Promise<void> {
   await Promise.all(actorIds.map((uid) => db.doc(`userProfiles/${uid}`).set({ displayName: uid, avatarInitials: "T12" })));
   // publishActivityToFeed enforces the shareRouteToFeed feature-access tier
   // server-side, reading users/{uid}.subscriptionStatus. That tier defaults to
-  // "basic", so this Premium author document is not what makes the test pass
-  // today — it is kept so the suite still exercises publishing if an admin (or
-  // a future default) puts the key back behind Premium.
+  // "basic", so this Premium author document is not what makes the publish
+  // path pass today — it is kept so the suite still exercises publishing if an
+  // admin (or a future default) puts the key back behind Premium. The Basic
+  // rejection test below does not rely on that: it pins the stored tier itself
+  // rather than inheriting whichever default is current.
   await db.doc(`users/task12-author`).set({ subscriptionStatus: "premium" });
 }
 
