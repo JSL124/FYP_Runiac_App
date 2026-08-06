@@ -16,6 +16,7 @@ import '../../../tutorial/presentation/app_tour_controller.dart';
 import '../../../tutorial/presentation/tutorial_anchor_registry.dart';
 import '../../domain/guide/home_guide_agent.dart';
 import '../../domain/guide/home_guide_consent.dart';
+import '../home_recenter_intent_controller.dart';
 import 'home_stage_background_sequence.dart';
 import 'home_guide_cycle.dart';
 import 'home_stage_map_model.dart';
@@ -121,6 +122,7 @@ class HomeStageMap extends StatefulWidget {
     this.onOpenChallengeProgress,
     this.challengeClock,
     this.challengeTicker,
+    this.recenterIntent,
     super.key,
   });
 
@@ -186,6 +188,11 @@ class HomeStageMap extends StatefulWidget {
   /// timer). Tests pass a no-op/controlled ticker so no real frames are scheduled.
   final ChallengeTicker? challengeTicker;
 
+  /// Fires when the shell wants the map scrolled back to the character —
+  /// today, a tap on the already-selected Home item in the bottom bar. Null
+  /// (previews/tests) simply leaves the scroll position alone.
+  final HomeRecenterIntentController? recenterIntent;
+
   @override
   State<HomeStageMap> createState() => _HomeStageMapState();
 }
@@ -217,6 +224,12 @@ class _HomeStageMapState extends State<HomeStageMap>
   double _overlap = 0;
   double _viewportHeight = 0;
   bool _initialScrollDone = false;
+
+  /// Scroll offset that puts the character in its landing composition, as of
+  /// the last laid-out frame. Null until the map has been measured, or while
+  /// there is no character to scroll to. Recomputed on every map build so a
+  /// recenter request always uses current layout, not the mount-time one.
+  double? _characterScrollOffset;
   bool _menuOpen = false;
 
   String? _shownStageId;
@@ -238,6 +251,7 @@ class _HomeStageMapState extends State<HomeStageMap>
     _walkController.addListener(_onWalkTick);
     _walkController.addStatusListener(_onWalkStatus);
     _menuController.addStatusListener(_onMenuStatus);
+    widget.recenterIntent?.addListener(_onRecenterRequested);
   }
 
   @override
@@ -251,6 +265,10 @@ class _HomeStageMapState extends State<HomeStageMap>
   @override
   void didUpdateWidget(covariant HomeStageMap oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.recenterIntent, widget.recenterIntent)) {
+      oldWidget.recenterIntent?.removeListener(_onRecenterRequested);
+      widget.recenterIntent?.addListener(_onRecenterRequested);
+    }
     _syncPulse();
     _syncGuideBubble();
 
@@ -441,6 +459,7 @@ class _HomeStageMapState extends State<HomeStageMap>
 
   @override
   void dispose() {
+    widget.recenterIntent?.removeListener(_onRecenterRequested);
     _clearGuideCycle();
     _walkController
       ..removeListener(_onWalkTick)
@@ -710,7 +729,8 @@ class _HomeStageMapState extends State<HomeStageMap>
   Widget _buildMap(HomeStageMapModel model) {
     final n = model.sections.length;
     final totalHeight = (n - 1) * (_sectionHeight - _overlap) + _sectionHeight;
-    _scheduleInitialScroll(model, n, totalHeight);
+    _characterScrollOffset = _characterScrollTarget(model, n, totalHeight);
+    _scheduleInitialScroll();
 
     final children = <Widget>[];
 
@@ -1047,11 +1067,16 @@ class _HomeStageMapState extends State<HomeStageMap>
     );
   }
 
-  void _scheduleInitialScroll(HomeStageMapModel model, int n, double total) {
-    if (_initialScrollDone || _viewportHeight <= 0) {
-      return;
+  /// Scroll offset that lands the character in its composed position, or null
+  /// while the map has not been measured yet.
+  ///
+  /// Clamped to the scrollable range, so a plan whose current stage sits near
+  /// either end of the map settles at that extreme instead of demanding an
+  /// offset the map does not have.
+  double? _characterScrollTarget(HomeStageMapModel model, int n, double total) {
+    if (_viewportHeight <= 0) {
+      return null;
     }
-    _initialScrollDone = true;
 
     final weekIndex = model.currentWeekIndex ?? 0;
     final dayIndex = model.characterDayIndex ?? 0;
@@ -1061,16 +1086,53 @@ class _HomeStageMapState extends State<HomeStageMap>
         _characterTopForAnchor(anchor, _selectedCharacter) +
         _characterHeightFor(_selectedCharacter) / 2;
     final maxScroll = math.max(0.0, total - _viewportHeight);
-    final target =
-        (characterCenterY -
-                _viewportHeight * _kInitialCharacterViewportFraction)
-            .clamp(0.0, maxScroll);
+    return (characterCenterY -
+            _viewportHeight * _kInitialCharacterViewportFraction)
+        .clamp(0.0, maxScroll);
+  }
+
+  void _scheduleInitialScroll() {
+    final target = _characterScrollOffset;
+    if (_initialScrollDone || target == null) {
+      return;
+    }
+    _initialScrollDone = true;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && _scrollController.hasClients) {
         _scrollController.jumpTo(target);
       }
     });
+  }
+
+  /// Scrolls back to the character after the shell reports a Home tap.
+  ///
+  /// Deferred a frame because the request arrives while Home may still be the
+  /// off-screen tab: the offset is only trustworthy once the map has been laid
+  /// out for the frame that puts it back on screen. Already being there is a
+  /// no-op rather than a redundant animation.
+  void _onRecenterRequested() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final target = _characterScrollOffset;
+      if (!mounted || target == null || !_scrollController.hasClients) {
+        return;
+      }
+      if ((_scrollController.offset - target).abs() < 0.5) {
+        return;
+      }
+      if (_menuReduceMotion) {
+        _scrollController.jumpTo(target);
+        return;
+      }
+      _scrollController.animateTo(
+        target,
+        duration: const Duration(milliseconds: 360),
+        curve: Curves.easeOutCubic,
+      );
+    });
+    // A post-frame callback does not schedule the frame that drains it, and
+    // the request can arrive with nothing else pending, so ask for one.
+    WidgetsBinding.instance.ensureVisualUpdate();
   }
 
   Widget? _buildCharacter(HomeStageMapModel model, int n) {

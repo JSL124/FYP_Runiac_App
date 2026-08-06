@@ -20,6 +20,7 @@ import '../friends/domain/repositories/friends_repository.dart';
 import '../home/domain/guide/home_guide_agent.dart';
 import '../home/domain/guide/home_guide_consent.dart';
 import '../home/domain/guide/rule_based_home_guide_agent.dart';
+import '../home/presentation/home_recenter_intent_controller.dart';
 import '../home/presentation/home_tab.dart';
 import '../home/presentation/stage_map/home_stage_map_model.dart';
 import '../leaderboard/data/static_leaderboard_repository.dart';
@@ -192,6 +193,12 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
   /// [_openFeedPostComments], consumed by the Feed tab's `CurrentSessionFeed`.
   final FeedCommentIntentController _feedCommentIntent =
       FeedCommentIntentController();
+
+  /// Owns the "take me back to the character" request the bottom bar's Home
+  /// item makes. Fired from [_handleNavigationTap], consumed by the Home tab's
+  /// stage map.
+  final HomeRecenterIntentController _homeRecenterIntent =
+      HomeRecenterIntentController();
   BeginnerAdaptivePlanSnapshot? _pendingPlanNotificationPlan;
   GeneratedPlanProgressDisplay? _pendingPlanNotificationProgress;
   late Future<FeedAuthorProfileSnapshot> _feedAuthorProfileFuture;
@@ -465,6 +472,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
     }
     _appTourController.dispose();
     _feedCommentIntent.dispose();
+    _homeRecenterIntent.dispose();
     super.dispose();
   }
 
@@ -541,6 +549,15 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
     }
 
     _selectTab(index);
+
+    // Home is the runner's map, so its bar item means "take me to my
+    // character", not merely "show the Home tab". The tab keeps its scroll
+    // offset across a tab switch, so this is fired on every Home tap —
+    // whether Home was already selected and scrolled away, or is being
+    // returned to from another tab. The map ignores it when already there.
+    if (index == 0) {
+      _homeRecenterIntent.request();
+    }
   }
 
   void _selectTab(int index) {
@@ -716,6 +733,7 @@ class _RuniacShellState extends State<RuniacShell> with WidgetsBindingObserver {
             unawaited(_notificationPreferenceMirrorService.syncSocialActivity());
           },
           onOpenFeedPostComments: _openFeedPostComments,
+          recenterIntent: _homeRecenterIntent,
         ),
       if (_visitedTabIndexes.contains(1))
         1: CurrentSessionFeed(

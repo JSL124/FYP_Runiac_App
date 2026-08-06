@@ -54,6 +54,7 @@ import '../domain/guide/home_guide_consent.dart';
 import '../domain/guide/plan_brief_home_guide_agent.dart';
 import '../domain/guide/rule_based_home_guide_agent.dart';
 import 'guide/home_guide_consent_sheet.dart';
+import 'home_recenter_intent_controller.dart';
 import 'plan_completion_ceremony.dart';
 import 'stage_map/home_stage_background_sequence.dart';
 import 'stage_map/home_stage_map.dart';
@@ -91,6 +92,7 @@ class HomeTab extends StatefulWidget {
     this.onNotificationSettingsChanged,
     this.onAccountProfileChanged,
     this.onOpenFeedPostComments,
+    this.recenterIntent,
   });
 
   final RuniacAuthRepository authRepository;
@@ -168,6 +170,11 @@ class HomeTab extends StatefulWidget {
   /// to the Feed tab and requests the tapped post's comment sheet. `null`
   /// (previews/tests) leaves such items with no destination.
   final void Function(String postId)? onOpenFeedPostComments;
+
+  /// Fired by the shell when the bottom bar's Home item is tapped, so the
+  /// stage map returns to the character no matter how far the runner has
+  /// scrolled. Forwarded untouched to [HomeStageMap], which owns the scroll.
+  final HomeRecenterIntentController? recenterIntent;
 
   @override
   State<HomeTab> createState() => _HomeTabState();
@@ -1212,6 +1219,7 @@ class _HomeTabState extends State<HomeTab> with WidgetsBindingObserver {
       guideAgent: _effectiveHomeGuideAgent(context),
       guideRequest: guideRequest,
       guideConsentStatus: _homeGuideConsentStatus,
+      recenterIntent: widget.recenterIntent,
     );
   }
 
