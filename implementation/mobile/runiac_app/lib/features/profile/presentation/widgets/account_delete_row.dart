@@ -75,7 +75,7 @@ class AccountDeleteRow extends StatelessWidget {
                 ),
                 SizedBox(height: 3),
                 Text(
-                  'Permanently erase your account and data',
+                  'Erase your account and data',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
