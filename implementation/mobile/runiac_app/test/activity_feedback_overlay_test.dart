@@ -193,6 +193,66 @@ void main() {
       expect(find.text('Improve'), findsOneWidget);
     });
 
+    // Regression for manual script 6.2.1 step 3: the sixth generation of the
+    // day is refused with the same generic sections as any other fallback, so
+    // without the notice the runner is told neither why the copy is generic
+    // nor when they may generate again.
+    testWidgets('a quota refusal states the reset day on the first page', (
+      tester,
+    ) async {
+      await _pumpOverlay(
+        tester,
+        loadFeedback: () async => fallbackActivityFeedbackBundle(
+          source: ActivityFeedbackSource.quota,
+          retryAfterDate: '2026-08-09',
+        ),
+      );
+      await tester.pump(_runDuration);
+      await tester.pump();
+
+      expect(find.text('Summary'), findsOneWidget);
+      expect(
+        find.textContaining(
+          'Daily limit reached — personalised feedback unlocks again on '
+          '9 August 2026.',
+        ),
+        findsOneWidget,
+      );
+      // The notice leads page one rather than adding a page of its own.
+      expect(find.text('1/4'), findsOneWidget);
+    });
+
+    testWidgets('a quota refusal without a date still says it resets', (
+      tester,
+    ) async {
+      await _pumpOverlay(
+        tester,
+        loadFeedback: () async => fallbackActivityFeedbackBundle(
+          source: ActivityFeedbackSource.quota,
+        ),
+      );
+      await tester.pump(_runDuration);
+      await tester.pump();
+
+      expect(
+        find.textContaining('unlocks again tomorrow.'),
+        findsOneWidget,
+      );
+    });
+
+    // A provider outage is a different fact from a spent quota and must not
+    // borrow its copy — script 6.2.4 covers that path and passed as-is.
+    testWidgets('a plain fallback carries no quota notice', (tester) async {
+      await _pumpOverlay(
+        tester,
+        loadFeedback: () async => fallbackActivityFeedbackBundle(),
+      );
+      await tester.pump(_runDuration);
+      await tester.pump();
+
+      expect(find.textContaining('Daily limit reached'), findsNothing);
+    });
+
     testWidgets('keeps a non-dismissible barrier over the full surface', (
       tester,
     ) async {

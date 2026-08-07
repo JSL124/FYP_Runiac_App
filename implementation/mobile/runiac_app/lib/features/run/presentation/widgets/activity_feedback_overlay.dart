@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/characters/runner_character.dart';
+import '../../../../core/formatting/agent_quota_notice.dart';
 import '../../../../core/widgets/character_guidance_overlay.dart';
 import '../../domain/models/activity_feedback_agent.dart';
 
@@ -31,10 +32,23 @@ class ActivityFeedbackOverlay extends StatelessWidget {
       nextTooltip: 'Next feedback step',
       loadSteps: () async {
         final bundle = await loadFeedback();
-        return <CharacterGuidanceStep>[
+        final steps = <CharacterGuidanceStep>[
           for (final step in bundle.sections.steps)
             CharacterGuidanceStep(title: step.title, body: step.body),
         ];
+        // A quota refusal serves the same generic sections as any other
+        // fallback, so without this the runner cannot tell "the model was
+        // unavailable" from "you have used today's generations" — nor when
+        // they may try again. The reset day is the server's, never derived here.
+        return guidanceStepsWithLeadingNotice(
+          steps,
+          bundle.source == ActivityFeedbackSource.quota
+              ? agentQuotaResetNotice(
+                  retryAfterDate: bundle.retryAfterDate,
+                  subject: 'personalised feedback',
+                )
+              : null,
+        );
       },
     );
   }

@@ -153,10 +153,22 @@ class _WorkoutBriefingActionButton extends StatelessWidget {
           nextTooltip: 'Next briefing step',
           loadSteps: () async {
             final bundle = await resolvedAgent.explainPlannedWorkout(request);
-            return <CharacterGuidanceStep>[
+            final steps = <CharacterGuidanceStep>[
               for (final step in bundle.sections.steps)
                 CharacterGuidanceStep(title: step.title, body: step.body),
             ];
+            // Same reason as the activity-feedback overlay: a quota refusal is
+            // otherwise indistinguishable from a provider outage, and states no
+            // reset day. See `agentQuotaResetNotice`.
+            return guidanceStepsWithLeadingNotice(
+              steps,
+              bundle.source == WorkoutBriefingSource.quota
+                  ? agentQuotaResetNotice(
+                      retryAfterDate: bundle.retryAfterDate,
+                      subject: 'your workout briefing',
+                    )
+                  : null,
+            );
           },
           onClose: () => Navigator.of(dialogContext, rootNavigator: true).pop(),
         );

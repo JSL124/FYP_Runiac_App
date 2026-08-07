@@ -55,6 +55,24 @@ class _RecordingAgent implements WorkoutBriefingAgent {
   }
 }
 
+/// Answers the way the callable does once the day's generations are spent:
+/// generic sections plus the server's reset day.
+class _QuotaExhaustedAgent implements WorkoutBriefingAgent {
+  const _QuotaExhaustedAgent({this.retryAfterDate = '2026-08-09'});
+
+  final String? retryAfterDate;
+
+  @override
+  Future<WorkoutBriefingBundle> explainPlannedWorkout(
+    WorkoutBriefingRequest request,
+  ) async {
+    return fallbackWorkoutBriefingBundle(
+      source: WorkoutBriefingSource.quota,
+      retryAfterDate: retryAfterDate,
+    );
+  }
+}
+
 WeeklyWorkoutDetailSnapshot _snapshot({bool canEditSchedule = true}) {
   return WeeklyWorkoutDetailSnapshot(
     title: 'Workout detail',
@@ -272,6 +290,48 @@ void main() {
       expect(find.text(expected), findsOneWidget);
     }
     expect(find.text('4/4'), findsOneWidget);
+    await _teardownTree(tester);
+  });
+
+  // Regression for manual script 6.2.3 step 3: the sixth briefing of the day
+  // returned generic copy that never said the quota was spent or when it
+  // resets.
+  testWidgets('a quota refusal states the reset day on the first page', (
+    tester,
+  ) async {
+    await _pumpDetail(
+      tester,
+      subscriptionStatus: UserSubscriptionStatus.premium,
+      premiumFeatureKeys: const ['workoutBriefing'],
+      agent: const _QuotaExhaustedAgent(),
+    );
+
+    await _tapBriefing(tester);
+
+    expect(find.text("Today's session"), findsOneWidget);
+    expect(
+      find.textContaining(
+        'Daily limit reached — your workout briefing unlocks again on '
+        '9 August 2026.',
+      ),
+      findsOneWidget,
+    );
+    // The notice leads page one; the briefing keeps its four pages.
+    expect(find.text('1/4'), findsOneWidget);
+    await _teardownTree(tester);
+  });
+
+  testWidgets('a generated briefing carries no quota notice', (tester) async {
+    await _pumpDetail(
+      tester,
+      subscriptionStatus: UserSubscriptionStatus.premium,
+      premiumFeatureKeys: const ['workoutBriefing'],
+      agent: _RecordingAgent(),
+    );
+
+    await _tapBriefing(tester);
+
+    expect(find.textContaining('Daily limit reached'), findsNothing);
     await _teardownTree(tester);
   });
 

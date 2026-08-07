@@ -22,6 +22,32 @@ class CharacterGuidanceStep {
   final String body;
 }
 
+/// Returns [steps] with [notice] prepended to the FIRST page's body.
+///
+/// Used by the agent surfaces to state why the copy that follows is generic
+/// (see `agentQuotaResetNotice`). It leads the first page rather than adding a
+/// page of its own so the runner cannot page past the explanation without
+/// seeing it, and so the surfaces keep the four-page shape their manual test
+/// scripts describe.
+///
+/// A null or blank notice, or an empty step list, returns [steps] unchanged —
+/// callers can pass the notice through unconditionally.
+List<CharacterGuidanceStep> guidanceStepsWithLeadingNotice(
+  List<CharacterGuidanceStep> steps,
+  String? notice,
+) {
+  if (notice == null || notice.trim().isEmpty || steps.isEmpty) {
+    return steps;
+  }
+  return <CharacterGuidanceStep>[
+    CharacterGuidanceStep(
+      title: steps.first.title,
+      body: '$notice\n\n${steps.first.body}',
+    ),
+    ...steps.skip(1),
+  ];
+}
+
 class CharacterGuidanceOverlay extends StatefulWidget {
   const CharacterGuidanceOverlay({
     required this.character,
