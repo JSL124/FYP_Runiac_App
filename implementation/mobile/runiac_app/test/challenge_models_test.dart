@@ -326,6 +326,47 @@ void main() {
       expect(self.levelLabelSnapshot, 'Lv.4');
     });
 
+    // Regression: a roster member whose profile carries no resolved level is
+    // normal data — `level`/`levelLabel` reach `userProfiles/{uid}` only once a
+    // run has awarded XP, so every runner who has never completed one resolves
+    // to `""`. Parsing that strictly failed the WHOLE response, which is what
+    // left the Challenge hub stuck on "Something went wrong. Please try again."
+    // for every member of a lobby once such a runner joined.
+    test('accepts a participant whose level label is empty', () {
+      final map = _challengeMap(
+        participants: <Map<String, Object?>>[
+          _participant(uid: 'u1', role: 'owner', status: 'ACTIVE', creditedMeters: 5000),
+          _participant(uid: 'u2', role: 'member', status: 'ACTIVE', creditedMeters: 0)
+            ..['levelLabelSnapshot'] = '',
+        ],
+      );
+
+      final active = ActiveChallenge.fromChallengeMap(map, currentUid: 'u1');
+
+      final newcomer = active.participants.firstWhere((row) => row.uid == 'u2');
+      expect(newcomer.levelLabelSnapshot, isEmpty);
+      // The rest of the roster still parses, so the hub renders the lobby
+      // instead of failing the whole view.
+      expect(active.participants, hasLength(2));
+      expect(
+        active.participants.firstWhere((row) => row.uid == 'u1').levelLabelSnapshot,
+        'Lv.4',
+      );
+    });
+
+    test('accepts a participant whose level label is absent entirely', () {
+      final map = _challengeMap(
+        participants: <Map<String, Object?>>[
+          _participant(uid: 'u1', role: 'owner', status: 'ACTIVE', creditedMeters: 5000)
+            ..remove('levelLabelSnapshot'),
+        ],
+      );
+
+      final active = ActiveChallenge.fromChallengeMap(map, currentUid: 'u1');
+
+      expect(active.participants.single.levelLabelSnapshot, isEmpty);
+    });
+
     test('rejects an instance missing a required field', () {
       final broken = _challengeMap();
       (broken['instance']! as Map<String, Object?>).remove('status');

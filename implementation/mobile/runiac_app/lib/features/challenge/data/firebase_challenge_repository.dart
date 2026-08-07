@@ -14,28 +14,22 @@ import '../domain/models/challenge_rules_snapshot.dart';
 import '../domain/models/challenge_tier.dart';
 import '../domain/repositories/challenge_repository.dart';
 
-/// Placeholder rendered for a participant's level label when the hybrid
-/// level-label seed (built from the last `activeChallenge()` result) never
-/// saw that uid. A single space rather than a literal empty string, because
-/// [ChallengeParticipantRow.fromMap] parses `levelLabelSnapshot` through
-/// [ChallengeParse.string], which rejects an empty string; surfaces already
-/// trim the label before falling back to the display-only `Lv.0` placeholder,
-/// so a blank-after-trim string reads identically either way.
-const String _unseededLevelLabel = ' ';
-
 /// Pure: applies the hybrid level-label and avatar seeds to a store view and
 /// parses it.
 ///
 /// [levelLabelSeed] maps participant uid to the level label last read from a
 /// full `activeChallenge()` callable response; a uid the seed never saw
-/// renders [_unseededLevelLabel] (surfaces trim it and fall back to `Lv.0`).
+/// renders `''` (surfaces trim it and fall back to `Lv.0`, or hide the pill).
+/// This used to substitute a single space, because
+/// [ChallengeParticipantRow.fromMap] once rejected an empty label; it parses
+/// one leniently now, so the placeholder is gone and an unseeded uid reads
+/// exactly like a backend-resolved empty label.
 ///
 /// [avatarUrlSeed] does the same for the participant's avatar photo URL. It
 /// accepts the same documented limitation as the level label: a
 /// stream-only update (no fresh `activeChallenge()` call) shows no avatar for
 /// a uid the seed never saw, rather than growing new machinery to close that
-/// gap. Unlike the level label, an unseeded avatar simply renders `''` — a
-/// blank avatar is the same as "no photo", so no space-placeholder is needed.
+/// gap.
 ///
 /// [levelProgressPercentSeed] does the same for the participant's XP-ring
 /// progress, under the same limitation and the same benign fallback as the
@@ -60,7 +54,7 @@ ActiveChallenge? mapActiveChallengeView(
       final uid = ChallengeParse.string(participant, 'uid');
       return <String, Object?>{
         ...participant,
-        'levelLabelSnapshot': levelLabelSeed[uid] ?? _unseededLevelLabel,
+        'levelLabelSnapshot': levelLabelSeed[uid] ?? '',
         'avatarUrlSnapshot': avatarUrlSeed[uid] ?? '',
         'levelProgressPercentSnapshot': levelProgressPercentSeed[uid] ?? 0,
       };

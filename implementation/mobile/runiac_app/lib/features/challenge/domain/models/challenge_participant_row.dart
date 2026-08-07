@@ -37,7 +37,13 @@ class ChallengeParticipantRow {
 
   /// Backend-owned level label (e.g. `Lv.2`) read back verbatim for display.
   /// May be empty when the backend cannot resolve a level; callers fall back
-  /// to the display-only `Lv.0` placeholder.
+  /// to the display-only `Lv.0` placeholder, or hide the level pill entirely.
+  ///
+  /// Empty is a NORMAL value here, not a malformed response: the backend
+  /// resolves this live from `userProfiles/{uid}`, where `level`/`levelLabel`
+  /// are written only once a run has awarded XP, so every runner who has never
+  /// completed a run resolves to `""`. It is therefore parsed leniently, like
+  /// [avatarUrlSnapshot] and [levelProgressPercentSnapshot] — see [fromMap].
   final String levelLabelSnapshot;
 
   /// Backend-owned progress toward the next level, 0..100, resolved live from
@@ -65,7 +71,7 @@ class ChallengeParticipantRow {
       displayNameSnapshot: ChallengeParse.string(map, 'displayNameSnapshot'),
       avatarInitialsSnapshot:
           ChallengeParse.string(map, 'avatarInitialsSnapshot'),
-      levelLabelSnapshot: ChallengeParse.string(map, 'levelLabelSnapshot'),
+      levelLabelSnapshot: _levelLabelSnapshot(map),
       role: ChallengeParticipantRole.parse(ChallengeParse.string(map, 'role')),
       status:
           ChallengeParticipantStatus.parse(ChallengeParse.string(map, 'status')),
@@ -77,8 +83,25 @@ class ChallengeParticipantRow {
     );
   }
 
-  /// Lenient read of `avatarUrlSnapshot`: unlike every other field here, an
-  /// empty string is the NORMAL case (no photo set), not a malformed
+  /// Lenient read of `levelLabelSnapshot`, for the same reason as
+  /// [_avatarUrlSnapshot]: the backend emits `""` for any runner whose profile
+  /// carries no resolved level (nobody writes `level` until a run awards XP),
+  /// so an empty label is normal data, not a malformed response.
+  ///
+  /// This used to be parsed through [ChallengeParse.string], which rejects an
+  /// empty string. One level-less member on the roster therefore failed the
+  /// whole `getActiveChallenge` response, and the Challenge hub — which parses
+  /// that callable result directly — showed "Something went wrong. Please try
+  /// again." for EVERY member of the lobby, permanently, since the cause is
+  /// stored data that a relaunch cannot clear. Only the realtime lobby path
+  /// survived, because it substitutes its own placeholder before parsing.
+  static String _levelLabelSnapshot(Map<String, Object?> map) {
+    final value = map['levelLabelSnapshot'];
+    return value is String ? value : '';
+  }
+
+  /// Lenient read of `avatarUrlSnapshot`: unlike the strictly-parsed fields
+  /// here, an empty string is the NORMAL case (no photo set), not a malformed
   /// response, so this never throws — a missing or non-string value simply
   /// resolves to `''`, the same as an explicitly empty one.
   static String _avatarUrlSnapshot(Map<String, Object?> map) {
