@@ -256,6 +256,17 @@ class _RuniacAppState extends State<RuniacApp> {
   bool _appTourArmed = false;
   String? _authStateError;
   bool _showMissingProfileSignupPrompt = false;
+
+  /// The signed-in account owns no profile document, so onboarding has never
+  /// completed for it — an account created on the Runiac website, or an app
+  /// signup that was killed before onboarding finished. It takes the same
+  /// "Tell us about you" → onboarding path a fresh in-app signup takes, which
+  /// is what finally writes that profile document.
+  ///
+  /// Kept separate from `_authCompletion` on purpose: these runners signed
+  /// *in*, and only `RuniacProfileSetupGate` can tell that their setup is
+  /// unfinished.
+  bool _needsOnboardingSetup = false;
   StreamSubscription<PushNotificationMessage>? _pushNotificationSubscription;
   final SelectedRunnerCharacterStore _selectedCharacterStore =
       SelectedRunnerCharacterStore();
@@ -384,6 +395,7 @@ class _RuniacAppState extends State<RuniacApp> {
         oldWidget.profileRepository != widget.profileRepository) {
       _authCompletion = null;
       _personalProfileDraft = widget.initialPersonalProfileDraft;
+      _needsOnboardingSetup = false;
       final nextOwnerUid = widget.authRepository.currentUser?.uid;
       _thumbnailArtifactLifecycle.syncOwner(nextOwnerUid);
       _syncUserProgressOwner(nextOwnerUid);
@@ -502,6 +514,7 @@ class _RuniacAppState extends State<RuniacApp> {
                                         _authCompletion = completion;
                                         _authStateError = null;
                                         _showMissingProfileSignupPrompt = false;
+                                        _needsOnboardingSetup = false;
                                       });
                                       _startPushNotificationsForCurrentUser();
                                       unawaited(
@@ -523,6 +536,34 @@ class _RuniacAppState extends State<RuniacApp> {
                                           widget.notificationRegistrationService
                                               ?.unregisterCurrentDevice(),
                                         );
+                                        // A sign-out must drop the outgoing
+                                        // account's post-auth completion state,
+                                        // or the next signup in this same app
+                                        // process inherits it: `_authCompletion`
+                                        // would already read `signup` and
+                                        // `_personalProfileDraft` would already
+                                        // be non-null, so `_shouldShowPersonalProfile`
+                                        // (which requires a null draft) is false
+                                        // from the first frame and the new
+                                        // account's "Tell us about you" step is
+                                        // skipped entirely.
+                                        //
+                                        // `RuniacAuthGate` reposts this
+                                        // callback on every rebuild, not just
+                                        // on a change, so the reset must be a
+                                        // no-op once already applied or this
+                                        // becomes an unconditional setState
+                                        // loop that never lets the widget tree
+                                        // settle.
+                                        if (_authCompletion != null ||
+                                            _personalProfileDraft != null ||
+                                            _needsOnboardingSetup) {
+                                          setState(() {
+                                            _authCompletion = null;
+                                            _personalProfileDraft = null;
+                                            _needsOnboardingSetup = false;
+                                          });
+                                        }
                                       }
                                       _scheduleActivityHistoryOwnerSync(
                                         user?.uid,
@@ -751,6 +792,15 @@ class _RuniacAppState extends State<RuniacApp> {
         currentUser: currentUser!,
         onLoadedProfile: (profile) {
           unawaited(_hydrateGeneratedPlanFromProfile(profile));
+        },
+        onProfileSetupIncomplete: () {
+          if (!mounted) {
+            return;
+          }
+          setState(() {
+            _needsOnboardingSetup = true;
+            _showMissingProfileSignupPrompt = false;
+          });
         },
         onRecoverableProfileMissing: () {
           if (!mounted) {
@@ -1120,6 +1170,12 @@ class _RuniacAppState extends State<RuniacApp> {
     );
   }
 
+  /// Whether this session still owes the account its one-time setup: a fresh
+  /// in-app signup, or a sign-in the profile-setup gate found to have no
+  /// profile document (website signup, or an abandoned in-app signup).
+  bool get _accountNeedsProfileSetup =>
+      _authCompletion == RuniacAuthCompletion.signup || _needsOnboardingSetup;
+
   bool get _shouldShowOnboarding {
     if (!widget.showOnboarding) {
       return false;
@@ -1127,14 +1183,13 @@ class _RuniacAppState extends State<RuniacApp> {
     if (!widget.showAuth) {
       return true;
     }
-    return _authCompletion == RuniacAuthCompletion.signup &&
-        _personalProfileDraft != null;
+    return _accountNeedsProfileSetup && _personalProfileDraft != null;
   }
 
   bool get _shouldShowPersonalProfile {
     return widget.showAuth &&
         widget.showOnboarding &&
-        _authCompletion == RuniacAuthCompletion.signup &&
+        _accountNeedsProfileSetup &&
         _personalProfileDraft == null;
   }
 
@@ -1142,7 +1197,7 @@ class _RuniacAppState extends State<RuniacApp> {
     return widget.showAuth &&
         widget.showOnboarding &&
         currentUser != null &&
-        _authCompletion != RuniacAuthCompletion.signup &&
+        !_accountNeedsProfileSetup &&
         _personalProfileDraft == null;
   }
 }

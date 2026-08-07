@@ -27,6 +27,11 @@ const _missingProfile = CurrentUserProfileException(
   reason: CurrentUserProfileFailureReason.missing,
 );
 
+const _invalidProfile = CurrentUserProfileException(
+  uid: 'signup-user',
+  reason: CurrentUserProfileFailureReason.invalid,
+);
+
 void main() {
   testWidgets(
     'a probe that resolves after the gate leaves the tree does not sign the '
@@ -74,12 +79,16 @@ void main() {
   );
 
   testWidgets(
-    'a signed-in account with no profile still recovers while the gate is '
-    'mounted',
+    'a signed-in account with no profile document is sent to onboarding, not '
+    'signed out',
     (tester) async {
+      // An account created on the Runiac website reaches the app in exactly
+      // this state: signed in, with no profile document, because onboarding
+      // (which writes that document) only runs in the app.
       final auth = FakeRuniacAuthRepository();
       addTearDown(auth.dispose);
       final profiles = _DeferredUserProfileRepository();
+      var incompleteCalls = 0;
       var recoveryCalls = 0;
       auth.emitSignedIn(uid: 'signup-user');
 
@@ -89,6 +98,7 @@ void main() {
             authRepository: auth,
             profileRepository: profiles,
             currentUser: auth.currentUser!,
+            onProfileSetupIncomplete: () => incompleteCalls += 1,
             onRecoverableProfileMissing: () => recoveryCalls += 1,
             child: const Text('shell'),
           ),
@@ -100,11 +110,48 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      // The guard above must not touch the real recovery path: this gate is
+      // The stale-probe guard must not swallow the real signal: this gate is
       // still mounted, so it is still the authority on this account.
-      expect(recoveryCalls, 1);
-      expect(auth.signOutCalls, 1);
+      expect(incompleteCalls, 1);
+      expect(recoveryCalls, 0);
+      expect(auth.signOutCalls, 0);
       expect(find.text('shell'), findsNothing);
     },
   );
+
+  testWidgets('an unreadable profile document still signs the account out', (
+    tester,
+  ) async {
+    // Distinct from a missing document: something *is* stored for this account
+    // and cannot be read as a profile, so onboarding is not the answer.
+    final auth = FakeRuniacAuthRepository();
+    addTearDown(auth.dispose);
+    final profiles = _DeferredUserProfileRepository();
+    var incompleteCalls = 0;
+    var recoveryCalls = 0;
+    auth.emitSignedIn(uid: 'signup-user');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RuniacProfileSetupGate(
+          authRepository: auth,
+          profileRepository: profiles,
+          currentUser: auth.currentUser!,
+          onProfileSetupIncomplete: () => incompleteCalls += 1,
+          onRecoverableProfileMissing: () => recoveryCalls += 1,
+          child: const Text('shell'),
+        ),
+      ),
+    );
+    expect(profiles.loadCalls, 1);
+
+    profiles.completer.completeError(_invalidProfile);
+    await tester.pump();
+    await tester.pump();
+
+    expect(incompleteCalls, 0);
+    expect(recoveryCalls, 1);
+    expect(auth.signOutCalls, 1);
+    expect(find.text('shell'), findsNothing);
+  });
 }
