@@ -79,10 +79,7 @@ String homeStageGuideAssetPath({
   if (!isMoving) {
     return character.idleAnimationAssetPath;
   }
-  return character.runAnimationAssetPath(facing) ??
-      (character == RunnerCharacter.blue
-          ? character.idleAnimationAssetPath
-          : character.assetPath(facing));
+  return character.runAnimationAssetPath(facing) ?? character.assetPath(facing);
 }
 
 double homeStageGuideHeightForWidth({

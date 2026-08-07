@@ -70,6 +70,15 @@ class RunnerCharacterSprite extends StatelessWidget {
         right: 250,
         bottom: 309,
       ),
+      'assets/images/characters/blue_runner_run_left.gif' ||
+      'assets/images/characters/blue_runner_run_right.gif' => (
+        canvasWidth: 240,
+        canvasHeight: 312,
+        left: 15,
+        top: 12,
+        right: 225,
+        bottom: 312,
+      ),
       'assets/images/characters/cap_runner_run_left.gif' => (
         canvasWidth: 320,
         canvasHeight: 320,

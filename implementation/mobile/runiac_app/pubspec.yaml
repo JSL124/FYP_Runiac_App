@@ -87,6 +87,8 @@ flutter:
     - assets/images/characters/blue_runner_front.png
     - assets/images/characters/blue_runner_left.png
     - assets/images/characters/blue_runner_right.png
+    - assets/images/characters/blue_runner_run_left.gif
+    - assets/images/characters/blue_runner_run_right.gif
     - assets/images/characters/cap_runner_back.png
     - assets/images/characters/cap_runner_front.png
     - assets/images/characters/cap_runner_left.png

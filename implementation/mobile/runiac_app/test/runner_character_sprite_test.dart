@@ -92,7 +92,7 @@ void main() {
           await expectRatio(
             character: character,
             assetPath: character.runAnimationAssetPath(facing)!,
-            expectedRatio: 1,
+            expectedRatio: character == RunnerCharacter.blue ? 240 / 312 : 1,
           );
         }
       }

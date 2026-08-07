@@ -277,7 +277,7 @@ void main() {
       },
     );
 
-    testWidgets('Blue retains the static guide fallback without run art', (
+    testWidgets('Blue runs in on its own run animation before idling', (
       tester,
     ) async {
       await tester.pumpWidget(
@@ -292,6 +292,26 @@ void main() {
           ),
         ),
       );
+      await tester.pump(onboardingGuideRunInDuration * 0.5);
+
+      expect(
+        find.byKey(const ValueKey('onboarding_guide_running_character')),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<Image>(
+              find.byKey(const ValueKey('onboarding_guide_running_character')),
+            )
+            .image,
+        isA<AssetImage>().having(
+          (image) => image.assetName,
+          'assetName',
+          'assets/images/characters/blue_runner_run_left.gif',
+        ),
+      );
+
+      await tester.pump(onboardingGuideRunInDuration);
       await tester.pump(const Duration(milliseconds: 500));
 
       expect(

@@ -39,19 +39,17 @@ extension RunnerCharacterDisplay on RunnerCharacter {
 
   /// Directional running animation when one exists for this character.
   ///
-  /// Blue currently has no matching run sheet, and the supplied run GIFs are
-  /// horizontal only. Callers must retain the directional PNG as their
-  /// fallback when this returns null.
+  /// The supplied run GIFs are horizontal only. Callers must retain the
+  /// directional PNG as their fallback when this returns null.
   String? runAnimationAssetPath(RunnerCharacterFacing facing) {
-    if (this == RunnerCharacter.blue ||
-        (facing != RunnerCharacterFacing.left &&
-            facing != RunnerCharacterFacing.right)) {
+    if (facing != RunnerCharacterFacing.left &&
+        facing != RunnerCharacterFacing.right) {
       return null;
     }
     return 'assets/images/characters/${name}_runner_run_${facing.name}.gif';
   }
 
-  bool get hasRunAnimation => this != RunnerCharacter.blue;
+  bool get hasRunAnimation => true;
 
   /// Bolt's animation footprint is the shared display size for every guide.
   double animationHeightForWidth(double width) {

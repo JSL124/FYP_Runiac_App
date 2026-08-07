@@ -131,6 +131,15 @@ void main() {
 
     expect(
       homeStageGuideAssetPath(
+        character: RunnerCharacter.blue,
+        facing: RunnerCharacterFacing.right,
+        isMoving: true,
+      ),
+      'assets/images/characters/blue_runner_run_right.gif',
+    );
+
+    expect(
+      homeStageGuideAssetPath(
         character: RunnerCharacter.cap,
         facing: RunnerCharacterFacing.right,
         isMoving: true,
