@@ -13,6 +13,7 @@ class RuniacProfileSetupGate extends StatefulWidget {
     required this.currentUser,
     required this.child,
     this.onLoadedProfile,
+    this.onProfileSetupIncomplete,
     this.onRecoverableProfileMissing,
     super.key,
   });
@@ -22,6 +23,14 @@ class RuniacProfileSetupGate extends StatefulWidget {
   final RuniacAuthUser currentUser;
   final Widget child;
   final ValueChanged<UserProfileReadModel>? onLoadedProfile;
+
+  /// The signed-in account exists in Firebase Auth but has no profile document
+  /// yet, so it has never finished onboarding. The host is expected to send it
+  /// into the onboarding flow rather than out of the app.
+  final VoidCallback? onProfileSetupIncomplete;
+
+  /// The signed-in account has a profile document that cannot be read as a
+  /// profile. The gate signs the account out and the host offers recovery.
   final VoidCallback? onRecoverableProfileMissing;
 
   @override
@@ -111,12 +120,26 @@ class _RuniacProfileSetupGateState extends State<RuniacProfileSetupGate> {
       if (!mounted) {
         return true;
       }
-      if (authRepository.currentUser?.uid == probedUid) {
-        widget.onRecoverableProfileMissing?.call();
-        await authRepository.signOut();
+      if (authRepository.currentUser?.uid != probedUid) {
+        return true;
+      }
+
+      if (_isMissingProfileSetup(error)) {
+        // The account exists in Firebase Auth but owns no profile document, so
+        // onboarding has never completed for it. That is the normal state of an
+        // account created on the Runiac website, and of an app signup that was
+        // killed before onboarding wrote its profile.
+        //
+        // Signing such an account out is a dead end: the recovery prompt sends
+        // it to signup, where the same email is already taken. Sending it into
+        // onboarding instead finishes exactly the setup it is missing.
+        widget.onProfileSetupIncomplete?.call();
         return false;
       }
-      return true;
+
+      widget.onRecoverableProfileMissing?.call();
+      await authRepository.signOut();
+      return false;
     }
   }
 
@@ -124,6 +147,11 @@ class _RuniacProfileSetupGateState extends State<RuniacProfileSetupGate> {
     return error is CurrentUserProfileException &&
         (error.reason == CurrentUserProfileFailureReason.missing ||
             error.reason == CurrentUserProfileFailureReason.invalid);
+  }
+
+  bool _isMissingProfileSetup(Object? error) {
+    return error is CurrentUserProfileException &&
+        error.reason == CurrentUserProfileFailureReason.missing;
   }
 }
 

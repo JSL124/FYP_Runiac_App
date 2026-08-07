@@ -143,7 +143,7 @@ void main() {
     expect(find.byTooltip('Home'), findsOneWidget);
   });
 
-  testWidgets('Google login with missing profile returns to signup guidance', (
+  testWidgets('Google login with no profile document starts onboarding', (
     tester,
   ) async {
     final repository = FakeRuniacAuthRepository();
@@ -166,14 +166,17 @@ void main() {
     await tapVisibleText(tester, 'Continue with Google');
     await tester.pumpAndSettle();
 
+    // A Google account signing in for the first time — on the website or here —
+    // owns no profile document yet, so it is owed onboarding, not a sign-out.
     expect(repository.googleSignInCalls, 1);
-    expect(repository.signOutCalls, 1);
-    expect(find.text('Create your account'), findsOneWidget);
+    expect(repository.signOutCalls, 0);
+    expect(find.text('Tell us about you'), findsOneWidget);
+    expect(find.text('Create your account'), findsNothing);
     expect(
       find.text(
         'No Runiac account setup exists for this account. Sign up to create your profile and start onboarding.',
       ),
-      findsOneWidget,
+      findsNothing,
     );
     expect(find.text('Good to see you'), findsNothing);
     expect(find.text('Welcome to Runiac'), findsNothing);

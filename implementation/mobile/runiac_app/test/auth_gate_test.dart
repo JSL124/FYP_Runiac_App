@@ -176,8 +176,15 @@ void main() {
   });
 
   testWidgets(
-    'signed-in user with missing profile returns to auth flow after restart',
+    'signed-in user with no profile document starts onboarding instead of '
+    'being signed out',
     (tester) async {
+      // The state an account created on the Runiac website arrives in: the
+      // Firebase Auth identity exists, but nothing has written its profile
+      // document because onboarding only ever runs in the app. An abandoned
+      // in-app signup lands here too. Signing the account out would send it to
+      // a signup screen where its own email is already taken, so the app owes
+      // it the setup flow instead.
       final repository = FakeRuniacAuthRepository();
       addTearDown(repository.dispose);
 
@@ -195,15 +202,15 @@ void main() {
       repository.emitSignedIn();
       await tester.pumpAndSettle();
 
-      expect(repository.signOutCalls, 1);
-      expect(find.text('Create your account'), findsOneWidget);
+      expect(repository.signOutCalls, 0);
+      expect(find.text('Tell us about you'), findsOneWidget);
+      expect(find.text('Create your account'), findsNothing);
       expect(
         find.text(
           'No Runiac account setup exists for this account. Sign up to create your profile and start onboarding.',
         ),
-        findsOneWidget,
+        findsNothing,
       );
-      expect(find.text('Tell us about you'), findsNothing);
       expect(find.text('Good to see you'), findsNothing);
       expect(find.text('Profile setup was not found'), findsNothing);
     },
