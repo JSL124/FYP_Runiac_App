@@ -56,11 +56,11 @@ class _RecordingAgent implements WorkoutBriefingAgent {
 }
 
 /// Answers the way the callable does once the day's generations are spent:
-/// generic sections plus the server's reset day.
+/// generic sections plus the server's reset day. The dateless variant of the
+/// notice is covered at the formatter level in `agent_quota_notice_test.dart`,
+/// so this stub always carries a date.
 class _QuotaExhaustedAgent implements WorkoutBriefingAgent {
-  const _QuotaExhaustedAgent({this.retryAfterDate = '2026-08-09'});
-
-  final String? retryAfterDate;
+  const _QuotaExhaustedAgent();
 
   @override
   Future<WorkoutBriefingBundle> explainPlannedWorkout(
@@ -68,7 +68,7 @@ class _QuotaExhaustedAgent implements WorkoutBriefingAgent {
   ) async {
     return fallbackWorkoutBriefingBundle(
       source: WorkoutBriefingSource.quota,
-      retryAfterDate: retryAfterDate,
+      retryAfterDate: '2026-08-09',
     );
   }
 }
