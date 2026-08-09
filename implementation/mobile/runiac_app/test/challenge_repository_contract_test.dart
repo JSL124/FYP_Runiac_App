@@ -129,6 +129,40 @@ void main() {
       }
     });
 
+    test('writes nothing but the ceremony seen-marker', () {
+      // The one Challenge file excluded from the write scan above, held to the
+      // single document and single field it exists for. A write reaching any
+      // trusted challenge collection — history, badges, instances, grants —
+      // fails here.
+      final seenStore = _removeDartComments(
+        File(
+          'lib/features/challenge/data/'
+          'firestore_challenge_result_seen_store.dart',
+        ).readAsStringSync(),
+      );
+
+      expect(seenStore, contains("collection('challengeState')"));
+      expect(seenStore, contains("'lastSeenResultEndedAtMs'"));
+      for (final trustedCollection in <String>[
+        'challengeHistory',
+        'challengeBadges',
+        'challengeInstances',
+        'challengeRewardGrants',
+        'challengeInvitations',
+        'challengeSlots',
+        'participants',
+      ]) {
+        expect(seenStore, isNot(contains(trustedCollection)));
+      }
+      // One write shape only: no delete, no batch, no transaction, no
+      // server-side field mutation.
+      expect(seenStore, isNot(contains('.delete(')));
+      expect(seenStore, isNot(contains('.update(')));
+      expect(seenStore, isNot(contains('FieldValue')));
+      expect(seenStore, isNot(contains('runTransaction')));
+      expect(seenStore, isNot(contains('.batch(')));
+    });
+
     test('performs no client-side target/eligibility/reward calculation', () {
       const forbiddenCalculationVerbs = <String>[
         'calculate',
@@ -154,13 +188,19 @@ void main() {
 }
 
 String _challengeFeatureSourceWithoutComments() {
-  // The single approved member-scoped Firestore read adapter for the two read
-  // paths without a callable (durable history, badge ownership). It is the only
-  // Firestore-touching Challenge file and is separately allowlisted in
-  // `backend_owned_contract_test.dart`; the trust-boundary scan below therefore
-  // excludes it so every OTHER Challenge file stays Firestore-free.
+  // The approved Firestore adapters, both separately allowlisted in
+  // `backend_owned_contract_test.dart`; the trust-boundary scan below excludes
+  // them so every OTHER Challenge file stays Firestore-free.
+  //
+  //  - the member-scoped read adapter for the two read paths without a callable
+  //    (durable history, badge ownership);
+  //  - the result-ceremony seen-marker, the one Challenge document the client
+  //    writes. It is presentation state, not trusted state, and the dedicated
+  //    test below pins it to that single field and path so this exclusion
+  //    cannot quietly widen into a write path onto trusted challenge data.
   const approvedFirestoreAdapters = <String>{
     'lib/features/challenge/data/firestore_challenge_read_store.dart',
+    'lib/features/challenge/data/firestore_challenge_result_seen_store.dart',
   };
   final files = Directory('lib/features/challenge')
       .listSync(recursive: true)

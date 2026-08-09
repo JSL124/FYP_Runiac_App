@@ -27,6 +27,9 @@ export const USER_SUBCOLLECTIONS: readonly string[] = [
   "hiddenFeedPosts",
   "challengeHistory",
   "challengeBadges",
+  // The Challenge result ceremony's seen-marker. Client-written presentation
+  // state, but still account data, so it goes with the account.
+  "challengeState",
 ];
 
 export type AnonymizeField = {

@@ -2,10 +2,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../domain/challenge_result_seen_store.dart';
 
-/// Durable per-user implementation of the one-shot Result marker, backed by the
-/// app's existing `shared_preferences` dependency (the same local-flag pattern
-/// used by notification-center settings). The marker is scoped by uid so the
+/// Device-local mirror of the one-shot Result marker, backed by the app's
+/// existing `shared_preferences` dependency (the same local-flag pattern used
+/// by notification-center settings). The marker is scoped by uid so the
 /// idempotent presentation survives an app restart without re-presenting.
+///
+/// This copy answers instantly and works offline, but it dies with the
+/// installation — which is why it is paired with the account-scoped
+/// [FirestoreChallengeResultSeenStore] inside
+/// [DurableChallengeResultSeenStore] rather than used on its own.
 ///
 /// This adapter stores only a single integer millis high-water mark per user —
 /// no trusted challenge state, no Firestore access.

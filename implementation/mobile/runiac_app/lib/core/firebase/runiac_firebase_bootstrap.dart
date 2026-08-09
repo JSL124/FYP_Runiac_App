@@ -15,8 +15,10 @@ import '../../features/profile/domain/repositories/user_profile_repository.dart'
 import '../../features/auth/data/firebase_runiac_auth_repository.dart';
 import '../../features/auth/data/non_production_auth_repository.dart';
 import '../../features/auth/domain/runiac_auth_service.dart';
+import '../../features/challenge/data/durable_challenge_result_seen_store.dart';
 import '../../features/challenge/data/firebase_challenge_repository.dart';
 import '../../features/challenge/data/firestore_challenge_read_store.dart';
+import '../../features/challenge/data/firestore_challenge_result_seen_store.dart';
 import '../../features/challenge/data/shared_preferences_challenge_result_seen_store.dart';
 import '../../features/challenge/data/static_challenge_repository.dart';
 import '../../features/challenge/domain/repositories/challenge_repository.dart';
@@ -306,16 +308,27 @@ class RuniacFirebaseBootstrap {
     );
   }
 
-  /// One-shot foreground Result presenter with a durable, uid-scoped local
-  /// seen-marker.
+  /// One-shot foreground Result presenter with an account-scoped seen-marker
+  /// mirrored into device preferences.
+  ///
+  /// The marker used to be local only, which made "presented exactly once" a
+  /// per-installation promise: deleting and reinstalling the app dropped it and
+  /// replayed the badge ceremony for any result still inside the presenter's
+  /// recency window. The account copy is now authoritative; the local mirror
+  /// keeps the check instant and correct offline.
   static ChallengeResultPresentationController _challengeResultPresenter(
     ChallengeRepository challengeRepository,
     RuniacAuthRepository authRepository,
   ) {
     return ChallengeResultPresentationController(
       repository: challengeRepository,
-      seenStore: SharedPreferencesChallengeResultSeenStore(
-        uidProvider: () => authRepository.currentUser?.uid,
+      seenStore: DurableChallengeResultSeenStore(
+        remote: FirestoreChallengeResultSeenStore(
+          uidProvider: () => authRepository.currentUser?.uid,
+        ),
+        local: SharedPreferencesChallengeResultSeenStore(
+          uidProvider: () => authRepository.currentUser?.uid,
+        ),
       ),
     );
   }

@@ -271,6 +271,7 @@ describe("account deletion fan-out", () => {
       `challengeSlots/${SUBJECT}`,
       `leaderboardCurrentViews/${SUBJECT}`,
       `users/${SUBJECT}/challengeBadges/10K`,
+      `users/${SUBJECT}/challengeState/challengeResultSeen`,
       `notificationInbox/${SUBJECT}/items/n1`,
       `notificationDevices/${SUBJECT}/tokens/t1`,
     ]) {
@@ -585,6 +586,9 @@ async function seedOwnedData(uid: string): Promise<void> {
     firestore.doc(`challengeSlots/${uid}`).set({ uid }),
     firestore.doc(`leaderboardCurrentViews/${uid}`).set({ ownerUid: uid }),
     firestore.doc(`users/${uid}/challengeBadges/10K`).set({ tierId: "10K" }),
+    firestore
+      .doc(`users/${uid}/challengeState/challengeResultSeen`)
+      .set({ lastSeenResultEndedAtMs: 1 }),
     firestore.doc(`notificationInbox/${uid}/items/n1`).set({ ownerUid: uid }),
     firestore.doc(`notificationDevices/${uid}/tokens/t1`).set({ enabled: true }),
     firestore.collection("activities").doc("a1").set({ ownerUid: uid, status: "validated" }),

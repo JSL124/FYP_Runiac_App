@@ -283,6 +283,57 @@ describe('trusted Challenge Firestore rules — all client writes denied', () =>
   });
 });
 
+describe('trusted Challenge Firestore rules — result ceremony seen-marker', () => {
+  const seenPath = 'users/alice/challengeState/challengeResultSeen';
+
+  it('lets the owner create, advance, and read their own marker', async () => {
+    const alice = dbFor('alice');
+
+    await assertSucceeds(setDoc(doc(alice, seenPath), { lastSeenResultEndedAtMs: 1000 }));
+    await assertSucceeds(setDoc(doc(alice, seenPath), { lastSeenResultEndedAtMs: 2000 }));
+    // Re-writing the same high-water mark is the ordinary idempotent replay.
+    await assertSucceeds(setDoc(doc(alice, seenPath), { lastSeenResultEndedAtMs: 2000 }));
+
+    const snapshot = await getDoc(doc(alice, seenPath));
+    assert.equal(snapshot.data().lastSeenResultEndedAtMs, 2000);
+  });
+
+  it('refuses to rewind the marker, which would re-arm a ceremony', async () => {
+    const alice = dbFor('alice');
+    await assertSucceeds(setDoc(doc(alice, seenPath), { lastSeenResultEndedAtMs: 2000 }));
+
+    await assertFails(setDoc(doc(alice, seenPath), { lastSeenResultEndedAtMs: 1999 }));
+    await assertFails(updateDoc(doc(alice, seenPath), { lastSeenResultEndedAtMs: 0 }));
+  });
+
+  it('accepts nothing but the one integer field, at the one document id', async () => {
+    const alice = dbFor('alice');
+
+    // No smuggling extra state into the one client-writable path under users/.
+    await assertFails(
+      setDoc(doc(alice, seenPath), { lastSeenResultEndedAtMs: 1000, outcome: 'SUCCEEDED' }),
+    );
+    await assertFails(setDoc(doc(alice, seenPath), { lastSeenResultEndedAtMs: '1000' }));
+    await assertFails(setDoc(doc(alice, seenPath), { lastSeenResultEndedAtMs: 0 }));
+    await assertFails(setDoc(doc(alice, 'users/alice/challengeState/anythingElse'), {
+      lastSeenResultEndedAtMs: 1000,
+    }));
+  });
+
+  it('keeps the marker private to its owner and undeletable', async () => {
+    const alice = dbFor('alice');
+    await assertSucceeds(setDoc(doc(alice, seenPath), { lastSeenResultEndedAtMs: 1000 }));
+
+    await assertFails(getDoc(doc(dbFor('bob'), seenPath)));
+    await assertFails(setDoc(doc(dbFor('bob'), seenPath), { lastSeenResultEndedAtMs: 1 }));
+    await assertFails(getDoc(doc(unauthenticatedDb(), seenPath)));
+    await assertFails(deleteDoc(doc(alice, seenPath)));
+    await assertFails(
+      getDocs(query(collection(alice, 'users/alice/challengeState'), orderBy(documentId()), limit(30))),
+    );
+  });
+});
+
 describe('trusted Challenge Firestore rules — no broadened profile/activity access', () => {
   it('does not grant any cross-user profile or activity read through challenge membership', async () => {
     await seedActiveChallenge();

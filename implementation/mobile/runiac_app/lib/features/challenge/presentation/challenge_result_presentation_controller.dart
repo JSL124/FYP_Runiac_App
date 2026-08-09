@@ -25,12 +25,18 @@ class ChallengeResultPresentationController {
 
   /// How recent a result must be to auto-present.
   ///
-  /// The marker is local, so a fresh install or a new device starts with no
-  /// marker at all and would otherwise treat the newest entry in a long
-  /// history as unseen — congratulating the runner on a challenge they
-  /// finished months ago. Bounding by age also caps every other stale-replay
-  /// case, and costs nothing in the normal path: a result settles within
-  /// roughly a minute of the run that completed it.
+  /// A runner whose marker cannot be read — a brand-new account, or a first
+  /// launch with no connectivity and no local mirror — would otherwise treat
+  /// the newest entry in a long history as unseen and be congratulated on a
+  /// challenge they finished months ago. Bounding by age caps that and every
+  /// other stale-replay case, and costs nothing in the normal path: a result
+  /// settles within roughly a minute of the run that completed it.
+  ///
+  /// It is a backstop, not the mechanism. Reinstalling the app inside this
+  /// window used to replay the ceremony because the marker lived only in device
+  /// preferences; the marker is account-scoped now (see
+  /// `DurableChallengeResultSeenStore`), so that no longer depends on the
+  /// window being short.
   static const Duration _defaultRecencyWindow = Duration(days: 7);
 
   final ChallengeRepository repository;

@@ -333,6 +333,8 @@ void main() {
         'lib/features/paywall/data/firestore_feature_access_repository.dart',
         'lib/features/paywall/data/firestore_character_access_repository.dart',
         'lib/features/challenge/data/firestore_challenge_read_store.dart',
+        'lib/features/challenge/data/'
+            'firestore_challenge_result_seen_store.dart',
         'lib/features/friends/data/firebase_friends_repository.dart',
         'lib/features/friends/data/friends_owner_list_reader.dart',
         'lib/features/plan/data/'

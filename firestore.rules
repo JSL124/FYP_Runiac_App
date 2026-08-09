@@ -728,6 +728,19 @@ service cloud.firestore {
         && request.auth.uid in get(/databases/$(database)/documents/challengeInstances/$(challengeId)).data.rosterUids;
     }
 
+    // The Challenge result ceremony's one-shot marker: the epoch millis of the
+    // newest result whose celebration the runner has already been shown. It is
+    // the single field the owner may write under users/{uid}, and deliberately
+    // so — it carries no trusted state. Outcome, badge ownership, and every
+    // metre stay backend-owned in challengeHistory / challengeBadges, and the
+    // worst a tampered value can do is suppress or replay the runner's own
+    // celebration.
+    function validChallengeResultSeenData() {
+      return request.resource.data.keys().hasOnly(['lastSeenResultEndedAtMs'])
+        && request.resource.data.lastSeenResultEndedAtMs is int
+        && request.resource.data.lastSeenResultEndedAtMs > 0;
+    }
+
     match /users/{uid} {
       allow read: if isOwner(uid);
       allow create, update, delete: if false;
@@ -778,6 +791,27 @@ service cloud.firestore {
           && request.query.limit != null
           && request.query.limit <= 30;
         allow create, update, delete: if false;
+      }
+
+      // Presentation state, not trusted state (see validChallengeResultSeenData).
+      // The marker used to live only in device preferences, so deleting and
+      // reinstalling the app — or signing in on a second device — wiped it and
+      // replayed a badge ceremony the runner had already seen. Holding it on the
+      // account fixes both. It is never listed: the client reads the one document
+      // it writes, by id.
+      match /challengeState/{stateId} {
+        allow get: if isOwner(uid) && stateId == 'challengeResultSeen';
+        allow list: if false;
+        allow create: if isOwner(uid)
+          && stateId == 'challengeResultSeen'
+          && validChallengeResultSeenData();
+        // Monotonic: the marker is a high-water mark, so it may only move
+        // forward. A stale client can never rewind it and re-arm a ceremony.
+        allow update: if isOwner(uid)
+          && stateId == 'challengeResultSeen'
+          && validChallengeResultSeenData()
+          && request.resource.data.lastSeenResultEndedAtMs >= resource.data.lastSeenResultEndedAtMs;
+        allow delete: if false;
       }
     }
 
