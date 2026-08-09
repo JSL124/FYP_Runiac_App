@@ -1,6 +1,6 @@
 # Runiac — User Manual
 
-**Version 1.0 · 4 August 2026**
+**Version 1.1 · 6 August 2026**
 
 Project: Runiac — a beginner-focused running app
 Topic code: CSIT-26-S2-38
@@ -11,13 +11,14 @@ Topic code: CSIT-26-S2-38
 
 | Title | Document name | Owner | Current version | Last change on |
 | --- | --- | --- | --- | --- |
-| User Manual | Runiac User Manual, Version 1.0 | FYP-26-S2-38 | 1.0 | 4 August 2026 |
+| User Manual | Runiac User Manual, Version 1.1 | FYP-26-S2-38 | 1.1 | 6 August 2026 |
 
 ### Record of revision
 
 | Revision date | Description | Section affected | Version after revision |
 | --- | --- | --- | --- |
 | 4 August 2026 | Initial user manual, captured from the running prototype | All | 1.0 |
+| 6 August 2026 | Re-captured against the current build: **Watch & Health Apps** removed from the profile, **Delete account** documented, the website **Account Deletion** page re-shot now that it describes in-app deletion, the administration console re-shot after its page descriptions were removed, and an email-subscription walkthrough added for the unregistered visitor | 1.2, 1.3, 2.8, 2.9, Part 4, Appendix A | 1.1 |
 
 ---
 
@@ -40,11 +41,10 @@ This procedure explains how to operate Runiac for each type of user:
 
 | Part | Audience | What it covers |
 | --- | --- | --- |
-| 1 | Anyone | Downloading and installing Runiac |
-| 2 | Unregistered visitor | The public website, signing up, and first-run setup |
-| 3 | Registered user (Basic) | Everyday use — running, plans, feed, leaderboard, friends, challenges |
-| 4 | Registered user (Premium) | The features Premium adds on top of Basic |
-| 5 | Platform Administrator | The web administration console |
+| 1 | Unregistered visitor | Downloading and installing Runiac, the public website, subscribing to updates by email, signing up, and first-run setup |
+| 2 | Registered user (Basic) | Everyday use — running, plans, feed, leaderboard, friends, challenges |
+| 3 | Registered user (Premium) | The features Premium adds on top of Basic |
+| 4 | Platform Administrator | The web administration console |
 
 ## Process Overview
 
@@ -66,7 +66,9 @@ today's session, start a run from the Run tab, finish, and review the summary an
 
 ---
 
-# Part 1 — Downloading and installing Runiac
+# Part 1 — Unregistered visitor
+
+## 1.1 Downloading and installing Runiac
 
 Runiac is distributed for **Android** as a direct APK download. iOS distribution is listed as
 *Coming soon* on the download page and is not yet available to the public.
@@ -89,11 +91,7 @@ Runiac is distributed for **Android** as a direct APK download. iOS distribution
 > **Note.** Because the APK is installed directly rather than from an app store, Android asks for
 > permission to install from an unknown source the first time. This is expected.
 
----
-
-# Part 2 — Unregistered visitor
-
-## 2.1 The public website
+## 1.2 The public website
 
 The website can be browsed without an account. These are the pages available from the top
 navigation.
@@ -148,11 +146,42 @@ Four legal pages are linked from the footer.
 
 ![Cookie Notice](screenshots/01-unregistered/web/12-legal-cookies.png){ width=95% }
 
-**Account Deletion**
+**Account Deletion** — this page explains that deletion is done inside the app (section 2.9), what
+is erased and what is kept, and it keeps an email route only for someone who can no longer sign in.
 
 ![Account Deletion](screenshots/01-unregistered/web/13-legal-account-deletion.png){ width=95% }
 
-## 2.2 Creating an account
+## 1.3 Subscribing to Runiac updates by email
+
+You do not need an account to hear from Runiac. The home page carries an email sign-up, and
+Runiac uses **double opt-in**: it will not add you to the list until you click a link in an email
+sent to the address you typed. Nothing is sent to an address that has not confirmed itself.
+
+1. On the home page, type your email address into the field beside **Notify Me**. The line
+   underneath states what you are agreeing to and links to the Privacy Policy.
+
+   ![Email sign-up](screenshots/01-unregistered/web/14-newsletter-signup.png){ width=95% }
+
+2. Press **Notify Me**. The button reads *Submitting…* while the request is sent, then the page
+   confirms: **Thanks. Check your inbox to confirm your subscription.** The field is cleared.
+
+   ![Sign-up accepted](screenshots/01-unregistered/web/15-newsletter-signup-success.png){ width=95% }
+
+3. Open your inbox. A confirmation email arrives with a single **Confirm my subscription** link.
+   If you did not request it, you can ignore the email and nothing further happens — the address
+   stays unconfirmed and receives nothing.
+
+   ![Confirmation email](screenshots/01-unregistered/web/16-newsletter-confirmation-email.png){ width=95% }
+
+4. Press **Confirm my subscription**. The link opens Runiac and confirms the address:
+   **You're subscribed.**
+
+   ![Subscription confirmed](screenshots/01-unregistered/web/17-newsletter-confirmed.png){ width=95% }
+
+> **Note.** The confirmation link is valid for seven days. Every newsletter Runiac sends also
+> carries an unsubscribe link, which removes the address immediately.
+
+## 1.4 Creating an account
 
 1. Open the app. The welcome screen offers **Sign up** and **Log in**, and links to the Terms and
    Privacy Policy.
@@ -173,7 +202,7 @@ Four legal pages are linked from the footer.
 
    ![Reset your password](screenshots/01-unregistered/app/04-forgot-password.png){ width=38% }
 
-## 2.3 First-run setup
+## 1.5 First-run setup
 
 After creating an account, Runiac asks a short set of questions and builds your first plan. The
 questionnaire is 16 steps; you can change any answer later.
@@ -247,7 +276,7 @@ Throughout setup your running buddy offers a short tip. Press **Dismiss** to clo
 
 ![Guide overlay](screenshots/01-unregistered/app/onboarding-guide-overlay.png){ width=38% }
 
-## 2.4 The app tour
+## 1.6 The app tour
 
 The first time you reach the Home screen, a twelve-step tour introduces the app. Press **Next**
 to advance or **Skip tour** to leave it. You can replay it later from **Menu → App tour**.
@@ -302,12 +331,12 @@ to advance or **Skip tour** to leave it. You can replay it later from **Menu →
 
 ---
 
-# Part 3 — Registered user (Basic)
+# Part 2 — Registered user (Basic)
 
 Everything in this part is available to every registered user. Premium adds to it; it does not
 replace it.
 
-## 3.1 Home
+## 2.1 Home
 
 Home is an illustrated stage map of your week. Each stepping stone is one day; your running
 buddy stands on today.
@@ -327,7 +356,7 @@ Press the notification entry to see your inbox — challenge invitations, badges
 
 ![Notifications](screenshots/02-registered-basic/notifications-inbox.png){ width=38% }
 
-## 3.2 Going for a run
+## 2.2 Going for a run
 
 1. Press the **Run** tab. The map centres on your location and the sheet shows today's planned
    session and a **Start run** button. The pill at the top shows GPS status — here, **GPS ready**.
@@ -365,7 +394,7 @@ Press the notification entry to see your inbox — challenge invitations, badges
 > **Note.** After ending a run Runiac offers a guided cool-down (a slow walk followed by
 > stretches) before showing the summary. You may also skip straight to the summary.
 
-## 3.3 Your progress and plan
+## 2.3 Your progress and plan
 
 The **You** tab has two sections, **Progress** and **Plans**.
 
@@ -402,7 +431,7 @@ Schedule**. Days already used by the plan cannot be chosen.
 
 ![Time picker](screenshots/02-registered-basic/you-edit-schedule-time-picker.png){ width=38% }
 
-## 3.4 Feed
+## 2.4 Feed
 
 The Feed shows runs shared by you and the people you follow, each with its route, distance, pace
 and time.
@@ -420,7 +449,7 @@ Press **…** on a post for further actions.
 > **Caution.** **Report** submits immediately — there is no confirmation step and no way to undo
 > it from inside the app. Only use it when you mean to.
 
-## 3.5 Leaderboard
+## 2.5 Leaderboard
 
 The Leaderboard ranks runners by monthly XP within their own planning region. Choose a region on
 the map to preview its standings.
@@ -447,7 +476,7 @@ Press **Share My Rank** to produce a shareable rank card.
 
 ![Share my rank](screenshots/02-registered-basic/leaderboard-share-my-rank.png){ width=38% }
 
-## 3.6 Friends
+## 2.6 Friends
 
 Open **Menu → Friends**. The screen has four tabs.
 
@@ -476,7 +505,7 @@ Press a friend's avatar to open their runner profile.
 
 ![Friend profile](screenshots/02-registered-basic/friends-runner-profile.png){ width=38% }
 
-## 3.7 Challenges
+## 2.7 Challenges
 
 Open **Menu → Challenge**. Nine distance tiers are offered from 10K to 1000K. Tiers marked
 **Premium** require a Premium subscription.
@@ -518,15 +547,16 @@ Past challenges are listed under **History**.
 
 ![History](screenshots/02-registered-basic/challenge-history.png){ width=38% }
 
-## 3.8 Profile and settings
+## 2.8 Profile and settings
 
-Open **Menu → Profile**. The profile shows your level and progress, max streak, total distance,
-your challenge badge case, and your training profile. The chip beside your name shows your
-subscription — **BASIC** or **PREMIUM**.
+Open **Menu → Profile**. The profile shows your level and progress, max streak and total distance,
+the chip beside your name showing your subscription — **BASIC** or **PREMIUM** — and, further
+down, your challenge badge case and **YOUR TRAINING PROFILE**: the answers from onboarding that
+your plan was built from.
 
 ![Training profile](screenshots/02-registered-basic/profile-training-and-manage.png){ width=38% }
 
-The **MANAGE** section is the entry point to everything below.
+Below that, the **MANAGE** section is the entry point to everything else.
 
 ![Manage](screenshots/02-registered-basic/profile-manage-rows.png){ width=38% }
 
@@ -539,11 +569,6 @@ are Premium.
 
 ![Character selection](screenshots/02-registered-basic/character-selection.png){ width=38% }
 
-**Settings** — distance units, private profile, haptic feedback, and keeping the screen on during
-runs.
-
-![Settings](screenshots/02-registered-basic/settings-app.png){ width=38% }
-
 **Privacy & Safety** — control whether your recent run totals personalise the guide.
 
 ![Privacy and safety](screenshots/02-registered-basic/settings-privacy-safety.png){ width=38% }
@@ -551,10 +576,6 @@ runs.
 **Notifications** — reminder settings.
 
 ![Notification centre](screenshots/02-registered-basic/settings-notification-center.png){ width=38% }
-
-**Watch & Health Apps** — connect Apple Watch, Apple Health, Health Connect or Garmin.
-
-![Watch and health](screenshots/02-registered-basic/settings-watch-health.png){ width=38% }
 
 **Feedback** — report a bug or make a suggestion.
 
@@ -567,17 +588,63 @@ licences.
 
 ![Licences](screenshots/02-registered-basic/settings-licenses.png){ width=38% }
 
+**Settings** is deliberately not in this list. App-level controls — distance units, private
+profile, haptic feedback, and keeping the screen on during runs — sit with the other app-level
+entries under **Menu → Settings** on the Home screen.
+
+![Settings](screenshots/02-registered-basic/settings-app.png){ width=38% }
+
 To start the questionnaire again, use **Edit profile → Retake onboarding**. Runiac warns you
 first, because a new plan resets your consistency streak.
 
 ![Retake confirmation](screenshots/02-registered-basic/profile-retake-onboarding-confirm.png){ width=38% }
 
-**Sign out** is the last row. Confirm with **Sign out**, or keep your session with **Stay signed
-in**.
+**Sign out** is the second-last row. Confirm with **Sign out**, or keep your session with **Stay
+signed in**.
 
 ![Sign out](screenshots/02-registered-basic/profile-sign-out-confirm.png){ width=38% }
 
-## 3.9 What Basic users see instead of Premium features
+## 2.9 Deleting your account
+
+**Delete account** is the last row, styled apart from the rest in red. It erases your Runiac
+account from inside the app — no email to support, no waiting period.
+
+> **Warning.** Deletion is immediate and irreversible. There is no grace period, nothing is
+> archived for you, and signing in again does not bring anything back. Signing up with the same
+> email afterwards creates a completely new, empty account.
+
+1. Open **Menu → Profile** and press **Delete account** at the bottom of MANAGE.
+
+2. Read what happens. **What is deleted** covers your profile, every run, route and activity
+   summary, your plans, XP, level, streak and leaderboard standing, your friends, challenges,
+   badges and notifications, and everything you posted to the Feed.
+
+   **What is kept, without your name on it** covers reports you filed or that were filed about
+   you, feedback you sent, and records of administrator actions. These are retained so that
+   deleting an account cannot be used to erase a moderation record; your name and account are
+   removed from them.
+
+   ![Delete account](screenshots/02-registered-basic/profile-delete-account.png){ width=38% }
+
+3. Type **DELETE** in the confirmation field. The button stays disabled until the word matches
+   exactly, then turns red.
+
+   ![Type DELETE](screenshots/02-registered-basic/profile-delete-account-typed.png){ width=38% }
+
+4. Press **Delete my account**. Runiac asks once more. Press **Cancel** to stop, or **Delete now**
+   to go ahead.
+
+   ![Confirm deletion](screenshots/02-registered-basic/profile-delete-account-confirm.png){ width=38% }
+
+5. On **Delete now** the account is erased and you are returned to the welcome screen, signed out.
+   If anything goes wrong the screen stays open with an explanation, and you stay signed in so you
+   can try again.
+
+> **Note.** The steps above are the way to delete an account. The **Account Deletion** page in the
+> website footer (see section 1.2) describes this same flow, and offers an email request only as a
+> fallback for someone who can no longer sign in.
+
+## 2.10 What Basic users see instead of Premium features
 
 Premium features are never hidden — they are shown in a locked state so you can see what is on
 offer.
@@ -609,13 +676,13 @@ These are the points where a Basic user meets the subscription sheet.
 
    ![Character locked](screenshots/02-registered-basic/character-selection-premium-paywall.png){ width=38% }
 
-4. **You → Plans** shows the **Unlock Runiac Premium** card (see section 3.3).
+4. **You → Plans** shows the **Unlock Runiac Premium** card (see section 2.3).
 
 ---
 
-# Part 4 — Registered user (Premium)
+# Part 3 — Registered user (Premium)
 
-Premium users keep everything in Part 3. This part shows only what changes.
+Premium users keep everything in Part 2. This part shows only what changes.
 
 > **Premium never confers a competitive advantage.** XP, level, rank, streak and leaderboard
 > score are calculated by the server under exactly the same rules for both tiers. Premium sells
@@ -625,7 +692,7 @@ Your profile shows a **PREMIUM** chip beside your name.
 
 ![Premium profile](screenshots/03-registered-premium/profile-overview-premium.png){ width=38% }
 
-## 4.1 Post-run analysis
+## 3.1 Post-run analysis
 
 After a run, the summary shows distance, pace, time, splits and a pace graph.
 
@@ -641,7 +708,7 @@ stability, and pace over distance.
 
 ![Advanced analysis](screenshots/03-registered-premium/run-advanced-analysis.png){ width=38% }
 
-## 4.2 AI activity feedback
+## 3.2 AI activity feedback
 
 Press the sparkle icon on the summary for AI feedback on the run, in four steps.
 
@@ -661,7 +728,7 @@ Press the sparkle icon on the summary for AI feedback on the run, in four steps.
 
 ![Activity feedback, step 4](screenshots/03-registered-premium/run-activity-feedback-4.png){ width=38% }
 
-## 4.3 AI workout briefing
+## 3.3 AI workout briefing
 
 On any planned session, press the sparkle icon to have the session explained before you run it.
 
@@ -681,7 +748,7 @@ On any planned session, press the sparkle icon to have the session explained bef
 
 ![Workout briefing, step 4](screenshots/03-registered-premium/you-workout-briefing-4.png){ width=38% }
 
-## 4.4 Sharing
+## 3.4 Sharing
 
 Press the share icon on the summary to produce an achievement card.
 
@@ -692,7 +759,7 @@ Feed**.
 
 ![Share route](screenshots/03-registered-premium/run-share-route-to-feed.png){ width=38% }
 
-## 4.5 Challenges and characters
+## 3.5 Challenges and characters
 
 All nine challenge tiers are available, with no **Premium** marking.
 
@@ -704,7 +771,7 @@ All four running buddies can be chosen.
 
 ![All characters](screenshots/03-registered-premium/character-selection-all-unlocked.png){ width=38% }
 
-## 4.6 Plans
+## 3.6 Plans
 
 The **Plans** section no longer shows the upsell card.
 
@@ -714,12 +781,18 @@ The **Plans** section no longer shows the upsell card.
 
 ---
 
-# Part 5 — Platform Administrator
+# Part 4 — Platform Administrator
 
 The Platform Administrator works in a **web console**, not the mobile app. Administration is
 governed by `userRole`, which is separate from the Basic/Premium subscription status.
 
-## 5.1 Signing in
+> **About these screenshots.** Part 4 was captured against a local Firebase emulator holding a
+> seeded demo database, so that no real runner's personal data appears in this document. The seed
+> populates users, reports, activities and the audit log; it does not populate feedback, project
+> documents, newsletter subscribers, or a completed leaderboard period, so those pages are shown
+> in their empty state. On a live database each of them lists real records.
+
+## 4.1 Signing in
 
 1. Open the Runiac website and press **Sign in**.
 2. Enter the administrator email and password and press **Sign in**.
@@ -729,21 +802,21 @@ governed by `userRole`, which is separate from the Basic/Premium subscription st
 3. An account whose `userRole` is `platformAdmin` is taken to the console. Any other account is
    returned to the public site.
 
-## 5.2 Overview
+## 4.2 Overview
 
 The Overview is the control centre: unresolved reports, pending exception cases, registered users
 by tier, runs recorded, app errors, failed backend jobs, an active-users trend, and system health.
 
 ![Overview](screenshots/04-platform-administrator/02-overview.jpg){ width=95% }
 
-## 5.3 Exception Queue
+## 4.3 Exception Queue
 
 Moderation and integrity cases — reported posts, users, routes and plans, plus suspicious XP
 flagged by anomaly detection. Filter by type, severity and status, then resolve or dismiss.
 
 ![Exception queue](screenshots/04-platform-administrator/03-exception-queue.jpg){ width=95% }
 
-## 5.4 Users & Roles
+## 4.4 Users & Roles
 
 Search the user directory. Each row shows role, subscription, level, account state and join date.
 
@@ -759,7 +832,7 @@ Recent administrator actions are listed at the bottom of the page.
 
 ![Admin action history](screenshots/04-platform-administrator/04c-admin-action-history.jpg){ width=95% }
 
-## 5.5 XP & Gamification Rules
+## 4.5 XP & Gamification Rules
 
 Publishes the rule configuration that Cloud Functions apply: XP per activity, per kilometre and
 per active minute, plan-completion bonus, caps, cool-down band, level curve and streak rewards.
@@ -769,7 +842,7 @@ per active minute, plan-completion bonus, caps, cool-down band, level curve and 
 
 ![XP and gamification](screenshots/04-platform-administrator/05-xp-and-gamification.jpg){ width=95% }
 
-## 5.6 Leaderboard Oversight
+## 4.6 Leaderboard Oversight
 
 Monitor the aggregation job, review the current period, check coverage and eligibility, and
 request a recalculation. Score calculation stays with the backend — the console never edits a
@@ -777,49 +850,49 @@ score.
 
 ![Leaderboard oversight](screenshots/04-platform-administrator/06-leaderboard-oversight.jpg){ width=95% }
 
-## 5.7 App Paywall
+## 4.7 App Paywall
 
 Edits the upsell sheet Basic users see: title, badge, feature list, prices and the subscribe
 button. This page publishes **display copy only** — it never grants Premium.
 
 ![App paywall](screenshots/04-platform-administrator/07-app-paywall.jpg){ width=95% }
 
-## 5.8 Website Content
+## 4.8 Website Content
 
 Edits the marketing site, tabbed by destination page (Home, Pricing, FAQ, Documents, Download,
 About, Site-wide). Expand a section, edit it, then press **Save changes**.
 
 ![Website content](screenshots/04-platform-administrator/08-website-content.jpg){ width=95% }
 
-## 5.9 Project Documents
+## 4.9 Project Documents
 
 Upload and manage the PDFs shown on the public Documents page. Give a title, category and
 document date, choose the file, then press **Upload document**.
 
 ![Project documents](screenshots/04-platform-administrator/09-project-documents.jpg){ width=95% }
 
-## 5.10 Feedback & Complaints
+## 4.10 Feedback & Complaints
 
 An inbox grouped by auto-classified category. Automation summarises and de-duplicates; the
 administrator reviews what is escalated.
 
 ![Feedback](screenshots/04-platform-administrator/10-feedback-and-complaints.jpg){ width=95% }
 
-## 5.11 Newsletter
+## 4.11 Newsletter
 
 Two tabs: **Subscribers** and **Campaigns**. Manage the subscriber list, and compose, test and
 queue campaigns. Sending itself runs as a backend job.
 
 ![Newsletter](screenshots/04-platform-administrator/11-newsletter.jpg){ width=95% }
 
-## 5.12 App Errors
+## 4.12 App Errors
 
 Grouped error reports from the Flutter app and Cloud Functions, with severity and status. Reports
 are sanitised server-side — no GPS routes, precise location, credentials or profile details.
 
 ![App errors](screenshots/04-platform-administrator/12-app-errors.jpg){ width=95% }
 
-## 5.13 Automation & Policy Settings
+## 4.13 Automation & Policy Settings
 
 Four saved configurations. **Feature access** sets the minimum tier for each gated feature;
 **Challenge tier access** and **Character access** do the same for challenge tiers and guide
@@ -827,7 +900,7 @@ characters; **Moderation automation** sets auto-hide and escalation thresholds.
 
 ![Automation and policy](screenshots/04-platform-administrator/13-automation-and-policy.jpg){ width=95% }
 
-## 5.14 Governance & Audit Log
+## 4.14 Governance & Audit Log
 
 A chronological record of administrator actions and system events — role changes, subscription
 changes, plan publishes, rule activations and backend job outcomes. Entries attributed to
@@ -835,7 +908,7 @@ changes, plan publishes, rule activations and backend job outcomes. Entries attr
 
 ![Governance and audit](screenshots/04-platform-administrator/14-governance-and-audit.jpg){ width=95% }
 
-## 5.15 Signing out
+## 4.15 Signing out
 
 Press **Sign out** at the bottom of the sidebar. You are returned to the public site.
 
@@ -850,10 +923,12 @@ So that the screenshots can be reproduced and their limits understood:
 | Mobile app | Flutter debug build on an **iPhone 17 simulator** (iOS 26.5), against the production Firebase project |
 | Basic screens | Captured on a Basic account |
 | Premium screens | Captured on a Premium account with real run history |
-| Leaderboard (Part 3.5) | Captured against a built-in mock dataset so the board is populated; no mock data was written to production |
+| Profile management and account deletion (2.8, 2.9) | Re-captured for version 1.1 on a Basic QA account (`qa-a5-001@runiacqa.dev`). These screens show no account-specific data, so no personal information appears. The confirmation dialog in 2.9 was dismissed with **Cancel** — no account was deleted |
+| Leaderboard (Part 2.5) | Captured against a built-in mock dataset so the board is populated; no mock data was written to production |
 | Social screens | Friends, requests, invitations and comments used temporary mock records, deleted afterwards |
-| Admin console | Run against a local Firebase emulator with seeded demo data, so no real user's personal data appears |
+| Admin console | Run against a local Firebase emulator with seeded demo data (1 administrator, 10 runners, 6 reports, 15 activities, 3 audit entries), so no real user's personal data appears |
 | Public website | Production build of the marketing site |
+| Email subscription (1.3) | Performed for real against the production site and the deployed newsletter backend. The confirmation email screenshot is cropped to the message body so that the recipient's address does not appear in this document |
 
 ### Known limitations of these screenshots
 
@@ -865,6 +940,35 @@ So that the screenshots can be reproduced and their limits understood:
    completed and saved, which would have written a real activity to a live account.
 3. **The XP & Streak Update screen is not included.** It is reachable only immediately after
    finishing a run — opening a past run from Activity History does not offer it.
+
+### What version 1.1 re-captured, and what it did not
+
+Version 1.1 re-shot only the screens the build had actually changed. Everything else is the
+version 1.0 capture, deliberately kept so that the document is not churned for no reason.
+
+**Re-captured**
+
+| Screens | Why |
+| --- | --- |
+| Profile → MANAGE, sign-out, and the new Delete account flow (2.8, 2.9) | **Watch & Health Apps** and its screen were removed from the app, and **Delete account** was added. `settings-watch-health.png` was deleted with the feature |
+| The website **Account Deletion** legal page (1.2) | The page used to tell the reader to email a deletion request. It now documents the in-app **Delete account** flow, keeping email only as a fallback for someone locked out of their account |
+| All fifteen administration-console captures, covering its thirteen pages (Part 4) | Each console page carried a paragraph of description under its title; those were removed, so every previous capture showed a header that no longer exists |
+
+**Added**
+
+| Screens | Why |
+| --- | --- |
+| The email-subscription walkthrough (1.3), four images | The unregistered visitor could subscribe to updates, but the manual documented no part of it |
+
+**Deliberately not re-captured**
+
+The other twelve marketing-site pages in 1.2 — Home, Features, How it works, Pricing, FAQ,
+Documents, Document detail, About us, Sign in, and the Privacy Policy, Terms of Service and Cookie
+Notice legal pages — were **not** re-shot for version 1.1. No change to them was reported, and they
+were not individually re-verified against the live site for this revision, so they remain the
+version 1.0 captures and should be treated as dated 4 August 2026. The same applies to every Part 2 and Part 3 screen outside 2.8 and 2.9, and to the
+administration console's sign-in page, which is the public website's sign-in page and was not
+affected by the console change.
 
 ### Screens deliberately excluded
 
