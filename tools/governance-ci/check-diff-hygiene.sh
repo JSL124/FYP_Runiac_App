@@ -600,6 +600,33 @@ is_feed_engagement_push_test_race_path() {
   esac
 }
 
+is_route_preview_coordinate_precision_capsule_active() {
+  grep -Eq '^- Newly routed route preview coordinate precision on 2026-08-09 Asia/Singapore: `implementation/roadmap/capsules/route-preview-coordinate-precision\.md`' implementation/roadmap/CURRENT.md
+}
+
+# Two named backend files only. The client half of the same contract lives under
+# implementation/mobile/runiac_app/* and is already unconditionally allowed
+# below, so it is deliberately not restated here. functions/src/run/ is not
+# globbed: this capsule moves one coordinate ceiling, and a directory glob would
+# hand it the whole run-completion validator surface once its append-only
+# routing bullet goes stale.
+is_route_preview_coordinate_precision_path() {
+  case "$1" in
+    implementation/roadmap/capsules/route-preview-coordinate-precision.md|\
+    implementation/roadmap/CURRENT.md|\
+    functions/src/run/validateRoutePreview.ts|\
+    functions/test/completeRunRichSummaryCases.ts|\
+    functions/test/completeRunRichSummaryFixtures.ts|\
+    tools/governance-ci/check-diff-hygiene.sh|\
+    tools/governance-ci/check-pre-scaffold-scope.sh)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_pdd_security_and_limitations_capsule_active() {
   grep -Eq '^- Newly routed PDD security decisions and limitations on 2026-07-31 Asia/Singapore: `implementation/roadmap/capsules/pdd-security-and-limitations\.md`' implementation/roadmap/CURRENT.md
 }
@@ -1667,6 +1694,10 @@ is_allowed_path() {
     return 0
   fi
 
+  if is_route_preview_coordinate_precision_path "$1" && is_route_preview_coordinate_precision_capsule_active; then
+    return 0
+  fi
+
   if is_character_premium_access_gating_path "$1" && is_character_premium_access_gating_capsule_active; then
     return 0
   fi
@@ -1836,6 +1867,10 @@ is_unrelated_mobile_native_artifact() {
 
 is_forbidden_path() {
   if is_profile_photo_avatar_path "$1" && is_profile_photo_avatar_capsule_active; then
+    return 1
+  fi
+
+  if is_route_preview_coordinate_precision_path "$1" && is_route_preview_coordinate_precision_capsule_active; then
     return 1
   fi
 

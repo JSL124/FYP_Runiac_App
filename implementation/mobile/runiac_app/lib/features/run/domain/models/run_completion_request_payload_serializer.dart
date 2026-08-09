@@ -144,8 +144,18 @@ class RunCompletionRequestPayloadSerializer {
     };
   }
 
+  /// Rounds a route preview coordinate to five decimals (~1.1 m).
+  ///
+  /// Three decimals (~111 m) snapped every point onto a grid coarser than the
+  /// ~32 m spacing this preview samples at, so a road route came back as an
+  /// axis-aligned staircase instead of the line the runner actually ran. Five
+  /// decimals sit just under consumer GPS error, which keeps the drawn route
+  /// honest while still discarding precision no map preview needs.
+  /// `validateRoutePreview.ts` enforces the same limit server-side; where the
+  /// route may be seen at all stays a `routePrivacy` decision, not a
+  /// geometry-degradation one.
   static double _quantizeCoordinate(double value) {
-    return (value * 1000).round() / 1000;
+    return (value * 100000).round() / 100000;
   }
 
   static Map<String, Object?>? paceAnalysisSeriesToBackendMap(

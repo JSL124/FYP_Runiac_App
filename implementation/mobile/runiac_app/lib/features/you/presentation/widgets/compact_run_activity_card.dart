@@ -254,12 +254,12 @@ void _logActivityRouteSnapshotterDiagnostic(
     'size=${diagnostic.logicalSize.width.toStringAsFixed(0)}x'
     '${diagnostic.logicalSize.height.toStringAsFixed(0)} '
     'dpr=${diagnostic.devicePixelRatio.toStringAsFixed(2)} '
-    // Masked to three decimals (~110m), matching the precision this app is
-    // allowed to persist for a route preview
-    // (`RunCompletionRequestPayloadSerializer._quantizeCoordinate`). Six
-    // decimals pinpointed where the runner actually was, which a diagnostic
-    // that only needs to confirm the camera landed on the right route has no
-    // reason to know.
+    // Masked to three decimals (~110m). This is deliberately coarser than the
+    // five decimals a route preview persists
+    // (`RunCompletionRequestPayloadSerializer._quantizeCoordinate`): the stored
+    // preview has to draw an accurate line, whereas a debug log only needs to
+    // confirm the camera landed on the right route, so it has no reason to
+    // pinpoint where the runner actually was.
     'center=${diagnostic.centerLatitude.toStringAsFixed(3)},'
     '${diagnostic.centerLongitude.toStringAsFixed(3)} '
     'zoom=${diagnostic.zoom.toStringAsFixed(2)} '

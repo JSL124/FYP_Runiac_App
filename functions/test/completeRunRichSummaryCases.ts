@@ -32,10 +32,10 @@ export function rejectionScenarios(): readonly RejectionScenario[] {
       name: "rejects unquantized route preview coordinates",
       richData: {
         routePreview: {
-          segments: [{ points: [{ latitude: 1.3001, longitude: 103.8 }] }],
+          segments: [{ points: [{ latitude: 1.3000001, longitude: 103.8 }] }],
         },
       },
-      expectedMessage: "routePreview.segments.points.latitude must be quantized to 3 decimal places.",
+      expectedMessage: "routePreview.segments.points.latitude must be quantized to 5 decimal places.",
     },
     {
       name: "rejects unsupported pace analysis series fields",

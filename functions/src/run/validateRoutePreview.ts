@@ -73,8 +73,12 @@ function readCoordinate(
   if (value < minimum || value > maximum) {
     throw invalid(`routePreview.segments.points.${key} is outside coordinate limits.`);
   }
-  if (Number(value.toFixed(3)) !== value) {
-    throw invalid(`routePreview.segments.points.${key} must be quantized to 3 decimal places.`);
+  // Five decimals (~1.1 m) is the ceiling the client quantizes to
+  // (`RunCompletionRequestPayloadSerializer._quantizeCoordinate`). The previous
+  // three-decimal ceiling (~111 m) was coarser than the preview's own ~32 m
+  // sampling, which reduced every stored route to an axis-aligned staircase.
+  if (Number(value.toFixed(5)) !== value) {
+    throw invalid(`routePreview.segments.points.${key} must be quantized to 5 decimal places.`);
   }
   return value;
 }

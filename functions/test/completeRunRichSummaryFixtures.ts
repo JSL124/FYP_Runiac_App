@@ -19,8 +19,8 @@ export function validRoutePreview(segmentCount: number, pointsPerSegment: number
       points: Array.from({ length: pointsPerSegment }, (_, pointIndex) => {
         const index = segmentIndex * pointsPerSegment + pointIndex;
         return {
-          latitude: Number((1.3 + (index % 100) / 1000).toFixed(3)),
-          longitude: Number((103.8 + (index % 100) / 1000).toFixed(3)),
+          latitude: Number((1.3 + (index % 100) / 100000).toFixed(5)),
+          longitude: Number((103.8 + (index % 100) / 100000).toFixed(5)),
         };
       }),
     })),

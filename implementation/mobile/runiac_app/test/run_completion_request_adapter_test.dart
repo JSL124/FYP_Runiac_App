@@ -525,10 +525,10 @@ void main() {
           (segments.last! as Map<String, Object?>)['points']! as List<Object?>;
       final first = firstPoints.first! as Map<String, Object?>;
       final last = lastPoints.last! as Map<String, Object?>;
-      expect(first['latitude'], 1.301);
-      expect(first['longitude'], 103.801);
-      expect(last['latitude'], closeTo(1.402, 0.00001));
-      expect(last['longitude'], 103.801);
+      expect(first['latitude'], closeTo(1.3006, 0.0000001));
+      expect(first['longitude'], closeTo(103.8006, 0.0000001));
+      expect(last['latitude'], closeTo(1.40239, 0.0000001));
+      expect(last['longitude'], closeTo(103.8006, 0.0000001));
       expect(first.keys, isNot(contains('recordedAt')));
       expect(first.keys, isNot(contains('altitudeMeters')));
       expect(first.keys, isNot(contains('horizontalAccuracyMeters')));
@@ -548,6 +548,54 @@ void main() {
             expect(point.keys, isNot(contains(key)));
           }
         }
+      }
+    });
+
+    test('keeps successive route preview points distinct at running scale', () {
+      final startedAt = DateTime.utc(2026, 6, 14, 7);
+      // ~3.3 m apart, which is closer than any two points a 256-point preview
+      // of a real run holds. Rounding to three decimals (~111 m) collapsed runs
+      // like this onto one grid cell and drew them as a staircase.
+      final payload = LocalRunCompletionPayload(
+        clientRunSessionId: 'local-session-route-preview-precision',
+        startedAt: startedAt,
+        completedAt: startedAt.add(const Duration(seconds: 30)),
+        durationSeconds: 30,
+        distanceMeters: 100,
+        avgPaceSecondsPerKm: 300,
+        source: 'local_simulation',
+        routePrivacy: 'private',
+        routeSnapshot: RunRouteSnapshot(
+          segments: [
+            [
+              for (var index = 0; index < 30; index += 1)
+                RunLocationSample(
+                  recordedAt: startedAt.add(Duration(seconds: index)),
+                  latitude: 1.30060 + index * 0.00003,
+                  longitude: 103.80060 + index * 0.00003,
+                ),
+            ],
+          ],
+        ),
+      );
+
+      final request = RunCompletionRequestAdapter.toBackendRequest(payload);
+      final preview = request['routePreview']! as Map<String, Object?>;
+      final points =
+          ((preview['segments']! as List<Object?>).single
+                  as Map<String, Object?>)['points']!
+              as List<Object?>;
+      final latitudes = [
+        for (final rawPoint in points)
+          (rawPoint! as Map<String, Object?>)['latitude']! as double,
+      ];
+
+      expect(latitudes, hasLength(30));
+      expect(latitudes.toSet(), hasLength(30));
+      expect(latitudes.first, closeTo(1.3006, 0.0000001));
+      expect(latitudes.last, closeTo(1.30147, 0.0000001));
+      for (final latitude in latitudes) {
+        expect((latitude * 100000).round() / 100000, latitude);
       }
     });
 
@@ -641,10 +689,22 @@ void main() {
 
       expect(firstPoints, hasLength(254));
       expect(secondPoints, hasLength(2));
-      expect((firstPoints.first! as Map<String, Object?>)['latitude'], 1.3);
-      expect((firstPoints.last! as Map<String, Object?>)['latitude'], 1.554);
-      expect((secondPoints.first! as Map<String, Object?>)['latitude'], 2);
-      expect((secondPoints.last! as Map<String, Object?>)['latitude'], 2.001);
+      expect(
+        (firstPoints.first! as Map<String, Object?>)['latitude'],
+        closeTo(1.3001, 0.0000001),
+      );
+      expect(
+        (firstPoints.last! as Map<String, Object?>)['latitude'],
+        closeTo(1.5541, 0.0000001),
+      );
+      expect(
+        (secondPoints.first! as Map<String, Object?>)['latitude'],
+        closeTo(2.0001, 0.0000001),
+      );
+      expect(
+        (secondPoints.last! as Map<String, Object?>)['latitude'],
+        closeTo(2.0011, 0.0000001),
+      );
     });
 
     test('serializes bounded pace and elevation analysis series', () {
