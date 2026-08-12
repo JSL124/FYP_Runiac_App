@@ -6,7 +6,6 @@ import '../../../core/widgets/runiac_buttons.dart';
 import 'widgets/shared_route_detail_actions.dart';
 import 'widgets/shared_route_detail_painters.dart';
 import 'widgets/shared_route_detail_sections.dart';
-import 'widgets/shared_route_report_sheet.dart';
 
 class SharedRouteDetailSnapshot {
   const SharedRouteDetailSnapshot({
@@ -189,25 +188,6 @@ class _SharedRouteDetailScreenState extends State<SharedRouteDetailScreen> {
     );
   }
 
-  void _showReportSheet() {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      backgroundColor: RuniacColors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (context) {
-        return SharedRouteReportSheet(
-          routeTitle: widget.route.title,
-          routeMeta: widget.route.meta,
-          onClose: () => Navigator.of(context).pop(),
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -220,36 +200,20 @@ class _SharedRouteDetailScreenState extends State<SharedRouteDetailScreen> {
                 RuniacBackHeader(
                   title: 'Route',
                   height: 64,
-                  trailingWidth: 96,
                   titleStyle: const TextStyle(
                     color: RuniacColors.textPrimary,
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
                   ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Semantics(
-                        label: 'Report route',
-                        button: true,
-                        child: IconButton(
-                          tooltip: 'Report route',
-                          onPressed: _showReportSheet,
-                          icon: const Icon(Icons.flag_outlined),
-                          color: RuniacColors.primaryBlue,
-                        ),
-                      ),
-                      Semantics(
-                        label: 'Share route',
-                        button: true,
-                        child: IconButton(
-                          tooltip: 'Share route',
-                          onPressed: _showSharePreviewSheet,
-                          icon: const Icon(Icons.share_outlined),
-                          color: RuniacColors.primaryBlue,
-                        ),
-                      ),
-                    ],
+                  trailing: Semantics(
+                    label: 'Share route',
+                    button: true,
+                    child: IconButton(
+                      tooltip: 'Share route',
+                      onPressed: _showSharePreviewSheet,
+                      icon: const Icon(Icons.share_outlined),
+                      color: RuniacColors.primaryBlue,
+                    ),
                   ),
                 ),
                 Expanded(
