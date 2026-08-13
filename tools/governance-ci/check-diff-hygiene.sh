@@ -1508,6 +1508,26 @@ is_final_report_authoring_path() {
   esac
 }
 
+is_presentation_scripts_capsule_active() {
+  grep -Eq '^- Newly routed presentation scripts on 2026-08-13 Asia/Singapore: `implementation/roadmap/capsules/presentation-scripts\.md`' implementation/roadmap/CURRENT.md
+}
+
+# The CSCI321 video and demo script set. Same shape and same reason as the two
+# predicate pairs around it: one deliverable directory, one prefix. Kept
+# separate from is_final_report_authoring_path rather than folded into it
+# because that capsule's Allowed Scope names docs/final-report/ specifically.
+is_presentation_scripts_path() {
+  case "$1" in
+    implementation/roadmap/capsules/presentation-scripts.md|\
+    docs/presentation/*)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_user_manual_capsule_active() {
   grep -Eq '^- Newly routed user manual screenshots on 2026-08-04 Asia/Singapore: `implementation/roadmap/capsules/user-manual-screenshots\.md`' implementation/roadmap/CURRENT.md
 }
@@ -1530,6 +1550,10 @@ is_allowed_path() {
   fi
 
   if is_final_report_authoring_path "$1" && is_final_report_authoring_capsule_active; then
+    return 0
+  fi
+
+  if is_presentation_scripts_path "$1" && is_presentation_scripts_capsule_active; then
     return 0
   fi
 
