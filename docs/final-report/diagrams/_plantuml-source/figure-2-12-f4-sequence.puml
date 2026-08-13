@@ -1,0 +1,49 @@
+@startuml figure-2-12-f4-sequence
+' Figure 2.12 - F4 Remind the User of Running or Rest
+' Runiac Final Project Document (FYP-26-S2-38), Chapter 2
+hide footbox
+skinparam backgroundColor White
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam sequenceArrowColor #44546A
+skinparam sequenceArrowFontSize 11
+skinparam sequenceLifeLineBorderColor #8496B0
+skinparam sequenceParticipantBorderColor #2F4F6F
+skinparam sequenceParticipantBackgroundColor White
+skinparam sequenceParticipantFontSize 12
+skinparam sequenceActorBorderColor #2F4F6F
+skinparam sequenceActorBackgroundColor White
+skinparam sequenceActorFontSize 12
+skinparam sequenceGroupBorderColor #2F4F6F
+skinparam sequenceGroupBackgroundColor #FBFCFD
+skinparam sequenceGroupFontSize 11
+skinparam sequenceBoxBorderColor #2F4F6F
+
+actor "Registered User" as U
+participant ":Plan UI" as UI
+participant ":Device Notification\nScheduler" as DEV
+participant ":Notification\nCloud Function" as FN
+
+U -> UI : Save or edit plan
+activate UI
+UI -> DEV : scheduleLocalReminders(sessions)
+activate DEV
+DEV --> UI : reminders recorded in ledger
+deactivate DEV
+UI -> FN : registerDevice(messagingToken)
+activate FN
+FN --> UI : Successful
+FN -> FN : dispatchQueuedNotifications()\nevery ten minutes
+
+alt Notification permission granted
+  DEV --> U : Deliver plan reminder on device
+  FN --> U : Deliver push notification
+  U -> UI : Open notification
+  UI --> U : Display Related Screen
+else Notification permission refused
+  FN --> UI : record inbox item only
+  UI --> U : Display Notification Inbox
+end
+deactivate FN
+deactivate UI
+@enduml

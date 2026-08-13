@@ -1,0 +1,51 @@
+@startuml figure-2-9-f3-sequence
+' Figure 2.9 - F3 sequence diagram
+' Runiac Final Project Document (FYP-26-S2-38), Chapter 2
+hide footbox
+skinparam backgroundColor White
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam sequenceArrowColor #44546A
+skinparam sequenceArrowFontSize 11
+skinparam sequenceLifeLineBorderColor #8496B0
+skinparam sequenceParticipantBorderColor #2F4F6F
+skinparam sequenceParticipantBackgroundColor White
+skinparam sequenceParticipantFontSize 12
+skinparam sequenceActorBorderColor #2F4F6F
+skinparam sequenceActorBackgroundColor White
+skinparam sequenceActorFontSize 12
+skinparam sequenceGroupBorderColor #2F4F6F
+skinparam sequenceGroupBackgroundColor #FBFCFD
+skinparam sequenceGroupFontSize 11
+skinparam sequenceBoxBorderColor #2F4F6F
+
+
+
+actor "Registered User" as U
+participant ":Plan UI" as UI
+participant ":Plan\nCloud Function" as FN
+participant ":Cloud Firestore" as DB
+
+U -> UI : Submit the onboarding answers
+activate UI
+UI -> FN : generatePlan(answers)
+activate FN
+FN -> FN : resolve the safety band and\nthe starting runner level
+FN -> DB : write the weekly plan\nand its rest days
+activate DB
+DB --> FN : planId
+deactivate DB
+FN --> UI : plan preview
+UI --> U : Display the Weekly Plan
+
+alt Schedule edited
+  U -> UI : Adjust the session days and times
+  UI -> FN : updateSchedule(planId, changes)
+  FN -> DB : write the revised schedule
+  UI --> U : Display the Updated Plan
+else Plan left as generated
+  UI --> U : Keep the generated schedule
+end
+deactivate FN
+deactivate UI
+@enduml

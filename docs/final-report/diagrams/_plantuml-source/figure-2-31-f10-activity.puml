@@ -1,0 +1,41 @@
+@startuml figure-2-31-f10-activity
+' Figure 2.31 - F10 activity diagram
+' Runiac Final Project Document (FYP-26-S2-38), Chapter 2
+skinparam backgroundColor White
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam ArrowColor #44546A
+skinparam ArrowFontSize 11
+skinparam activity {
+  BackgroundColor White
+  BorderColor #2F4F6F
+  FontSize 12
+  DiamondBackgroundColor #FBFCFD
+  DiamondBorderColor #2F4F6F
+  DiamondFontSize 11
+  StartColor #2F4F6F
+  EndColor #2F4F6F
+  BarColor #2F4F6F
+}
+skinparam conditionStyle diamond
+
+
+start
+:Open activity feedback, a workout
+briefing or the home guide;
+:Assemble the context from verified
+activity and plan data;
+if (Entitled, within quota and no
+cached result?) then (yes)
+  :Call the language model with a prompt that
+  forbids medical and competitive references;
+  :Re-validate the response against
+  medical-term and length rules;
+  :Store and display
+  the generated guidance;
+else (no)
+  :Fall back to deterministic copy,
+  or return the cached result;
+endif
+stop
+@enduml

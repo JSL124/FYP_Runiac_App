@@ -1,0 +1,41 @@
+@startuml figure-2-7-f2-activity
+' Figure 2.7 - F2 activity diagram
+' Runiac Final Project Document (FYP-26-S2-38), Chapter 2
+skinparam backgroundColor White
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam ArrowColor #44546A
+skinparam ArrowFontSize 11
+skinparam activity {
+  BackgroundColor White
+  BorderColor #2F4F6F
+  FontSize 12
+  DiamondBackgroundColor #FBFCFD
+  DiamondBorderColor #2F4F6F
+  DiamondFontSize 11
+  StartColor #2F4F6F
+  EndColor #2F4F6F
+  BarColor #2F4F6F
+}
+skinparam conditionStyle diamond
+
+start
+:Complete a run, or open a stored one;
+:Read the generated summary — distance,
+duration, active duration and average pace;
+:Display the summary through
+beginner-oriented components;
+if (Advanced analysis requested?) then (yes)
+  if (Premium entitlement held?) then (yes)
+    :Load the cadence series
+    and split-level detail;
+    :Display advanced analysis;
+  else (no)
+    :Present the paywall;
+  endif
+else (no)
+  :Open activity history for earlier runs,
+  or the progress view for totals and trend;
+endif
+stop
+@enduml

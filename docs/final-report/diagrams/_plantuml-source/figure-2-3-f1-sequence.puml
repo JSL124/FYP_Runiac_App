@@ -1,0 +1,49 @@
+@startuml figure-2-3-f1-sequence
+' Figure 2.3 - F1 Collect Running-Related Activity Data
+' Runiac Final Project Document (FYP-26-S2-38), Chapter 2
+hide footbox
+skinparam backgroundColor White
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam sequenceArrowColor #44546A
+skinparam sequenceArrowFontSize 11
+skinparam sequenceLifeLineBorderColor #8496B0
+skinparam sequenceParticipantBorderColor #2F4F6F
+skinparam sequenceParticipantBackgroundColor White
+skinparam sequenceParticipantFontSize 12
+skinparam sequenceActorBorderColor #2F4F6F
+skinparam sequenceActorBackgroundColor White
+skinparam sequenceActorFontSize 12
+skinparam sequenceGroupBorderColor #2F4F6F
+skinparam sequenceGroupBackgroundColor #FBFCFD
+skinparam sequenceGroupFontSize 11
+skinparam sequenceBoxBorderColor #2F4F6F
+
+actor "Registered User" as U
+participant ":Run UI" as UI
+participant ":completeRun\nCloud Function" as FN
+participant ":Cloud Firestore" as DB
+
+U -> UI : Start Run
+activate UI
+UI -> UI : sample GPS and motion,\ndraw route live
+U -> UI : End Run and confirm
+UI -> FN : completeRun(activity)
+activate FN
+FN -> FN : validate distance, duration\nand payload fingerprint
+
+alt Validation succeeds
+  FN -> DB : write activity, summary, experience\naward and leaderboard contribution
+  activate DB
+  DB --> FN : Successful
+  deactivate DB
+  FN --> UI : summary and experience award
+  UI --> U : Display Run Summary
+else Validation fails
+  FN -> DB : write activity with failed status
+  FN --> UI : Unsuccessful, no award
+  UI --> U : Display Saved Without Award
+end
+deactivate FN
+deactivate UI
+@enduml

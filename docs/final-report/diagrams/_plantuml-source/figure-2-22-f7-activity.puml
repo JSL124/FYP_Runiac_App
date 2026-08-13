@@ -1,0 +1,39 @@
+@startuml figure-2-22-f7-activity
+' Figure 2.22 - F7 activity diagram
+' Runiac Final Project Document (FYP-26-S2-38), Chapter 2
+skinparam backgroundColor White
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam ArrowColor #44546A
+skinparam ArrowFontSize 11
+skinparam activity {
+  BackgroundColor White
+  BorderColor #2F4F6F
+  FontSize 12
+  DiamondBackgroundColor #FBFCFD
+  DiamondBorderColor #2F4F6F
+  DiamondFontSize 11
+  StartColor #2F4F6F
+  EndColor #2F4F6F
+  BarColor #2F4F6F
+}
+skinparam conditionStyle diamond
+
+
+start
+:Open a completed run
+from activity history;
+if (Run validated and carrying a route?) then (yes)
+  :Quantise the route coordinates and
+  render the preview image;
+  :Write the feed post;
+  :The post appears in other runners'
+  timelines with its route preview;
+  :Another runner opens the post and sees
+  the route, distance and pace;
+else (no)
+  :Show the publish action as
+  unavailable for this run;
+endif
+stop
+@enduml

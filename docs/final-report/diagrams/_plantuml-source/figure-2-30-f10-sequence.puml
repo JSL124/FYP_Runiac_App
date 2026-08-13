@@ -1,0 +1,47 @@
+@startuml figure-2-30-f10-sequence
+' Figure 2.30 - F10 AI-Assisted Post-Run Summary
+' Runiac Final Project Document (FYP-26-S2-38), Chapter 2
+hide footbox
+skinparam backgroundColor White
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam sequenceArrowColor #44546A
+skinparam sequenceArrowFontSize 11
+skinparam sequenceLifeLineBorderColor #8496B0
+skinparam sequenceParticipantBorderColor #2F4F6F
+skinparam sequenceParticipantBackgroundColor White
+skinparam sequenceParticipantFontSize 12
+skinparam sequenceActorBorderColor #2F4F6F
+skinparam sequenceActorBackgroundColor White
+skinparam sequenceActorFontSize 12
+skinparam sequenceGroupBorderColor #2F4F6F
+skinparam sequenceGroupBackgroundColor #FBFCFD
+skinparam sequenceGroupFontSize 11
+skinparam sequenceBoxBorderColor #2F4F6F
+
+actor "Registered User" as U
+participant ":Activity Feedback UI" as UI
+participant ":AI Orchestration\nCloud Function" as FN
+participant ":Language Model\nProvider" as LLM
+
+U -> UI : Open activity feedback
+activate UI
+UI -> FN : generateActivityFeedback(activityId)
+activate FN
+FN -> FN : assemble verified context, check\nentitlement, daily quota and cache
+
+alt Entitled, within quota and provider available
+  FN -> LLM : constrained prompt
+  activate LLM
+  LLM --> FN : generated text
+  deactivate LLM
+  FN -> FN : re-validate against medical-term\nand length rules
+  FN --> UI : accepted guidance
+  UI --> U : Display AI Reflection
+else Basic tier, quota exhausted or text rejected
+  FN --> UI : deterministic template copy
+  UI --> U : Display Standard Reflection
+end
+deactivate FN
+deactivate UI
+@enduml

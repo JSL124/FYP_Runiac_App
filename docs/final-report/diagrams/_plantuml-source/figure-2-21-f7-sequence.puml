@@ -1,0 +1,49 @@
+@startuml figure-2-21-f7-sequence
+' Figure 2.21 - F7 Community-Driven Route Sharing
+' Runiac Final Project Document (FYP-26-S2-38), Chapter 2
+hide footbox
+skinparam backgroundColor White
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam sequenceArrowColor #44546A
+skinparam sequenceArrowFontSize 11
+skinparam sequenceLifeLineBorderColor #8496B0
+skinparam sequenceParticipantBorderColor #2F4F6F
+skinparam sequenceParticipantBackgroundColor White
+skinparam sequenceParticipantFontSize 12
+skinparam sequenceActorBorderColor #2F4F6F
+skinparam sequenceActorBackgroundColor White
+skinparam sequenceActorFontSize 12
+skinparam sequenceGroupBorderColor #2F4F6F
+skinparam sequenceGroupBackgroundColor #FBFCFD
+skinparam sequenceGroupFontSize 11
+skinparam sequenceBoxBorderColor #2F4F6F
+
+actor "Registered User" as U
+participant ":Activity Feed UI" as UI
+participant ":publishActivityToFeed\nCloud Function" as FN
+participant ":Cloud Firestore" as DB
+
+U -> UI : Publish a completed run,\nincluding its route
+activate UI
+UI -> FN : publishActivityToFeed(activityId)
+activate FN
+FN -> FN : check entitlement, quantise the route\nand render the preview image
+
+alt Activity is validated and carries a route
+  FN -> DB : write the feed post and\nthe route preview
+  activate DB
+  DB --> FN : postId
+  deactivate DB
+  FN --> UI : Successful
+  UI --> U : Display the post in the timeline
+  U -> UI : Open a run shared by another runner
+  UI -> DB : read the post and its route preview
+  UI --> U : Display the route and its metrics
+else Activity carries insufficient data
+  FN --> UI : Unsuccessful
+  UI --> U : Display the publish action as unavailable
+end
+deactivate FN
+deactivate UI
+@enduml

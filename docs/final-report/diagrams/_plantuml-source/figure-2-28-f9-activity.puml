@@ -1,0 +1,46 @@
+@startuml figure-2-28-f9-activity
+' Figure 2.28 - F9 activity diagram
+' Runiac Final Project Document (FYP-26-S2-38), Chapter 2
+skinparam backgroundColor White
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam ArrowColor #44546A
+skinparam ArrowFontSize 11
+skinparam activity {
+  BackgroundColor White
+  BorderColor #2F4F6F
+  FontSize 12
+  DiamondBackgroundColor #FBFCFD
+  DiamondBorderColor #2F4F6F
+  DiamondFontSize 11
+  StartColor #2F4F6F
+  EndColor #2F4F6F
+  BarColor #2F4F6F
+}
+skinparam conditionStyle diamond
+
+
+start
+:An activity passes validation;
+if (Saved with the low-data option?) then (yes)
+  :Record the activity and
+  award no experience;
+  stop
+else (no)
+endif
+:Compute the award from the base, the distance,
+the active time and the plan bonus;
+:Cap the award at 100 for the activity,
+then limit the day's total to 200;
+:Add the cool-down bonus and any streak
+milestone, which is exempt from both caps;
+:Update total experience, recompute
+the level and the league division;
+:Write the progression audit entry;
+if (Level increased?) then (yes)
+  :Display the level-up screen;
+else (no)
+  :Display the experience award;
+endif
+stop
+@enduml

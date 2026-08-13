@@ -1,0 +1,101 @@
+@startuml figure-g-2-leaderboard-aggregation
+' Figure G.2 — Leaderboard aggregation data flow
+' Annex G Section G.9, Runiac Final Project Document (FYP-26-S2-38)
+
+skinparam backgroundColor White
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam ArrowColor #44546A
+skinparam ArrowFontSize 11
+skinparam rectangle {
+  BackgroundColor White
+  BorderColor #2F4F6F
+  FontSize 12
+}
+skinparam package {
+  BackgroundColor #FBFCFD
+  BorderColor #2F4F6F
+  FontStyle bold
+  FontSize 12
+}
+skinparam database {
+  BackgroundColor #EAF1F8
+  BorderColor #2F4F6F
+  FontSize 12
+}
+skinparam note {
+  BackgroundColor #FFF8E5
+  BorderColor #B08D2E
+  FontSize 10
+}
+
+package "1  Write path — inside the run-completion transaction" as P1 {
+  rectangle "Validated <b>Activity</b>" as ACT
+  rectangle "<b>ProgressionEvent</b>\nxpDelta · dailyCapDate · monthlyPeriod" as PE
+  database "<b>leaderboardContributions</b>\n{uid}_monthly_{YYYY-MM}\n\nscoreXp  <i>atomic increment</i>\nsourceProgressionEventIds  <i>array union</i>\nregionId  <i>sticky for the period</i>\nqualifyingRunCount  <i>absolute recompute</i>" as CONTRIB
+}
+
+package "2  Aggregation — scheduled every 60 minutes, Asia/Singapore" as P2 {
+  rectangle "<b>refreshMonthlyLeaderboardSnapshots</b>" as JOB
+  database "<b>leaderboardAggregationLocks</b>\nmonthly_{YYYY-MM}\n\nstatus · buildId · leaseExpiresAt\n<i>15-minute lease</i>" as LOCK
+  rectangle "Read every contribution for the period\nDeduplicate to one per runner\n(greatest lastProgressionAt wins)" as READ
+  rectangle "Group by <b>regionId + divisionKey</b>\n37 planning areas × 10 leagues\n→ up to 370 boards" as GROUP
+  rectangle "Sort each group\n<b>scoreXp descending</b>,\ntie broken by <b>ownerUid ascending</b>" as SORT
+  rectangle "Render each entry\nalias · rank · score · level · division\nregion · avatar · progress\n<i>no owner uid is carried</i>" as RENDER
+}
+
+package "3  Projections — what the client actually reads" as P3 {
+  database "<b>leaderboardSnapshots</b>\nmonthly_{regionId}_{divisionKey}_{YYYY-MM}\ntop 10 entries · entryCount" as SNAP
+  database "<b>leaderboardUserRanks</b>\n{uid}_monthly_{YYYY-MM}\nown entry · 5-row neighbour window" as RANK
+  database "<b>leaderboardCurrentViews</b>\n{uid}\nsnapshotId · rankId · status" as VIEW
+  database "<b>leaderboardPeriods</b>\nmonthly_current\nperiodKey · refreshesAt" as PERIOD
+}
+
+actor "Registered\nUser" as U
+rectangle "Platform Administrator\nconsole" as ADMIN
+
+ACT --> PE : awards
+PE --> CONTRIB : contributes\nscoreXp
+
+CONTRIB --> JOB : source data
+JOB --> LOCK : claim lease
+LOCK --> READ : <b>claimed</b>
+JOB -[#B03030,dashed]-> JOB : <b>skipped_locked</b>\nif a lease is held\nand unexpired
+READ --> GROUP
+GROUP --> SORT
+SORT --> RENDER
+RENDER --> SNAP
+RENDER --> RANK
+RENDER --> VIEW
+JOB --> PERIOD : period descriptor
+
+VIEW --> U : opened first —\ntells the client which\nsnapshot and rank to read
+SNAP --> U
+RANK --> U
+
+ADMIN ..> JOB : leaderboardAdminCommands\n<i>manual refresh</i>
+
+note bottom of LOCK
+  A crashed run self-heals: the lease is refused
+  only while it is both running and unexpired.
+end note
+
+note bottom of VIEW
+  status explains an empty board rather than
+  showing nothing — ranked · unranked ·
+  region_required · ineligible_premium ·
+  ineligible_min_runs
+end note
+
+note right of ADMIN
+  The trigger derives the current period itself and
+  rejects the command if the stated period disagrees,
+  so the console cannot choose which month it rebuilds.
+end note
+
+note bottom of PERIOD
+  Three periods are retained — the current month and the
+  two before it. Everything older is deleted by the same job.
+end note
+
+@enduml

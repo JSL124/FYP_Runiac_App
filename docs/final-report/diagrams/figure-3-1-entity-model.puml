@@ -1,0 +1,234 @@
+@startuml figure-3-1-entity-model
+' Figure 3.1 — Entity-relationship model of the Runiac database
+' Chapter 3, Runiac Final Project Document (FYP-26-S2-38)
+'
+' Each box is one Firestore collection. <<PK>> marks the document key,
+' <<FK>> a reference field maintained by application code (Firestore has
+' no foreign-key constraint). Fields shown are the identifying and
+' relating ones; the complete field list for each entity is in the
+' tables of Chapter 3 Section 3.3.
+
+skinparam backgroundColor White
+skinparam shadowing false
+skinparam linetype ortho
+skinparam nodesep 32
+skinparam ranksep 46
+skinparam defaultFontName "Segoe UI"
+skinparam class {
+  BackgroundColor White
+  BorderColor #2F4F6F
+  BorderThickness 1
+  ArrowColor #44546A
+  FontSize 12
+  FontStyle bold
+  AttributeFontSize 10
+  StereotypeFontColor #7F7F7F
+  StereotypeFontSize 9
+}
+hide circle
+hide empty members
+
+class User <<users>> {
+  uid <<PK>>
+  subscriptionStatus
+  subscriptionExpiresAt
+  userRole
+  accountStatus
+}
+
+class UserProfile <<userProfiles>> {
+  uid <<PK>> <<FK>>
+  nickname
+  nicknameIndexKey <<FK>>
+  locationLabel
+  totalXp
+  level
+  divisionKey
+  monthlyXp
+  streakCount
+  longestStreak
+  totalDistanceMeters
+}
+
+class NicknameClaim <<nicknameClaims>> {
+  nicknameIndexKey <<PK>>
+  ownerUid <<FK>>
+  nicknameCanonical
+}
+
+class Activity <<activities>> {
+  activityId <<PK>>
+  ownerUid <<FK>>
+  clientRunSessionId
+  startedAt
+  endedAt
+  distanceMeters
+  durationSeconds
+  validationStatus
+  countsTowardProgression
+}
+
+class RunSummary <<runSummaries>> {
+  summaryId <<PK>>
+  activityId <<FK>>
+  ownerUid <<FK>>
+  displayDistance
+  paceAnalysisSeries
+  elevationSeries
+  routePreview
+}
+
+class ProgressionEvent <<progressionEvents>> {
+  eventId <<PK>>
+  ownerUid <<FK>>
+  activityId <<FK>>
+  eventType
+  xpDelta
+  dailyCapDate
+  monthlyPeriod
+  streakBonusXp
+  reason
+}
+
+class GeneratedPlan <<generatedPlans>> {
+  uid <<PK>> <<FK>>
+  planId
+  startsOnDate
+  durationWeeks
+  weeks
+}
+
+class PlanProgress <<planProgress>> {
+  uid <<PK>> <<FK>>
+  latestSourceGeneratedPlanId <<FK>>
+  planSnapshots
+  workouts
+  completedWorkoutCount
+}
+
+class LeaderboardContribution <<leaderboardContributions>> {
+  uid_monthly_period <<PK>>
+  ownerUid <<FK>>
+  scoreXp
+  regionId
+  divisionKey
+  periodKey
+  sourceProgressionEventIds <<FK>>
+  qualifyingRunCount
+}
+
+class LeaderboardSnapshot <<leaderboardSnapshots>> {
+  region_division_period <<PK>>
+  regionId
+  divisionKey
+  periodKey
+  entryCount
+  topEntries
+}
+
+class LeaderboardUserRank <<leaderboardUserRanks>> {
+  uid_monthly_period <<PK>>
+  ownerUid <<FK>>
+  snapshotId <<FK>>
+  rankLabel
+  currentEntry
+  nearbyEntries
+}
+
+class LeaderboardCurrentView <<leaderboardCurrentViews>> {
+  uid <<PK>> <<FK>>
+  snapshotId <<FK>>
+  rankId <<FK>>
+  status
+}
+
+class ChallengeInstance <<challengeInstances>> {
+  challengeId <<PK>>
+  ownerUid <<FK>>
+  tierId
+  status
+  rules
+  rosterUids
+  teamMeters
+  scheduledEndsAt
+}
+
+class ChallengeParticipant <<participants>> {
+  uid <<PK>> <<FK>>
+  role
+  status
+  creditedMeters
+  reward
+}
+
+class FeedPost <<feedPosts>> {
+  postId <<PK>> <<FK>>
+  authorUid <<FK>>
+  activityId <<FK>>
+  status
+  likeCount
+  commentCount
+}
+
+class FeedLike <<likes>> {
+  uid <<PK>> <<FK>>
+  createdAt
+}
+
+class FeedComment <<comments>> {
+  commentId <<PK>>
+  authorUid <<FK>>
+  body
+}
+
+class Friend <<friends>> {
+  friendUid <<PK>> <<FK>>
+  listSortKey
+  listSortTieBreaker
+}
+
+class NotificationPreference <<notificationPreferences>> {
+  uid <<PK>> <<FK>>
+  runReminderEnabled
+  streakRiskEnabled
+  socialActivityEnabled
+}
+
+' ---------- identity ----------
+User "1" -- "1" UserProfile : shares key >
+UserProfile "1" -- "1" NicknameClaim : claims >
+User "1" -- "*" Friend : mirrored\nboth ways >
+User "1" -- "0..1" NotificationPreference : sets >
+
+' ---------- activity ----------
+User "1" -- "*" Activity : records >
+Activity "1" -- "1" RunSummary : summarised by >
+Activity "1" -- "0..2" ProgressionEvent : awards >
+
+' ---------- plan ----------
+User "1" -- "0..1" GeneratedPlan : follows >
+User "1" -- "0..1" PlanProgress : progresses >
+GeneratedPlan "1" -- "*" PlanProgress : completed\nworkouts >
+
+' ---------- leaderboard ----------
+ProgressionEvent "*" -- "1" LeaderboardContribution : contributes to >
+LeaderboardContribution "*" -- "1" LeaderboardSnapshot : ranked into >
+LeaderboardSnapshot "1" -- "*" LeaderboardUserRank : projects >
+LeaderboardUserRank "1" -- "1" LeaderboardCurrentView : pointed to by <
+
+' ---------- challenge ----------
+ChallengeInstance "1" *-- "2..8" ChallengeParticipant : roster >
+User "1" -- "0..1" ChallengeParticipant : joins as >
+Activity "*" -- "1" ChallengeParticipant : credits >
+
+' ---------- feed ----------
+Activity "1" -- "0..1" FeedPost : published as >
+FeedPost "1" *-- "*" FeedLike
+FeedPost "1" *-- "*" FeedComment
+
+legend bottom
+  <b>PK</b>  document key      <b>FK</b>  reference field, not an engine-enforced constraint
+  Composite keys are shown by their format; the derivation is given in Annex G Section G.14.
+end legend
+
+@enduml

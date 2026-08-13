@@ -1,0 +1,49 @@
+@startuml figure-2-15-f5-sequence
+' Figure 2.15 - F5 Social Connection, Sharing and Competition
+' Runiac Final Project Document (FYP-26-S2-38), Chapter 2
+hide footbox
+skinparam backgroundColor White
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam sequenceArrowColor #44546A
+skinparam sequenceArrowFontSize 11
+skinparam sequenceLifeLineBorderColor #8496B0
+skinparam sequenceParticipantBorderColor #2F4F6F
+skinparam sequenceParticipantBackgroundColor White
+skinparam sequenceParticipantFontSize 12
+skinparam sequenceActorBorderColor #2F4F6F
+skinparam sequenceActorBackgroundColor White
+skinparam sequenceActorFontSize 12
+skinparam sequenceGroupBorderColor #2F4F6F
+skinparam sequenceGroupBackgroundColor #FBFCFD
+skinparam sequenceGroupFontSize 11
+skinparam sequenceBoxBorderColor #2F4F6F
+
+actor "Registered User" as U
+participant ":Feed UI" as UI
+participant ":Social\nCloud Function" as FN
+participant ":Cloud Firestore" as DB
+
+U -> UI : Publish completed activity to feed
+activate UI
+UI -> FN : publishActivityPost(activityId, includeRoute)
+activate FN
+FN -> FN : checkEntitlement and\ngenerate thumbnail
+
+alt Publication permitted
+  FN -> DB : write feed post
+  activate DB
+  DB --> FN : postId
+  deactivate DB
+  FN --> UI : Successful
+  UI --> U : Display Post in Timeline
+  U -> UI : Like or comment on a post
+  UI -> FN : reactToPost(postId)
+  FN -> DB : write engagement and\nqueue author notification
+else Route sharing without Premium
+  FN --> UI : premium-required
+  UI --> U : Display Paywall
+end
+deactivate FN
+deactivate UI
+@enduml

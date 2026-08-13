@@ -1,0 +1,44 @@
+@startuml figure-2-4-f1-activity
+' Figure 2.4 - F1 activity diagram
+' Runiac Final Project Document (FYP-26-S2-38), Chapter 2
+skinparam backgroundColor White
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam ArrowColor #44546A
+skinparam ArrowFontSize 11
+skinparam activity {
+  BackgroundColor White
+  BorderColor #2F4F6F
+  FontSize 12
+  DiamondBackgroundColor #FBFCFD
+  DiamondBorderColor #2F4F6F
+  DiamondFontSize 11
+  StartColor #2F4F6F
+  EndColor #2F4F6F
+  BarColor #2F4F6F
+}
+skinparam conditionStyle diamond
+
+
+start
+:Open the run screen and
+confirm the pre-run setup;
+if (Location permission granted?) then (yes)
+  :Track distance, pace, active time and
+  paused time, drawing the route live;
+  :End the run and confirm the activity;
+  :Submit to the completeRun
+  callable function;
+  if (Server-side validation passes?) then (yes)
+    :Write the activity, its summary, the experience
+    award and the leaderboard contribution;
+    :Display the run summary;
+  else (no)
+    :Record the activity with a failed status
+    and award no experience;
+  endif
+else (no)
+  :Explain the permission the run requires;
+endif
+stop
+@enduml

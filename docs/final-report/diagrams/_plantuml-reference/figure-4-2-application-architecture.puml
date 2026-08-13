@@ -1,0 +1,114 @@
+@startuml figure-4-2-application-architecture
+' Figure 4.2 — Application architecture
+' Chapter 4 Section 4.3, Runiac Final Project Document (FYP-26-S2-38)
+' Revision of Project Design Document Section 2.2.
+
+skinparam backgroundColor White
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam ArrowColor #44546A
+skinparam ArrowFontSize 10
+skinparam nodesep 18
+skinparam ranksep 34
+skinparam rectangle {
+  BackgroundColor White
+  BorderColor #2F4F6F
+  FontSize 11
+}
+skinparam package {
+  BackgroundColor #FBFCFD
+  BorderColor #2F4F6F
+  FontStyle bold
+  FontSize 12
+}
+skinparam database {
+  BackgroundColor #EAF1F8
+  BorderColor #2F4F6F
+  FontSize 11
+}
+
+package "1  Presentation layer  —  Flutter, 19 feature modules" as L1 {
+  rectangle "auth · onboarding\nsplash · tutorial" as F1
+  rectangle "home · run\nplan · you" as F2
+  rectangle "feed · friends\nchallenge · moderation" as F3
+  rectangle "leaderboard\nprofile · paywall" as F4
+  rectangle "maps · settings\nnotifications · shell" as F5
+}
+
+package "2  Client application layer" as L2 {
+  rectangle "<b>State scopes</b>\n19 ChangeNotifier stores behind\n10 InheritedNotifier scopes;\ncomposition root in runiac_shell.dart\n<i>no state-management package</i>" as STORES
+  rectangle "<b>Repository interfaces</b> (domain/)\nFirebase implementation · static implementation\n<i>the seam that makes offline and demo builds possible</i>" as REPOS
+  rectangle "<b>Platform channel adapters</b>\ntracking service · Live Activity · cadence\nhaptics · permissions · reminders\nHealthKit · Instagram share" as CHANNELS
+}
+
+package "3  Backend interface layer" as L3 {
+  rectangle "<b>43 HTTPS callables</b>\nrun · progression · plan\nchallenge · friends · feed\nprofile · notifications\nagents · account" as CALLABLE
+  rectangle "<b>Direct Firestore access</b>\nreads gated by security rules;\n10 client-writable paths\nreal-time listeners" as DIRECT
+  rectangle "<b>Cloud Storage staging</b>\navatar · feed thumbnail\nshare card" as UPLOAD
+}
+
+package "4  Backend logic layer  —  17 domain modules, region asia-southeast1" as L4 {
+  rectangle "<b>run</b>\npayload validation\nidempotent transaction\ncool-down award" as M_RUN
+  rectangle "<b>progression</b>\nXP formula · caps\nstreak · level · league\naudit ledger" as M_PROG
+  rectangle "<b>leaderboard</b>\nmonthly aggregation\nlease · projection\nregion resolution" as M_LB
+  rectangle "<b>challenge</b>\nstate machine · roster\ncontribution · settlement\npremium lapse" as M_CH
+  rectangle "<b>plan</b>\nworkout matching\nprogress snapshots\nadaptive estimate" as M_PLAN
+  rectangle "<b>feed</b>\npublish · engagement\nlifecycle · thumbnail" as M_FEED
+  rectangle "<b>friends</b>\nnickname claim\nrequests · blocks\nrate limits" as M_FR
+  rectangle "<b>profile</b>\navatar promotion\npublic projection" as M_PROF
+  rectangle "<b>notifications</b>\ndevice registry\ndispatch planning\ninbox" as M_NOTI
+  rectangle "<b>agent</b>\nhome guide · activity\nfeedback · workout briefing\nconsent · quota · validation" as M_AG
+  rectangle "<b>moderation</b>\nreport automation\ncommands · escalation" as M_MOD
+  rectangle "<b>account</b>\ndeletion fan-out\n38 erase steps" as M_ACC
+  rectangle "<b>config</b>\ndeep-merge over\ncompiled defaults\nentitlement check" as M_CFG
+  rectangle "<b>security</b>\naccount status\nroles · App Check" as M_SEC
+  rectangle "<b>errors</b>\nsanitise · group\nrate limit" as M_ERR
+  rectangle "<b>newsletter</b>\nsubscribe · confirm\ncampaign send" as M_NL
+  rectangle "<b>feedback</b>\nin-app submission\nrate limit" as M_FB
+}
+
+package "5  Automation" as L5 {
+  rectangle "<b>6 scheduled functions</b> — 4 switchable\nchallenge settlement — every 1 min\npush dispatch — every 10 min\nleaderboard refresh — every 60 min\nsubscription expiry · newsletter sweep — daily 03:00\nstale-report escalation — daily 09:00" as SCHEDULED
+  rectangle "<b>13 document triggers</b>\nfeed likes and comments (5)\n3 command documents · report automation\nnewsletter campaign · error group\nsubscription change · feed cleanup" as TRIGGERS
+}
+
+package "6  Data layer" as L6 {
+  database "<b>Cloud Firestore</b>\n57 document paths" as FS
+  database "<b>Cloud Storage</b>\n6 prefixes" as CS
+  rectangle "<b>Firebase Auth</b>\nidentity" as AUTH
+  rectangle "<b>Cloud Messaging</b>\ndelivery" as FCM
+}
+
+package "7  Administration  —  Next.js web tier" as L7 {
+  rectangle "<b>13 console sections</b>\noverview · exceptions · users · gamification\nleaderboard · paywall · content · documents\nfeedback · errors · newsletter · policies · audit" as CONSOLE
+  rectangle "<b>Command pattern</b>\nthe console writes a request document;\na trigger performs the privileged action\nand writes the outcome back" as CMD
+}
+
+rectangle "<b>OpenAI API</b>\ngpt-4o-mini" as OPENAI
+
+L1 --> STORES
+STORES --> REPOS
+L1 --> CHANNELS
+REPOS --> CALLABLE
+REPOS --> DIRECT
+REPOS --> UPLOAD
+
+CALLABLE --> L4
+DIRECT --> FS : rules enforced\nin the engine
+UPLOAD --> CS
+
+L4 --> FS : Admin SDK
+L4 --> CS
+L4 --> AUTH
+L4 --> FCM
+M_AG --> OPENAI
+
+SCHEDULED --> L4
+FS --> TRIGGERS
+TRIGGERS --> L4
+
+CONSOLE --> CMD
+CMD --> FS : Admin SDK
+FS --> TRIGGERS : command documents
+
+@enduml

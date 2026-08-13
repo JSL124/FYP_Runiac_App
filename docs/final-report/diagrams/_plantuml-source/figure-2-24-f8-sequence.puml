@@ -1,0 +1,46 @@
+@startuml figure-2-24-f8-sequence
+' Figure 2.24 - F8 sequence diagram
+' Runiac Final Project Document (FYP-26-S2-38), Chapter 2
+hide footbox
+skinparam backgroundColor White
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam sequenceArrowColor #44546A
+skinparam sequenceArrowFontSize 11
+skinparam sequenceLifeLineBorderColor #8496B0
+skinparam sequenceParticipantBorderColor #2F4F6F
+skinparam sequenceParticipantBackgroundColor White
+skinparam sequenceParticipantFontSize 12
+skinparam sequenceActorBorderColor #2F4F6F
+skinparam sequenceActorBackgroundColor White
+skinparam sequenceActorFontSize 12
+skinparam sequenceGroupBorderColor #2F4F6F
+skinparam sequenceGroupBackgroundColor #FBFCFD
+skinparam sequenceGroupFontSize 11
+skinparam sequenceBoxBorderColor #2F4F6F
+
+
+
+actor "Registered User" as U
+participant ":Leaderboard UI" as UI
+participant ":Aggregation\nCloud Function" as FN
+participant ":Cloud Firestore" as DB
+
+FN -> DB : read the contributions
+activate FN
+activate DB
+DB --> FN : contributions for the period
+deactivate DB
+FN -> FN : group by region and division,\nfilter and order by score
+FN -> DB : publish the ranking snapshot\nand the per-user rank
+deactivate FN
+U -> UI : Open the leaderboard
+activate UI
+
+alt Minimum qualifying runs met
+  UI --> U : Display the ranking, own position\nand neighbouring runners
+else Below the minimum
+  UI --> U : Display the board with a pending status
+end
+deactivate UI
+@enduml

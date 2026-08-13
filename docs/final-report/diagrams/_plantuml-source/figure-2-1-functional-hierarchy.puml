@@ -1,0 +1,67 @@
+@startwbs figure-2-1-functional-hierarchy
+' Figure 2.1 - Functional hierarchy of the delivered system
+' Runiac Final Project Document (FYP-26-S2-38), Chapter 2
+skinparam backgroundColor White
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam ArrowColor #44546A
+skinparam wbsDiagram {
+  BackgroundColor White
+  BorderColor #2F4F6F
+  FontSize 12
+}
+<style>
+wbsDiagram {
+  node {
+    BackgroundColor White
+    LineColor #2F4F6F
+    RoundCorner 6
+    Padding 6
+  }
+  arrow { LineColor #44546A }
+  :depth(0) { BackgroundColor #2F4F6F; FontColor White; FontStyle bold }
+  :depth(1) { BackgroundColor #DCE6F1; FontStyle bold }
+}
+</style>
+
+* Runiac
+** Unregistered User
+*** Browse the public website
+*** Subscribe to the newsletter
+*** Download the application
+*** Register an account
+*** Log in and reset password
+** Registered User
+*** Account management
+*** Onboarding
+*** Run tracking
+*** Activity management
+*** Training plan
+*** Leaderboard
+*** Social feed and friends
+*** Distance challenges
+*** Progression
+*** Notifications
+*** Reporting and feedback
+** Registered User (Premium)
+*** Advanced run analysis
+*** AI activity feedback
+*** AI workout briefing
+*** Premium challenge tiers
+*** Premium characters and share cards
+*** Subscription management
+** Platform Administrator
+*** Overview and system health
+*** Exception queue and moderation
+*** Users, roles and subscriptions
+*** Progression configuration
+*** Leaderboard oversight
+*** Paywall configuration
+*** Website content
+*** Project documents
+*** Feedback triage
+*** Newsletter
+*** Application error triage
+*** Feature and automation policy
+*** Governance audit log
+@endwbs

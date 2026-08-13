@@ -1,0 +1,109 @@
+@startuml figure-4-1-physical-architecture
+' Figure 4.1 — Physical architecture
+' Chapter 4 Section 4.2, Runiac Final Project Document (FYP-26-S2-38)
+' Revision of Project Design Document Section 2.1.
+'
+' Laid out portrait so that it stays legible at page width. The hidden
+' edges at the foot of the file are layout control only — they carry no
+' architectural meaning.
+
+skinparam backgroundColor White
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam ArrowColor #44546A
+skinparam ArrowFontSize 11
+skinparam nodesep 16
+skinparam ranksep 32
+skinparam node {
+  BackgroundColor White
+  BorderColor #2F4F6F
+  FontSize 13
+  FontStyle bold
+}
+skinparam component {
+  BackgroundColor White
+  BorderColor #2F4F6F
+  FontSize 12
+}
+skinparam database {
+  BackgroundColor #EAF1F8
+  BorderColor #2F4F6F
+  FontSize 12
+}
+skinparam actorStyle awesome
+
+together {
+  actor "Unregistered\nUser" as GUEST
+  actor "Registered User\n(Basic / Premium)" as USER
+  actor "Platform\nAdministrator" as ADMIN
+}
+
+node "**Client tier**" as T1 {
+  node "iOS / Android device" as DEVICE {
+    component "<b>Runiac Flutter application</b>\nDart · 19 feature modules · ~85 screens\nno state-management package\nno routing package" as APP
+    component "<b>Native platform layer</b> — 9 channels\nforeground tracking service (Android)\nLive Activity (iOS) · cadence from motion\nhaptics · notification permissions\nplan reminders · HealthKit import\nInstagram Story share" as NATIVE
+    component "GPS · motion sensors · text-to-speech\nApple HealthKit · Mapbox tiles" as SENSORS
+  }
+  node "Web browser" as BROWSER {
+    component "<b>Public website</b>\n17 routes" as SITE
+    component "<b>Administrator console</b>\n13 sections" as CONSOLE
+  }
+}
+
+node "**Web application tier**  ·  Node.js host" as T2 {
+  component "<b>Next.js 16</b>\nApp Router · React 19 · Server Actions\nsession cookie minted from a\nFirebase ID token, 5-day expiry" as NEXT
+  component "<b>Firebase Admin SDK</b>\n<i>bypasses security rules entirely</i>" as ADMINSDK
+}
+
+node "**Backend tier**  ·  Firebase project, region asia-southeast1" as T3 {
+  component "<b>Firebase Authentication</b>\nemail/password · Google Sign-In\naccount disable · token revocation" as AUTH
+  component "<b>Cloud Functions</b>\nNode 22 · TypeScript · ESM\n43 callable · 6 scheduled\n2 HTTPS · 13 triggers\n17 domain modules\nApp Check on 9 functions\nCloud Scheduler drives\nthe 6 scheduled" as CF
+  component "<b>Cloud Messaging</b>\npush delivery" as FCM
+  database "<b>Cloud Firestore</b>\n57 document paths\n15 composite indexes\nrules evaluated in-engine" as FS
+  database "<b>Cloud Storage</b>\n6 object prefixes\nstorage rules" as CS
+  component "<b>Trigger Email</b> extension\nnewsletter and confirmation mail" as MAILEXT
+}
+
+node "**External service**" as T4 {
+  component "<b>OpenAI API</b>\ngpt-4o-mini through LangChain\nkey held as a Cloud Functions secret,\nnever in the client" as OPENAI
+}
+
+USER --> APP
+GUEST --> APP : tour and\nregistration only
+GUEST --> SITE
+ADMIN --> CONSOLE
+
+APP --> NATIVE
+NATIVE --> SENSORS
+
+APP --> AUTH : sign in
+APP --> CF : <b>HTTPS callable</b>\n43 endpoints
+APP --> FS : direct reads ·\n10 rules-gated writes
+APP --> CS : staged uploads
+FCM --> APP : push
+
+SITE --> NEXT
+CONSOLE --> NEXT
+NEXT --> ADMINSDK
+ADMINSDK --> AUTH : verify token · disable\naccount · revoke tokens
+ADMINSDK --> FS : configuration · moderation ·\nuser and role administration
+ADMINSDK --> CS : project documents
+
+CF --> AUTH : revoke · delete
+CF --> FS : Admin SDK
+CF --> CS : Admin SDK
+CF --> FCM : send
+FS --> CF : 13 document triggers
+FS --> MAILEXT : mail documents
+CF --> OPENAI : three guidance agents
+
+' ---------- layout control only, no architectural meaning ----------
+DEVICE -[hidden]down- BROWSER
+NEXT -[hidden]right- ADMINSDK
+AUTH -[hidden]right- CF
+CF -[hidden]right- FCM
+FS -[hidden]right- CS
+CS -[hidden]right- MAILEXT
+AUTH -[hidden]down- FS
+
+@enduml

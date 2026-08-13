@@ -1,0 +1,78 @@
+@startuml figure-3-2-trust-boundary
+' Figure 3.2 — Trust boundary
+' Chapter 3 Section 3.4, Runiac Final Project Document (FYP-26-S2-38)
+
+skinparam backgroundColor White
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam rectangle {
+  BackgroundColor White
+  BorderColor #2F4F6F
+  FontSize 12
+}
+skinparam package {
+  BackgroundColor #FBFCFD
+  BorderColor #2F4F6F
+  FontSize 12
+  FontStyle bold
+}
+skinparam database {
+  BackgroundColor White
+  BorderColor #2F4F6F
+}
+skinparam note {
+  BackgroundColor #FFF8E5
+  BorderColor #B08D2E
+  FontSize 10
+}
+skinparam ArrowColor #44546A
+skinparam ArrowFontSize 11
+
+actor "Registered\nUser" as U
+
+package "Flutter mobile client" as CLIENT {
+  rectangle "Direct Firestore SDK writes" as DIRECT
+  rectangle "Callable function requests" as CALL
+}
+
+package "Firestore Security Rules  —  evaluated on every client request" as RULES #FDF6F6 {
+  rectangle "<b>Client-writable surface — 7 collections, 3 subcollections</b>\n\nuserProfiles/{uid}          12 keys, per-field validation\ngeneratedPlans/{uid}        21 keys, nested shape validated\nactivities/{activityId}     12 keys  (no live client path)\nsharedRoutes/{routeId}      10 keys, private or draft only\nplanEnrollments/{id}        Premium, published plan only\nreports/{reportId}           6 keys, deterministic key\nnotificationPreferences/{uid}  9 keys\nfeedPosts/../likes/{uid}     2 keys\nfeedPosts/../comments/{id}   7 keys, body 1–500 chars\nnotificationInbox/../items/{id}  readAt, deletedAt only" as SURFACE
+
+  rectangle "<b>backendOwnedKeys()  —  100 reserved field names</b>\n\ntotalXp · level · streakCount · divisionKey\nleaderboardScore · subscriptionStatus · userRole\nvalidationStatus · highestPaidStreakMilestoneDays\n… and 91 more\n\n<i>A client write containing any of these names</i>\n<i>is refused in every collection.</i>" as KEYS #FDECEC
+
+  rectangle "<b>match /{document=~*~*}  →  allow read, write: if false</b>\n<i>Any path not matched above is closed to clients.</i>" as DENY #F2F2F2
+}
+
+package "Cloud Functions  —  Firebase Admin SDK" as FUNCS #F4F9F4 {
+  rectangle "completeRun · completeCoolDown\npublishActivityToFeed · challenge callables\nfriends and nickname callables\nscheduled aggregation, sweeps and triggers" as CF
+  rectangle "<b>Admin SDK credentials bypass</b>\n<b>security rules entirely</b>" as BYPASS #E8F3E8
+}
+
+database "Cloud Firestore\n57 document paths" as DB
+
+U --> CLIENT
+DIRECT --> SURFACE : write request
+SURFACE --> KEYS : must not contain
+KEYS --> DB : <b>permitted write</b>
+DIRECT --> DENY : any other path
+DENY -[#B03030]-> DB : <b>refused</b>
+
+CALL --> CF : authenticated call
+CF --> BYPASS
+BYPASS --> DB : <b>every backend-owned field</b>
+
+note bottom of KEYS
+  The reserved-name list is global rather
+  than per collection, so a collection added
+  later inherits the protection as soon as its
+  rule invokes doesNotTouchBackendOwnedKeys().
+end note
+
+note bottom of BYPASS
+  Progression, entitlement, moderation verdicts and
+  leaderboard projections are written only here.
+  A runner owns their nickname, weight and availability;
+  they do not own their rank.
+end note
+
+@enduml

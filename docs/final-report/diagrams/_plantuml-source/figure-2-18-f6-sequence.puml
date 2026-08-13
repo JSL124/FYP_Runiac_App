@@ -1,0 +1,47 @@
+@startuml figure-2-18-f6-sequence
+' Figure 2.18 - F6 sequence diagram
+' Runiac Final Project Document (FYP-26-S2-38), Chapter 2
+hide footbox
+skinparam backgroundColor White
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam sequenceArrowColor #44546A
+skinparam sequenceArrowFontSize 11
+skinparam sequenceLifeLineBorderColor #8496B0
+skinparam sequenceParticipantBorderColor #2F4F6F
+skinparam sequenceParticipantBackgroundColor White
+skinparam sequenceParticipantFontSize 12
+skinparam sequenceActorBorderColor #2F4F6F
+skinparam sequenceActorBackgroundColor White
+skinparam sequenceActorFontSize 12
+skinparam sequenceGroupBorderColor #2F4F6F
+skinparam sequenceGroupBackgroundColor #FBFCFD
+skinparam sequenceGroupFontSize 11
+skinparam sequenceBoxBorderColor #2F4F6F
+
+
+
+actor "Registered User" as U
+participant ":Home UI" as UI
+participant ":Streak\nCloud Function" as FN
+participant ":Cloud Firestore" as DB
+
+UI -> FN : activity validated (from UC-F1)
+activate FN
+FN -> DB : read the activity history
+activate DB
+DB --> FN : runs and protected rest days
+deactivate DB
+FN -> FN : re-derive the streak
+FN -> DB : write the streak state
+deactivate FN
+U -> UI : Open the home dashboard
+activate UI
+
+alt Streak active
+  UI --> U : Display the current streak\nand the longest streak
+else Streak lapsed
+  UI --> U : Display the streak restart prompt
+end
+deactivate UI
+@enduml

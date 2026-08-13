@@ -1,0 +1,40 @@
+@startuml figure-2-13-f4-activity
+' Figure 2.13 - F4 activity diagram
+' Runiac Final Project Document (FYP-26-S2-38), Chapter 2
+skinparam backgroundColor White
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam ArrowColor #44546A
+skinparam ArrowFontSize 11
+skinparam activity {
+  BackgroundColor White
+  BorderColor #2F4F6F
+  FontSize 12
+  DiamondBackgroundColor #FBFCFD
+  DiamondBorderColor #2F4F6F
+  DiamondFontSize 11
+  StartColor #2F4F6F
+  EndColor #2F4F6F
+  BarColor #2F4F6F
+}
+skinparam conditionStyle diamond
+
+
+start
+:Create or edit a plan;
+if (Notification permission granted?) then (yes)
+  :Schedule device-local reminders
+  and record them in the ledger;
+  :Register the messaging token
+  with the backend;
+  :The scheduled function dispatches queued
+  push notifications every ten minutes;
+  :Record the delivery in the
+  in-application inbox;
+  :The user opens the notification and is
+  taken to the related screen;
+else (no)
+  :Record inbox items only;
+endif
+stop
+@enduml

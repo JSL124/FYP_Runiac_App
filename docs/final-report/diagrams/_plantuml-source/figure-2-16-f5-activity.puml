@@ -1,0 +1,43 @@
+@startuml figure-2-16-f5-activity
+' Figure 2.16 - F5 activity diagram
+' Runiac Final Project Document (FYP-26-S2-38), Chapter 2
+skinparam backgroundColor White
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam ArrowColor #44546A
+skinparam ArrowFontSize 11
+skinparam activity {
+  BackgroundColor White
+  BorderColor #2F4F6F
+  FontSize 12
+  DiamondBackgroundColor #FBFCFD
+  DiamondBorderColor #2F4F6F
+  DiamondFontSize 11
+  StartColor #2F4F6F
+  EndColor #2F4F6F
+  BarColor #2F4F6F
+}
+skinparam conditionStyle diamond
+
+start
+:Select a completed activity
+and choose to publish it;
+if (Publication permitted?) then (yes)
+  :Generate the thumbnail
+  and write the feed post;
+  :The post appears in other timelines
+  with the author's level badge;
+  :Other users like or comment;
+  :Queue an engagement notification
+  to the author;
+  if (Post or user reported?) then (yes)
+    :Enter the moderation queue for
+    Platform Administrator review;
+  else (no)
+  endif
+else (no)
+  :Present the premium-required
+  message for route sharing;
+endif
+stop
+@enduml

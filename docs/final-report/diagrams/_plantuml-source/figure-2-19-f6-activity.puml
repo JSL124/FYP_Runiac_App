@@ -1,0 +1,43 @@
+@startuml figure-2-19-f6-activity
+' Figure 2.19 - F6 activity diagram
+' Runiac Final Project Document (FYP-26-S2-38), Chapter 2
+skinparam backgroundColor White
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam ArrowColor #44546A
+skinparam ArrowFontSize 11
+skinparam activity {
+  BackgroundColor White
+  BorderColor #2F4F6F
+  FontSize 12
+  DiamondBackgroundColor #FBFCFD
+  DiamondBorderColor #2F4F6F
+  DiamondFontSize 11
+  StartColor #2F4F6F
+  EndColor #2F4F6F
+  BarColor #2F4F6F
+}
+skinparam conditionStyle diamond
+
+start
+:An activity passes validation;
+:Read the plan-bounded activity history
+and the protected rest days;
+:Re-derive the streak baseline
+rather than trusting the stored value;
+if (Ran, or took a protected rest day,
+since the last streak day?) then (yes)
+  :Extend the current streak;
+  if (Milestone day reached?) then (yes)
+    :Award the milestone bonus and raise
+    the high-water mark, once each;
+  else (no)
+  endif
+else (no)
+  :Reset the current streak and
+  retain the longest streak;
+endif
+:Display the streak status
+on the home dashboard;
+stop
+@enduml

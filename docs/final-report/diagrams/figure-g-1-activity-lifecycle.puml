@@ -1,0 +1,86 @@
+@startuml figure-g-1-activity-lifecycle
+' Figure G.1 — Activity document lifecycle
+' Annex G Section G.7, Runiac Final Project Document (FYP-26-S2-38)
+
+skinparam backgroundColor White
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam ActivityFontSize 12
+skinparam ActivityDiamondFontSize 11
+skinparam ArrowFontSize 11
+skinparam activity {
+  BackgroundColor White
+  BorderColor #2F4F6F
+  DiamondBackgroundColor #F7F9FB
+  DiamondBorderColor #2F4F6F
+}
+skinparam partition {
+  BorderColor #7F7F7F
+  FontStyle bold
+}
+skinparam note {
+  BackgroundColor #FFF8E5
+  BorderColor #B08D2E
+  FontSize 10
+}
+
+start
+:Runner ends a run; client calls <b>completeRun</b>\ncarrying its own clientRunSessionId;
+
+partition "Validation — synchronous, before any document is written" {
+  if (all five checks pass?) then (no)
+    #FDECEC:reject with <b>invalid-argument</b>.\n<i>No document is created at all.</i>;
+    kill
+  endif
+}
+
+note right
+  <b>1  Reserved names</b> — the 20 protected progression and
+  entitlement keys are tested first, so an escalation attempt
+  is named as such rather than as an unknown field.
+  <b>2  Allow-list</b> — every key must be one of the 24 accepted.
+  <b>3  Scalar bounds</b> — duration ≤ 86,400 s, distance ≤ 100,000 m,
+  pace 120–3,600 s/km.
+  <b>4  Cross-field consistency</b> — end after start; future skew ≤ 6 h;
+  active = duration; elapsed agrees within 60 s; submitted pace
+  agrees with distance ÷ duration within max(15 s, 2%).
+  <b>5  Series limits</b> — cadence ≤ 720 samples, pace and elevation
+  ≤ 360, route ≤ 64 segments and 256 points at 3 decimal places.
+end note
+
+:Derive deterministic keys from <b>SHA-256(uid : clientRunSessionId)</b>\n<b>activity_</b>… · <b>summary_</b>… · <b>progression_</b>…;
+:Clamp a future finish instant to server time,\nthen derive the Singapore day and month keys;
+
+partition "One Firestore transaction — all reads, then all writes" {
+  :Read 9 documents and 3 queries;
+  if (account suspended, banned or deleting?) then (yes)
+    #FDECEC:reject with <b>permission-denied</b>;
+    kill
+  endif
+  if (activity already exists?) then (yes)
+    if (stored payloadFingerprint matches?) then (no)
+      #FDECEC:reject with <b>already-exists</b> —\nsame session id, different run data;
+      kill
+    else (yes)
+      #F2F7F2:replay — return the stored award from\nthe existing progression event. <i>Nothing is written.</i>;
+      stop
+    endif
+  else (no)
+  endif
+  :Credit any active challenge · record a matched plan workout\nevaluate the streak transition · calculate the progression audit;
+  #EAF1F8:write <b>activities</b> — validated · <b>runSummaries</b>\n<b>progressionEvents</b> — immutable audit record\nmerge <b>leaderboardContributions</b> — atomic increment\nmerge <b>userProfiles</b> — streak, lifetime totals, progression\nwrite <b>adaptivePlanEstimates</b>;
+}
+
+:Commit — return the award, level change and streak;
+stop
+
+note right
+  Idempotency comes from the derived keys, not from a lock.
+  Each document is written only when the read showed it absent,
+  so a retry writes nothing and returns the original award.
+  Qualifying run count, lifetime distance and longest streak are
+  recomputed absolutely from history rather than incremented,
+  which makes them self-healing after any drift.
+end note
+
+@enduml

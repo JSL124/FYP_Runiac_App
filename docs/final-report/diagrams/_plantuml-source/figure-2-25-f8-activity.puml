@@ -1,0 +1,46 @@
+@startuml figure-2-25-f8-activity
+' Figure 2.25 - F8 activity diagram
+' Runiac Final Project Document (FYP-26-S2-38), Chapter 2
+skinparam backgroundColor White
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam ArrowColor #44546A
+skinparam ArrowFontSize 11
+skinparam activity {
+  BackgroundColor White
+  BorderColor #2F4F6F
+  FontSize 12
+  DiamondBackgroundColor #FBFCFD
+  DiamondBorderColor #2F4F6F
+  DiamondFontSize 11
+  StartColor #2F4F6F
+  EndColor #2F4F6F
+  BarColor #2F4F6F
+}
+skinparam conditionStyle diamond
+
+
+start
+:A validated run writes a contribution for
+the month and the region it occurred in;
+:The scheduled aggregation runs
+every sixty minutes;
+if (Aggregation lease acquired?) then (yes)
+  :Group by region and level division,
+  filter for eligibility and order by score;
+  :Publish the ranking snapshot, the per-user
+  rank and the current view;
+else (no)
+  :Skip this run rather than
+  duplicating work;
+endif
+:The user opens the leaderboard;
+if (User ranked this period?) then (yes)
+  :Display the ranking, the user's position
+  and the neighbouring runners;
+else (no)
+  :Display the board with the
+  pending status shown;
+endif
+stop
+@enduml

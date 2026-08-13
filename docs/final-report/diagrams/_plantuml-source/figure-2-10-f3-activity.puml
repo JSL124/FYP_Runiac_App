@@ -1,0 +1,40 @@
+@startuml figure-2-10-f3-activity
+' Figure 2.10 - F3 activity diagram
+' Runiac Final Project Document (FYP-26-S2-38), Chapter 2
+skinparam backgroundColor White
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam ArrowColor #44546A
+skinparam ArrowFontSize 11
+skinparam activity {
+  BackgroundColor White
+  BorderColor #2F4F6F
+  FontSize 12
+  DiamondBackgroundColor #FBFCFD
+  DiamondBorderColor #2F4F6F
+  DiamondFontSize 11
+  StartColor #2F4F6F
+  EndColor #2F4F6F
+  BarColor #2F4F6F
+}
+skinparam conditionStyle diamond
+
+start
+:Submit the onboarding answers;
+:Resolve the safety band, the starting
+runner level and the plan style;
+:Generate the weekly plan and
+designate its rest days;
+:Display the plan preview;
+if (Schedule edited?) then (yes)
+  :Adjust which days and times
+  the sessions fall on;
+  :Store the revised schedule;
+else (no)
+endif
+:Record completed sessions in
+the plan progress ledger;
+:Refine the adaptive pace and
+session duration estimates;
+stop
+@enduml

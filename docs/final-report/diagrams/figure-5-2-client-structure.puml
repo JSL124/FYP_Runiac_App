@@ -1,0 +1,63 @@
+@startuml figure-5-2-client-structure
+' Figure 5.2 — Client component structure
+' Chapter 5 Section 5.4, Runiac Final Project Document (FYP-26-S2-38)
+
+skinparam backgroundColor White
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam ArrowColor #44546A
+skinparam ArrowFontSize 11
+skinparam nodesep 22
+skinparam ranksep 38
+skinparam rectangle {
+  BackgroundColor White
+  BorderColor #2F4F6F
+  FontSize 12
+}
+skinparam package {
+  BackgroundColor #FBFCFD
+  BorderColor #2F4F6F
+  FontStyle bold
+  FontSize 12
+}
+
+package "presentation/" as P {
+  rectangle "<b>Screens and widgets</b>\none feature module per area" as UI
+  rectangle "<b>Session scope</b>\nInheritedNotifier over a\nChangeNotifier store" as SCOPE
+}
+
+package "domain/" as D {
+  rectangle "<b>Repository interface</b>\nwhat the feature needs,\nstated without Firebase" as REPO
+  rectangle "<b>Models and services</b>\nvalidation, derivation,\nformatting — no I/O" as MODEL
+}
+
+package "data/" as DA {
+  rectangle "<b>Firestore implementation</b>\nlive backend" as FIRE
+  rectangle "<b>Static implementation</b>\ncompiled sample data" as STATIC
+}
+
+rectangle "<b>Platform channel adapter</b>\nDart side of a native channel" as CH
+rectangle "Cloud Firestore ·\nCloud Functions · Storage" as BACKEND
+rectangle "Swift / Kotlin\nnative code" as NATIVE
+
+UI --> SCOPE : watches
+SCOPE --> REPO : calls
+UI --> MODEL : renders
+SCOPE --> MODEL : uses
+REPO <|.. FIRE : implements
+REPO <|.. STATIC : implements
+FIRE --> BACKEND
+SCOPE --> CH : calls
+CH --> NATIVE : MethodChannel
+
+note right of REPO
+  The seam. A feature depends on the
+  interface, never on Firebase, so the
+  composition root can build the whole
+  subtree against either implementation.
+  This is what makes an offline build and
+  a demonstration build possible, and what
+  lets the client be tested with no emulator.
+end note
+
+@enduml

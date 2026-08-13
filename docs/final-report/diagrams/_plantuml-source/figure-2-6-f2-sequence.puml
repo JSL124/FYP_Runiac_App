@@ -1,0 +1,49 @@
+@startuml figure-2-6-f2-sequence
+' Figure 2.6 - F2 sequence diagram
+' Runiac Final Project Document (FYP-26-S2-38), Chapter 2
+hide footbox
+skinparam backgroundColor White
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam sequenceArrowColor #44546A
+skinparam sequenceArrowFontSize 11
+skinparam sequenceLifeLineBorderColor #8496B0
+skinparam sequenceParticipantBorderColor #2F4F6F
+skinparam sequenceParticipantBackgroundColor White
+skinparam sequenceParticipantFontSize 12
+skinparam sequenceActorBorderColor #2F4F6F
+skinparam sequenceActorBackgroundColor White
+skinparam sequenceActorFontSize 12
+skinparam sequenceGroupBorderColor #2F4F6F
+skinparam sequenceGroupBackgroundColor #FBFCFD
+skinparam sequenceGroupFontSize 11
+skinparam sequenceBoxBorderColor #2F4F6F
+
+
+
+actor "Registered User" as U
+participant ":Run Summary UI" as UI
+participant ":Analysis\nCloud Function" as FN
+participant ":Cloud Firestore" as DB
+
+U -> UI : Open the run summary
+activate UI
+UI -> DB : read the generated summary
+activate DB
+DB --> UI : distance, duration, average pace
+deactivate DB
+UI --> U : Display the run summary
+U -> UI : Open advanced analysis
+UI -> FN : requestAdvancedAnalysis(activityId)
+activate FN
+
+alt Premium entitlement held
+  FN --> UI : cadence series and split detail
+  UI --> U : Display Advanced Analysis
+else Entitlement absent
+  FN --> UI : premium-required
+  UI --> U : Display the Paywall
+end
+deactivate FN
+deactivate UI
+@enduml

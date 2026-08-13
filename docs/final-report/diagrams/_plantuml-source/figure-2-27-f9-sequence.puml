@@ -1,0 +1,47 @@
+@startuml figure-2-27-f9-sequence
+' Figure 2.27 - F9 sequence diagram
+' Runiac Final Project Document (FYP-26-S2-38), Chapter 2
+hide footbox
+skinparam backgroundColor White
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam sequenceArrowColor #44546A
+skinparam sequenceArrowFontSize 11
+skinparam sequenceLifeLineBorderColor #8496B0
+skinparam sequenceParticipantBorderColor #2F4F6F
+skinparam sequenceParticipantBackgroundColor White
+skinparam sequenceParticipantFontSize 12
+skinparam sequenceActorBorderColor #2F4F6F
+skinparam sequenceActorBackgroundColor White
+skinparam sequenceActorFontSize 12
+skinparam sequenceGroupBorderColor #2F4F6F
+skinparam sequenceGroupBackgroundColor #FBFCFD
+skinparam sequenceGroupFontSize 11
+skinparam sequenceBoxBorderColor #2F4F6F
+
+
+
+actor "Registered User" as U
+participant ":Progression UI" as UI
+participant ":completeRun\nCloud Function" as FN
+participant ":Cloud Firestore" as DB
+
+UI -> FN : activity passes validation (from UC-F1)
+activate UI
+activate FN
+FN -> FN : compute the award, apply the caps
+FN -> DB : update total experience,\nlevel and league division
+activate DB
+FN -> DB : write the progression audit entry
+DB --> FN : written
+deactivate DB
+FN --> UI : award, level and division
+
+alt Level increased
+  UI --> U : Display the level-up screen
+else Level unchanged
+  UI --> U : Display the experience award
+end
+deactivate FN
+deactivate UI
+@enduml
