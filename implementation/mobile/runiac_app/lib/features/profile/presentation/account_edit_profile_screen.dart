@@ -9,6 +9,7 @@ import '../../../core/theme/runiac_colors.dart';
 import '../../../core/widgets/runiac_avatar_photo.dart';
 import '../../../core/widgets/runiac_back_header.dart';
 import '../../../core/widgets/runiac_buttons.dart';
+import '../../../core/widgets/runiac_confirm_sheet.dart';
 import '../../auth/domain/runiac_auth_service.dart';
 import '../../onboarding/domain/models/local_onboarding_draft.dart';
 import '../../onboarding/presentation/onboarding_flow_screen.dart';
@@ -408,30 +409,16 @@ class _AccountEditProfileScreenState extends State<AccountEditProfileScreen> {
       });
       return;
     }
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Reset your plan?'),
-        content: const Text(
+    final confirmed = await showRuniacConfirmSheet(
+      context,
+      title: 'Reset your plan?',
+      body:
           'Starting a new onboarding plan will reset your consistency streak. '
           'Your run history will not be deleted.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            style: TextButton.styleFrom(
-              foregroundColor: RuniacColors.accentOrange,
-            ),
-            child: const Text('Reset streak & continue'),
-          ),
-        ],
-      ),
+      confirmLabel: 'Reset streak & continue',
+      icon: Icons.restart_alt_rounded,
     );
-    if (!mounted || confirmed != true) {
+    if (!mounted || !confirmed) {
       return;
     }
     final updated = await Navigator.of(context).push<bool>(

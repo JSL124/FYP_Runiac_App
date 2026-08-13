@@ -4,9 +4,12 @@ import '../theme/runiac_colors.dart';
 import '../../features/you/presentation/widgets/you_surface_primitives.dart';
 import 'runiac_bottom_sheet_handle.dart';
 
-/// Shared chrome for Runiac modal bottom sheets: a drag handle, a title,
-/// an optional subtitle, and caller-supplied content, wrapped in the
-/// rounded, elevated surface used across the app's sheets.
+/// Shared chrome for Runiac modal bottom sheets: a drag handle, an optional
+/// title and subtitle, and caller-supplied content, wrapped in the rounded,
+/// elevated surface used across the app's sheets.
+///
+/// [title] is omitted by sheets that compose their own heading in [child]
+/// (the confirmation sheet centres its heading under an icon medallion).
 ///
 /// This renders content only — callers own presentation (e.g. via
 /// `showModalBottomSheet`) and sizing. Used by the Friends actions sheet
@@ -14,12 +17,12 @@ import 'runiac_bottom_sheet_handle.dart';
 class RuniacSheetScaffold extends StatelessWidget {
   const RuniacSheetScaffold({
     super.key,
-    required this.title,
+    this.title,
     this.subtitle,
     required this.child,
   });
 
-  final String title;
+  final String? title;
   final String? subtitle;
   final Widget child;
 
@@ -65,12 +68,13 @@ class RuniacSheetScaffold extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 14),
-              Text(title, style: YouTextStyles.cardTitle),
+              if (title != null) Text(title!, style: YouTextStyles.cardTitle),
               if (subtitle != null) ...[
-                const SizedBox(height: 4),
+                if (title != null) const SizedBox(height: 4),
                 Text(subtitle!, style: YouTextStyles.body),
               ],
-              const SizedBox(height: 16),
+              if (title != null || subtitle != null)
+                const SizedBox(height: 16),
               child,
             ],
           ),
