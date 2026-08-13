@@ -2,8 +2,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../auth/domain/runiac_auth_service.dart';
 import '../../run/domain/models/cadence_analysis_series.dart';
+import '../../run/domain/models/pace_analysis_series.dart';
+import '../../run/domain/models/pace_graph_snapshot.dart';
 import '../../run/domain/models/run_feed_publish_source.dart';
 import '../../run/domain/models/run_summary_snapshot.dart';
+import '../../run/domain/services/pace_graph_data_builder.dart';
 import '../../run/domain/services/run_summary_scalar_mapper.dart';
 import '../domain/models/activity_history_read_model.dart';
 import '../domain/repositories/activity_history_repository.dart';
@@ -216,12 +219,19 @@ class FirestoreActivityHistoryRepository implements ActivityHistoryRepository {
       avgPace: scalar.avgPace,
       duration: scalar.duration,
       avgHeartRate: '--',
-      calories: '--',
+      calories: scalar.calories,
       routeName: scalar.routeName,
       hasSufficientData: scalar.hasSufficientData,
       paceAnalysisSeries: details.paceAnalysisSeries,
       cadenceAnalysisSeries: cadenceAnalysisSeries,
       elevationSeries: details.elevationSeries,
+      paceGraph: _paceGraphFrom(
+        details.paceAnalysisSeries,
+        hasSufficientData: scalar.hasSufficientData,
+        durationSeconds: durationSeconds,
+        distanceMeters: distanceMeters,
+        averagePaceSecondsPerKm: averagePaceSecondsPerKm,
+      ),
       route: details.route,
     );
     return _MappedActivity(
@@ -252,6 +262,40 @@ class FirestoreActivityHistoryRepository implements ActivityHistoryRepository {
           source: source,
         ),
       ),
+    );
+  }
+
+  /// Rebuilds the Pace Over Time graph from the persisted analysis series.
+  ///
+  /// A `runSummaries` document stores `paceAnalysisSeries` but no rendered
+  /// graph, so a run reopened from history has to derive one the same way
+  /// `StaticRunRepository` does at completion time. Without this the summary
+  /// screen keeps the [RunSummarySnapshot] default of
+  /// [PaceGraphSnapshot.unavailable] and shows the low-data guard even for
+  /// runs that carry a complete series.
+  PaceGraphSnapshot _paceGraphFrom(
+    PaceAnalysisSeries? series, {
+    required bool hasSufficientData,
+    required int durationSeconds,
+    required int distanceMeters,
+    required int averagePaceSecondsPerKm,
+  }) {
+    if (!hasSufficientData || series == null) {
+      return const PaceGraphSnapshot.unavailable();
+    }
+    return const PaceGraphDataBuilder().build(
+      samples: [
+        for (final sample in series.samples)
+          if (sample.status == PaceAnalysisSampleStatus.accepted)
+            PaceGraphSample(
+              elapsedSeconds: sample.elapsedSeconds,
+              paceSecondsPerKm: sample.paceSecondsPerKm,
+              cumulativeDistanceMeters: sample.cumulativeDistanceMeters.round(),
+            ),
+      ],
+      durationSeconds: durationSeconds,
+      distanceMeters: distanceMeters,
+      averagePaceSecondsPerKm: averagePaceSecondsPerKm,
     );
   }
 

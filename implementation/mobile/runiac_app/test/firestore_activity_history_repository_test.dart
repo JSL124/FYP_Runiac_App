@@ -674,6 +674,101 @@ void main() {
       },
     );
 
+    test(
+      'reopened summary renders calories and the pace graph from the '
+      'persisted series',
+      () async {
+        // Given: a signed-in owner's run summary carrying a complete pace
+        // analysis series, i.e. a real run reopened from Activity History
+        // rather than displayed straight after completion.
+        final authRepository = FakeRuniacAuthRepository()..emitSignedIn();
+        final repository = FirestoreActivityHistoryRepository(
+          authRepository: authRepository,
+          reader: _FakeActivityHistorySummaryDocumentReader(
+            documents: <ActivityHistorySummaryDocument>[
+              _runSummaryDocument(
+                id: 'graphable-summary',
+                ownerUid: 'test-auth-user-1',
+                endedAt: DateTime.utc(2026, 7, 24, 23, 24),
+                paceAnalysisSeries: const <String, Object?>{
+                  'source': 'localAccepted',
+                  'confidence': 'derived',
+                  'samples': <Object?>[
+                    <String, Object?>{
+                      'elapsedSeconds': 300,
+                      'cumulativeDistanceMeters': 640.0,
+                      'paceSecondsPerKm': 469,
+                      'status': 'accepted',
+                    },
+                    <String, Object?>{
+                      'elapsedSeconds': 600,
+                      'cumulativeDistanceMeters': 1280.0,
+                      'paceSecondsPerKm': 455,
+                      'status': 'accepted',
+                    },
+                    <String, Object?>{
+                      'elapsedSeconds': 900,
+                      'cumulativeDistanceMeters': 1980.0,
+                      'paceSecondsPerKm': 430,
+                      'status': 'accepted',
+                    },
+                    <String, Object?>{
+                      'elapsedSeconds': 1200,
+                      'cumulativeDistanceMeters': 2600.0,
+                      'paceSecondsPerKm': 480,
+                      'status': 'accepted',
+                    },
+                  ],
+                },
+              ),
+            ],
+          ),
+        );
+
+        // When: Activity History hydrates the run from Firestore.
+        final summary =
+            (await repository.loadActivityHistory()).recentRuns.single
+                .summarySnapshot;
+
+        // Then: the summary screen has a renderable Pace Over Time graph
+        // instead of the low-data guard, and shows the estimated calories the
+        // scalar mapper already computes rather than a hardcoded em-dash.
+        expect(summary, isNotNull);
+        expect(summary!.paceGraph.isAvailable, isTrue);
+        expect(summary.paceGraph.points, isNotEmpty);
+        expect(summary.calories, isNot('--'));
+        expect(int.parse(summary.calories), greaterThan(0));
+      },
+    );
+
+    test('reopened summary without a persisted series keeps the pace guard', () async {
+      // Given: an older run summary that predates pace-series persistence.
+      final authRepository = FakeRuniacAuthRepository()..emitSignedIn();
+      final repository = FirestoreActivityHistoryRepository(
+        authRepository: authRepository,
+        reader: _FakeActivityHistorySummaryDocumentReader(
+          documents: <ActivityHistorySummaryDocument>[
+            _runSummaryDocument(
+              id: 'seriesless-summary',
+              ownerUid: 'test-auth-user-1',
+              endedAt: DateTime.utc(2026, 7, 20, 22, 4),
+            ),
+          ],
+        ),
+      );
+
+      // When: Activity History hydrates it.
+      final summary =
+          (await repository.loadActivityHistory()).recentRuns.single
+              .summarySnapshot;
+
+      // Then: the graph stays unavailable so the guard still explains the gap,
+      // while calories remain derivable from the scalar fields.
+      expect(summary, isNotNull);
+      expect(summary!.paceGraph.isAvailable, isFalse);
+      expect(summary.calories, isNot('--'));
+    });
+
     test('rejects raw fields and unquantized persisted route previews', () async {
       // Given: raw route geometry, non-quantized coordinates, and masked
       // previews carrying forbidden timestamp/altitude fields.
