@@ -128,7 +128,7 @@ never the control.
 ### The tier map, and the one entry that needs explaining
 
 `config/featureAccess` is a server-owned document, editable only through the admin console. It
-holds seven keys, and the tiers are not a simple premium/basic split:
+holds six keys, and the tiers are not a simple premium/basic split:
 
 | Key | Tier | Server-enforced |
 |---|---|---|
@@ -138,7 +138,6 @@ holds seven keys, and the tiers are not a simple premium/basic split:
 | **`advancedAnalysis`** | **premium** | ❌ **none — see below** |
 | `shareRouteToFeed` | **basic** | ✅ `feed/publish/entitlement.ts` — gate wired, inert while basic |
 | `shareCards` | **basic** | — |
-| `healthWorkoutImport` | **basic** | — |
 
 **These tiers are the shipped defaults, and the stored document outranks them.**
 `loadFeatureAccessConfig` merges the live `config/featureAccess` over
@@ -148,10 +147,17 @@ what a tier is today — the repository cannot tell you. `shareRouteToFeed` is r
 here precisely because it had been stored basic in production since 2026-07-25 while every
 in-repository signal still said premium.
 
-Two things follow that are easy to get wrong. Premium is not "everything": `shareRouteToFeed`,
-`shareCards` and `healthWorkoutImport` are basic-tier, so a change that gated them would be a
-regression against Basic Users, not a tightening. And of the four premium keys, only three have a
-server-side gate.
+Two things follow that are easy to get wrong. Premium is not "everything": `shareRouteToFeed`
+and `shareCards` are basic-tier, so a change that gated them would be a regression against Basic
+Users, not a tightening. And of the four premium keys, only three have a server-side gate.
+
+A seventh key, `healthWorkoutImport`, was retired from the catalog on 2026-08-13. `65b41c49` had
+already deleted the entire HealthKit import surface, so the key gated nothing and the console was
+rendering a tier control with no code behind it. Because the stored document outranks the defaults,
+removing it from the compiled catalog was not sufficient on its own: the key was deleted from the
+live `config/featureAccess` document the same day, verified absent afterwards with the other five
+entries unchanged. Note this could not be done from the admin console — the console writes back the
+merged document it read, so saving would have re-persisted the key.
 
 **`advancedAnalysis` has no server-side enforcement, and that is defensible rather than an
 oversight.** On inspection it reads as a violation of the rule that premium features must not rely

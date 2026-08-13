@@ -58,7 +58,6 @@ void main() {
       // Keys that ship as Basic are not resurrected by the merge.
       expect(model.isPremiumFeature('shareRouteToFeed'), isFalse);
       expect(model.isPremiumFeature('shareCards'), isFalse);
-      expect(model.isPremiumFeature('healthWorkoutImport'), isFalse);
     });
 
     test('malformed features map falls back to defaults', () {
@@ -82,7 +81,6 @@ void main() {
           'workoutBriefing': {'minimumTier': 'basic', 'enabled': true},
           'shareRouteToFeed': {'minimumTier': 'basic', 'enabled': true},
           'shareCards': {'minimumTier': 'basic', 'enabled': true},
-          'healthWorkoutImport': {'minimumTier': 'basic', 'enabled': true},
         },
       });
 
@@ -151,13 +149,19 @@ void main() {
 
   group('premiumFeatureDisplayFor', () {
     test('known keys use the admin catalog labels', () {
+      // Both keys are ones whose catalog label differs from what the humanize
+      // fallback would produce ('Advanced analysis', 'Ai home coach'), so this
+      // proves the catalog lookup rather than passing either way. It used to
+      // assert 'healthWorkoutImport', which 65b41c49 had already removed from
+      // the catalog — the humanize fallback happened to return the same string,
+      // so the test kept passing while covering nothing.
       expect(
         premiumFeatureDisplayFor('advancedAnalysis').label,
         'Advanced run analysis',
       );
       expect(
-        premiumFeatureDisplayFor('healthWorkoutImport').label,
-        'Health workout import',
+        premiumFeatureDisplayFor('aiHomeCoach').label,
+        'AI home coach',
       );
     });
 

@@ -157,9 +157,21 @@ export const DEFAULT_LEADERBOARD_CONFIG: LeaderboardConfig = deepFreeze({
 // `goalPlan` was RETIRED from this catalog on 2026-07-25: the
 // onboarding-generated beginner plan is the app's core beginner experience,
 // which premium must never gate, so offering the admin a switch that could
-// move it to Premium was itself the risk. Every remaining key is wired to a
-// real gate — a console flip changes what the app does, not just what the
-// upsell lists:
+// move it to Premium was itself the risk.
+//
+// `healthWorkoutImport` was RETIRED on 2026-08-13 for the opposite reason:
+// there is nothing left to gate. `65b41c49` ("remove the unimplemented
+// HealthKit import surface") deleted the whole surface — the
+// RuniacHealthKitImportChannel method channel, the HealthKit entitlement,
+// AppleHealthWorkoutImportRepository and its mock, the imported-workout
+// mapper, and the Watch and Health Apps screen — so no code has read this key
+// since. A catalog entry with no gate behind it is worse than no entry: the
+// console rendered a tier control that silently did nothing, which is exactly
+// the "hiding UI is not enforcement" failure the tier model exists to avoid.
+// Re-add it in the same commit that re-adds a real import gate, never before.
+//
+// Every remaining key is wired to a real gate — a console flip changes what
+// the app does, not just what the upsell lists:
 //   - advancedAnalysis  client-only gate (analysis is computed on-device);
 //                       also governs the post-run coaching card
 //   - aiHomeCoach       homeGuideAgent callable; a denied Basic runner keeps
@@ -172,7 +184,6 @@ export const DEFAULT_LEADERBOARD_CONFIG: LeaderboardConfig = deepFreeze({
 //                       that screen rather than unlocking it.
 //   - shareRouteToFeed  publishActivityToFeed callable
 //   - shareCards        client-only gate (achievement + rank card exports)
-//   - healthWorkoutImport  client-only gate (Apple Health / watch import)
 // Server-side gating goes through assertFeatureEntitlement()
 // (config/featureEntitlement.ts); the app applies the identical rule for its
 // paywall interception, which is UX only.
@@ -209,7 +220,6 @@ export const DEFAULT_FEATURE_ACCESS_CONFIG: FeatureAccessConfig = deepFreeze({
     // immediately, with no redeploy.
     shareRouteToFeed: { minimumTier: "basic", enabled: true },
     shareCards: { minimumTier: "basic", enabled: true },
-    healthWorkoutImport: { minimumTier: "basic", enabled: true },
   },
   version: 1,
 });

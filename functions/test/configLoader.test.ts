@@ -240,7 +240,6 @@ describe("validateFeatureAccessConfig", () => {
         workoutBriefing: "premium",
         shareRouteToFeed: "basic",
         shareCards: "basic",
-        healthWorkoutImport: "basic",
       },
     );
   });
@@ -250,6 +249,14 @@ describe("validateFeatureAccessConfig", () => {
     // premium must never gate it, so it is not offered as a console switch at
     // all — a tier an admin cannot set is a tier that cannot be set wrong.
     assert.equal("goalPlan" in DEFAULT_FEATURE_ACCESS_CONFIG.features, false);
+  });
+
+  it("keeps the removed health workout import out of the catalog", () => {
+    // 65b41c49 deleted the entire HealthKit import surface, so nothing reads
+    // this key any more. Listing it rendered a console tier control that
+    // silently gated nothing — the failure mode the tier model exists to
+    // prevent. It comes back only alongside a real import gate.
+    assert.equal("healthWorkoutImport" in DEFAULT_FEATURE_ACCESS_CONFIG.features, false);
   });
 
   it("keeps non-convertible and out-of-scope features out of the catalog", () => {

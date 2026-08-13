@@ -75,8 +75,9 @@ Preparation, launch commands, redaction rules, and the per-run record live in
 **These flows are derived from the app as it exists**, not from the PDD or an earlier plan.
 Re-derived 2026-07-31 against `main` from three sources: the five shell positions
 (Home `0`, Feed `1`, Run — a centre push action rather than a stacked tab, Leaderboard `3`,
-You `4`), the 61 exports in `functions/src/index.ts`, and the seven keys in
-`config/featureAccess` with their real tiers.
+You `4`), the 61 exports in `functions/src/index.ts`, and the keys in
+`config/featureAccess` with their real tiers (seven at the time of that derivation; six since
+`healthWorkoutImport` was retired on 2026-08-13).
 
 ### Tier 1 — core, both platforms (8 scenarios)
 
@@ -97,9 +98,9 @@ after T1-2, with the four-part evidence bundle below.
 **T1-4 Tier boundary.** Three assertions, not one:
 - A Basic User is **denied** at each of the three server-enforced premium gates —
   `aiHomeCoach`, `activityFeedback`, `workoutBriefing`.
-- A Basic User **can still use** the basic-tier features: `shareRouteToFeed`, `shareCards`,
-  `healthWorkoutImport`. `shareRouteToFeed` has a real server gate that is simply open at this
-  tier, so a denial here is a regression, not a pass.
+- A Basic User **can still use** the basic-tier features: `shareRouteToFeed` and `shareCards`.
+  `shareRouteToFeed` has a real server gate that is simply open at this tier, so a denial here
+  is a regression, not a pass.
   Testing only the denials would miss a regression that locks Basic Users out of their own
   features.
 - A Premium User passes all of the above.
