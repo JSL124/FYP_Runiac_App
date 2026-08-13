@@ -59,6 +59,7 @@ import {
 } from "./challengeStateMachine.js";
 
 import {
+  deriveChallengeMode,
   instanceRef,
   invitationId,
   invitationRef,
@@ -305,7 +306,7 @@ export async function createChallengeLobbyForCallable(
       ownerUid: uid,
       tierId,
       catalogVersion: CHALLENGE_CATALOG_VERSION,
-      mode: "SOLO",
+      mode: deriveChallengeMode(1),
       status: "RECRUITING",
       rules,
       rosterUids: [uid],
@@ -596,8 +597,13 @@ export async function respondToChallengeInvitationForCallable(
     const identity = buildParticipantIdentity(profileSnap.data());
     const reservedAt = Timestamp.fromMillis(nowMs);
 
+    const newRosterUids = [...loaded.roster, uid];
+
     transaction.update(inviteSnap.ref, { status: "ACCEPTED", respondedAt: reservedAt });
-    transaction.update(loaded.ref, { rosterUids: [...loaded.roster, uid] });
+    transaction.update(loaded.ref, {
+      rosterUids: newRosterUids,
+      mode: deriveChallengeMode(newRosterUids.length),
+    });
     transaction.set(participantRef(firestore, challengeId, uid), {
       uid,
       role: "member",
@@ -674,8 +680,13 @@ export async function withdrawFromChallengeLobbyForCallable(
       throw challengeError("ILLEGAL_STATE");
     }
 
+    const newRosterUids = loaded.roster.filter((entry) => entry !== uid);
+
     transaction.update(participantSnap.ref, { status: "LEFT", result: "LEFT" });
-    transaction.update(loaded.ref, { rosterUids: loaded.roster.filter((entry) => entry !== uid) });
+    transaction.update(loaded.ref, {
+      rosterUids: newRosterUids,
+      mode: deriveChallengeMode(newRosterUids.length),
+    });
     releaseRosterSlot(transaction, firestore, loaded, challengeId, uid);
     return { expired: false as const, idempotent: false };
   });
@@ -797,7 +808,7 @@ export async function startChallengeForCallable(
     const rules = loaded.rules;
     if (rules === undefined) throw challengeError("LOBBY_NOT_RECRUITING");
     const rosterSize = loaded.roster.length;
-    const mode: ChallengeMode = rosterSize === 1 ? "SOLO" : "GROUP";
+    const mode: ChallengeMode = deriveChallengeMode(rosterSize);
 
     const transition = transitionInstance(
       loaded.status,

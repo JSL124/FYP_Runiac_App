@@ -12,6 +12,7 @@ import type {
 import { evaluateFeedRelationship } from "../feed/relationship.js";
 import { isChallengeTierId } from "./challengeCatalog.js";
 import type {
+  ChallengeMode,
   ChallengeRulesSnapshot,
   ChallengeTierId,
 } from "./challengeTypes.js";
@@ -162,6 +163,21 @@ export function readRoster(data: DocumentData | undefined): readonly string[] {
   return value.filter((entry): entry is string => typeof entry === "string");
 }
 
+// The single source of truth for how `mode` follows a roster: SOLO for
+// exactly the owner alone, GROUP once anyone else has joined. Every
+// transaction that writes `rosterUids` on `challengeInstances/{id}` (create,
+// accept, withdraw, start) must pass its post-write roster size through this
+// function so the stored `mode` field can never drift from the roster that
+// actually backs it — the bug this closes was `rosterUids` growing on accept
+// while `mode` stayed whatever it was set to at create. `serializeInstance`
+// also re-derives `mode` through this same function at read time rather than
+// trusting the stored value verbatim, so a document written before every
+// mutation kept them in sync self-heals on the next read instead of relaying
+// a stale label.
+export function deriveChallengeMode(rosterSize: number): ChallengeMode {
+  return rosterSize <= 1 ? "SOLO" : "GROUP";
+}
+
 export function readRules(
   data: DocumentData | undefined,
 ): ChallengeRulesSnapshot | undefined {
@@ -268,15 +284,21 @@ export function serializeInstance(
   const startsAt = data["startsAt"];
   const scheduledEndsAt = data["scheduledEndsAt"];
   const terminalReason = data["terminalReason"];
+  const rosterUids = readRoster(data);
   return {
     challengeId,
     ownerUid: readString(data, "ownerUid"),
     tierId: readString(data, "tierId"),
     catalogVersion: readString(data, "catalogVersion"),
-    mode: readString(data, "mode"),
+    // Derived from the roster rather than read back verbatim: a legacy
+    // instance written before every roster mutation kept `mode` in sync (see
+    // `deriveChallengeMode`) would otherwise relay a stale SOLO/GROUP label.
+    // Re-deriving here means the read path can never surface an inconsistent
+    // mode, regardless of what is stored.
+    mode: deriveChallengeMode(rosterUids.length),
     status: readString(data, "status"),
     rules: readRules(data) ?? null,
-    rosterUids: readRoster(data),
+    rosterUids,
     maxParticipants: readNumber(data, "maxParticipants"),
     teamMeters: readNumber(data, "teamMeters"),
     createdAtMs: timestampToMillis(data["createdAt"]),
