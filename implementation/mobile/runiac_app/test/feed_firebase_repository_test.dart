@@ -286,6 +286,75 @@ void main() {
     );
   });
 
+  // The test above throws `FirebaseException` straight into the guard, which
+  // is not how the per-post like/comment probe reaches it: that probe runs two
+  // reads concurrently, and the concurrency primitive decides what type the
+  // guard actually sees. A record `(a, b).wait` reports the failure as
+  // `ParallelWaitError`, so `guardAuthorPage` never recognised the denial, no
+  // per-author guard fired, and a single denied probe failed the entire
+  // timeline. These cover the shape the probe really uses.
+  test('a denial reaching the guard through Future.wait isolates its author', () async {
+    await expectLater(
+      FirebaseFeedDataPort.guardAuthorPage<List<Object?>>(
+        'denied-author',
+        () => Future.wait<Object?>(<Future<Object?>>[
+          Future<Object?>.value('like probe'),
+          Future<Object?>.error(
+            FirebaseException(
+              plugin: 'cloud_firestore',
+              code: 'permission-denied',
+            ),
+          ),
+        ]),
+      ),
+      throwsA(
+        isA<FeedAuthorPermissionDenied>().having(
+          (error) => error.authorUid,
+          'author UID',
+          'denied-author',
+        ),
+      ),
+    );
+  });
+
+  test('a denial wrapped by a concurrent-wait error is still classified', () async {
+    await expectLater(
+      FirebaseFeedDataPort.guardAuthorPage<List<Object?>>(
+        'wrapped-author',
+        () => <Future<Object?>>[
+          Future<Object?>.value('like probe'),
+          Future<Object?>.error(
+            FirebaseException(
+              plugin: 'cloud_firestore',
+              code: 'permission-denied',
+            ),
+          ),
+        ].wait,
+      ),
+      throwsA(isA<FeedAuthorPermissionDenied>()),
+    );
+  });
+
+  test('a wrapped non-denial surfaces its cause, not the wrapper', () async {
+    await expectLater(
+      FirebaseFeedDataPort.guardAuthorPage<List<Object?>>(
+        'unavailable-author',
+        () => <Future<Object?>>[
+          Future<Object?>.error(
+            FirebaseException(plugin: 'cloud_firestore', code: 'unavailable'),
+          ),
+        ].wait,
+      ),
+      throwsA(
+        isA<FirebaseException>().having(
+          (error) => error.code,
+          'code',
+          'unavailable',
+        ),
+      ),
+    );
+  });
+
   test(
     'reconcile and disposed repositories preserve safe empty state',
     () async {
