@@ -4,6 +4,16 @@ import 'elevation_graph_snapshot.dart';
 import 'heart_rate_analysis_eligibility.dart';
 import 'pace_graph_snapshot.dart';
 
+/// Everything the Advanced Analysis screen renders, in one immutable value.
+///
+/// The unit of the screen is [AdvancedAnalysisMetric], and it is never a bare
+/// number: each metric carries its availability, its source and a confidence,
+/// so the widget layer can render "unavailable", "estimated" and "measured"
+/// differently without re-deriving any of that judgement itself.
+///
+/// That is also why an absent metric is modelled as an unavailable metric with
+/// a reason rather than as `null` — the screen explains the gap instead of
+/// quietly leaving a hole.
 enum AdvancedAnalysisMetricAvailability {
   available,
   unavailable,

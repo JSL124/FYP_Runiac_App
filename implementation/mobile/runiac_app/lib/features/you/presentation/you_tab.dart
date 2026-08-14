@@ -33,6 +33,14 @@ import 'widgets/you_plans_surface.dart';
 import 'widgets/you_progress_surface.dart';
 import 'widgets/you_segmented_control.dart';
 
+/// The You tab — the runner's own progress: level and XP, streak, weekly
+/// distance, activity history, their plan and the expert plan library.
+///
+/// Everything numeric here is read-only by design. XP, level, streak and rank
+/// are owned by the backend and rejected on client write by `firestore.rules`,
+/// so this tab displays progression state and never computes it. Starting a
+/// planned session hands off to the run flow, which is the only path that can
+/// cause those numbers to change.
 class YouTab extends StatefulWidget {
   const YouTab({
     super.key,

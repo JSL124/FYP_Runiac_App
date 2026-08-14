@@ -11,6 +11,12 @@ const _blue60 = Color(0x992F51C8);
 const _blue18 = Color(0x2E2F51C8);
 const _blue10 = Color(0x1A2F51C8);
 
+/// The shared sheet used everywhere Runiac offers to share something — a run,
+/// an achievement, a route.
+///
+/// It only presents the targets and reports which was chosen; it never builds
+/// the shared artefact itself. Each caller passes in what it wants shared,
+/// which is why a share card and a route link can use the same sheet.
 class RuniacShareBottomSheet extends StatelessWidget {
   const RuniacShareBottomSheet({
     super.key,

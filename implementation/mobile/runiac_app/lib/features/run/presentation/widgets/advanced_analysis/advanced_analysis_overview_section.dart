@@ -5,6 +5,12 @@ import 'advanced_analysis_score_ring.dart';
 import 'advanced_analysis_shared_widgets.dart';
 import 'advanced_analysis_theme.dart';
 
+/// The top of the Advanced Analysis screen: score ring, headline stats and the
+/// badges earned by the run.
+///
+/// The score is always shown with its confidence label, because the same number
+/// carries different weight depending on the run's data source — see
+/// [AdvancedAnalysisPerformanceOverviewBuilder], which decides both.
 class AdvancedAnalysisOverviewSection extends StatelessWidget {
   const AdvancedAnalysisOverviewSection({super.key, this.analysis});
 

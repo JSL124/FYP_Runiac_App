@@ -7,6 +7,15 @@ import {
 } from "./leaderboardSeedCommandTypes.js";
 import { cleanupInventoryFingerprint } from "./leaderboardSeedInventoryFingerprint.js";
 
+// Works out what the leaderboard seeder actually created, before a cleanup
+// deletes anything.
+//
+// Seeded documents are identified by fingerprint rather than by collection, so
+// a cleanup can tell a mock runner apart from a real one that happens to live
+// in the same collection. Anything that cannot be positively identified is
+// reported as an issue and blocks the cleanup instead of being deleted on the
+// assumption it was ours.
+
 const sourceCollections = ["users", "userProfiles", "leaderboardContributions"] as const;
 const candidateCollections = [
   "users",

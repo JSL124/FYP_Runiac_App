@@ -9,6 +9,16 @@ import '../../../you/presentation/widgets/activity_route_thumbnail_viewport.dart
 import 'feed_thumbnail_artifact.dart';
 import 'feed_thumbnail_capture.dart';
 
+/// Produces the thumbnail attached to a run when it is published to the feed.
+///
+/// A published post keeps its own image rather than re-rendering the run later:
+/// the feed must look the same to everyone, including viewers who cannot read
+/// the original run.
+///
+/// [CacheOnlyHistoryArtifactResolver] is the fast path — if the activity
+/// history already rendered this route, reuse that image instead of paying for
+/// a second render at publish time. Two generators exist because a run with a
+/// usable route is shown as a route, and one without falls back to its metrics.
 abstract interface class HistoryArtifactResolver {
   Future<FeedThumbnailArtifact?> resolve(ActivityRouteThumbnailRequest request);
 }

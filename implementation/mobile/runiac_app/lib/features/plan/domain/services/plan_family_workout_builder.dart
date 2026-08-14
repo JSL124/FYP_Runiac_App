@@ -3,6 +3,15 @@ import '../models/beginner_adaptive_plan_snapshot.dart';
 import '../models/plan_family.dart';
 import 'beginner_adaptive_plan_copy.dart';
 
+/// Builds the individual sessions of a plan once its shape has been decided.
+///
+/// [BeginnerPlanPolicyResolver] settles how many sessions and on which days;
+/// this fills them in — what each session actually asks the runner to do, and
+/// how that progresses week to week.
+///
+/// Session counts are capped per plan family rather than taken from the user's
+/// answer alone: a starter plan stays a starter plan even if the runner claims
+/// they can train every day.
 class PlanFamilyWorkoutBuilder {
   const PlanFamilyWorkoutBuilder();
 

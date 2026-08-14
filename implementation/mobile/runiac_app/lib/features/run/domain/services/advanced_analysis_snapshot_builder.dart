@@ -14,6 +14,15 @@ import 'cadence_graph_data_builder.dart';
 import 'elevation_analysis_graph_builder.dart';
 import 'pace_analysis_deriver.dart';
 
+/// Assembles everything the Advanced Analysis screen shows from one finished
+/// run.
+///
+/// This is the fan-out point: it hands the summary to each specialist deriver
+/// and graph builder (pace, cadence, elevation, heart rate, splits, performance
+/// overview) and collects the results into a single immutable snapshot. Doing
+/// it here means the screen never has to know which parts of the analysis were
+/// unavailable — each deriver returns its own "unavailable" state with a
+/// reason, and the widget just renders whatever it is handed.
 class AdvancedAnalysisSnapshotBuilder {
   const AdvancedAnalysisSnapshotBuilder();
 

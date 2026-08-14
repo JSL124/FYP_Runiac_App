@@ -1,3 +1,13 @@
+// A validated pace series — the pace counterpart of `cadence_analysis_series.dart`,
+// and it follows the same rules deliberately.
+//
+// Samples are validated on the way in (plausible pace, non-decreasing elapsed
+// time and distance) and rejected samples are retained with a reason rather
+// than silently dropped. A run that is too short or too slow to say anything
+// meaningful about is refused up front by the minimum duration and distance
+// constants below, so the analysis screens never present a trend inferred from
+// a 20-second walk.
+
 const minPaceAnalysisPaceSecondsPerKm = 150;
 const maxPaceAnalysisPaceSecondsPerKm = 1800;
 const defaultMinimumPaceAnalysisSamples = 3;

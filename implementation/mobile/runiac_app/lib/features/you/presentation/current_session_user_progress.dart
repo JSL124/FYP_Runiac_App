@@ -6,6 +6,17 @@ import '../data/local_user_progress_cache_store.dart';
 import '../domain/models/user_progress_read_model.dart';
 import '../domain/repositories/user_progress_repository.dart';
 
+/// Holds the signed-in runner's progression state for the lifetime of the
+/// session, and exposes it to the widget tree through
+/// [CurrentSessionUserProgressScope].
+///
+/// Level, XP and streak are shown on several surfaces at once (You tab, Home,
+/// share cards). Fetching per surface would both waste reads and let them
+/// disagree mid-frame, so they all read this one store.
+///
+/// [CurrentSessionUserProgressStatus.failure] is a state the UI is expected to
+/// render, not an error to swallow — progress that failed to load must look
+/// different from progress that is genuinely zero.
 enum CurrentSessionUserProgressStatus { idle, loading, loaded, failure }
 
 class CurrentSessionUserProgressSnapshot {

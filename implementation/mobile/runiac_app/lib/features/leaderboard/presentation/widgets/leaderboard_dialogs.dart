@@ -5,6 +5,12 @@ import '../data/leaderboard_demo_snapshots.dart';
 import '../models/leaderboard_display_models.dart';
 import 'leaderboard_top_overlay.dart';
 
+/// The explainer dialogs behind the leaderboard's help icons — how scoring
+/// works, and what the league tiers mean.
+///
+/// Split out of the tab because they are pure copy: a runner who does not
+/// understand why their rank moved will not trust the leaderboard, and these
+/// two dialogs are the answer to that.
 void showLeaderboardTipsDialog(BuildContext context) {
   showDialog<void>(
     context: context,

@@ -1,3 +1,12 @@
+/// The 16-step onboarding questionnaire, described as data.
+///
+/// The steps are a list of [OnboardingStep] values rather than 16 hand-built
+/// screens: one screen widget renders any step from its [OnboardingStepKind],
+/// so adding or reordering a question is an edit to this file alone.
+///
+/// [OnboardingBannerKind] marks the two steps that need a warning rather than
+/// just options — location permission, and the health/symptoms answers that
+/// feed the safety gate.
 enum OnboardingStepKind { welcome, single, multi, preview }
 
 enum OnboardingBannerKind { location, symptoms }

@@ -5,6 +5,14 @@ import '../../../../core/theme/runiac_colors.dart';
 import '../../domain/repositories/user_profile_persistence_repository.dart';
 import '../../domain/singapore_region_options.dart';
 
+/// The profile form fields shared by onboarding and profile editing.
+///
+/// Shared so the same value is captured the same way in both places — date of
+/// birth uses a Cupertino-style wheel rather than free text, and age is derived
+/// and read-only rather than asked for, so it cannot disagree with the date.
+///
+/// Region is a fixed picker from the Singapore options list; leaderboard
+/// standings are regional, so a free-text region would not be rankable.
 class ProfileDateOfBirthField extends StatelessWidget {
   const ProfileDateOfBirthField({
     required this.value,

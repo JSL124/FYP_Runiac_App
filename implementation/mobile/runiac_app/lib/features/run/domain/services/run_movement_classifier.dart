@@ -1,6 +1,13 @@
 import '../models/run_location_sample.dart';
 import '../models/run_motion_evidence.dart';
 
+/// Judges a single GPS sample: is this the runner moving, GPS drift, or a
+/// reading that should be thrown away entirely?
+///
+/// Deliberately stateless — it sees one sample against one anchor and returns a
+/// verdict. `LocalRunTrackingSession` holds everything that spans samples
+/// (dwell timers, candidate streaks), so this file stays testable in isolation
+/// and the accept/reject rules live in one readable place.
 enum RunMovementClassificationType {
   gpsMeaningfulMovement,
   gpsResumeCandidate,

@@ -1,5 +1,15 @@
 part of 'current_session_activity_history.dart';
 
+/// Keeps the activity history correct when a finished run cannot reach the
+/// backend.
+///
+/// A run is saved locally the moment it ends, then synced. If the sync fails the
+/// run must still appear in the history — losing it is the worst outcome — so
+/// this extension records the failure, keeps the local copy, and retries later.
+///
+/// [isRunCompletionContextCurrent] guards every write: by the time a slow sync
+/// returns, the user may have signed out or started another run, and applying a
+/// stale result would corrupt the history that is now on screen.
 extension CurrentSessionActivityHistoryPersistence
     on CurrentSessionActivityHistoryStore {
   Future<void> recordForegroundRunSyncFailure({

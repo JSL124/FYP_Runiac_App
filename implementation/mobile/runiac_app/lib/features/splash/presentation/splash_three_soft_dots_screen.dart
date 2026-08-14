@@ -6,6 +6,13 @@ import 'package:flutter/material.dart';
 
 import 'runiac_splash_tokens.dart';
 
+/// The launch splash — three soft dots animating while the app decides where to
+/// go.
+///
+/// It is a real screen rather than a native launch image because the work
+/// behind it varies: restoring the session, loading progress, and choosing
+/// between onboarding, Home and sign-in. The animation loops rather than
+/// running once, so a slow cold start does not end up frozen on a final frame.
 class SplashThreeSoftDotsScreen extends StatefulWidget {
   const SplashThreeSoftDotsScreen({super.key});
 

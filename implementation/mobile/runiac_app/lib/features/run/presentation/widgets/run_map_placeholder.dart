@@ -10,6 +10,13 @@ const _routeWhite = Color(0xFFF8FAFF);
 const _runnerHalo = Color(0x66304BB7);
 const _runnerOrange = Color(0xFFFF6818);
 
+/// The stand-in map used when no Mapbox token is configured.
+///
+/// Not an error state: it is hand-painted with `CustomPainter`, draws the real
+/// route and the runner's real position, and keeps the recenter control
+/// working. Run tracking is entirely independent of the map, so a build without
+/// a token stays fully usable — which is what makes the offline mode described
+/// in the README possible.
 class RunMapPlaceholder extends StatelessWidget {
   const RunMapPlaceholder({
     super.key,

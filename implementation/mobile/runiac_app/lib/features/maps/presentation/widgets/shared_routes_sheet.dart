@@ -13,6 +13,12 @@ const _previewSheetHeight = 405.0;
 const _expandedSheetScreenFraction = 0.7;
 const _collapsedSheetHeight = 46.0;
 
+/// The draggable sheet of nearby shared routes that sits over the map.
+///
+/// It has to coexist with a map underneath: the drag handle area is the only
+/// region that owns vertical gestures, so panning the map through the exposed
+/// part of the sheet keeps working. Snap positions are fixed rather than free
+/// so the sheet cannot be left in a state that hides the map entirely.
 class SharedRoutesSheet extends StatefulWidget {
   const SharedRoutesSheet({super.key});
 

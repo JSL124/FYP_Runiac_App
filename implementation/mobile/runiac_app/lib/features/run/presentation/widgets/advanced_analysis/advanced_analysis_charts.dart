@@ -10,6 +10,18 @@ import '../../data/advanced_analysis_demo_snapshots.dart';
 import 'advanced_analysis_chart_helpers.dart';
 import 'advanced_analysis_theme.dart';
 
+/// The three `CustomPainter`s behind the Advanced Analysis graphs — pace,
+/// elevation and cadence.
+///
+/// Charts are hand-painted rather than drawn with a charting package: the axes,
+/// bands and locked-preview treatment are specific enough that configuring a
+/// library cost more than painting them. Each painter takes an already-built
+/// graph snapshot and does no derivation of its own — all the smoothing,
+/// bucketing and axis-range decisions happened in the `*GraphDataBuilder`
+/// classes.
+///
+/// Pace is drawn with its axis inverted: lower seconds-per-km is faster, so
+/// "better" has to read as "higher" on the chart.
 class AdvancedAnalysisPaceChartPainter extends CustomPainter {
   const AdvancedAnalysisPaceChartPainter({this.graph});
 

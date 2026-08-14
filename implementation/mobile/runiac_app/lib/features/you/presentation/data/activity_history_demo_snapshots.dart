@@ -1,3 +1,11 @@
+// The activity history shown when the app runs without a backend.
+//
+// These are full runs, not stubs — each carries a route, pace and cadence
+// series, and a source label — because the history, summary and analysis
+// screens all read the same models. A thin fixture would make those screens
+// untestable in offline mode, which is the mode the README points a reviewer at
+// first.
+
 import '../../../run/domain/models/run_activity_display_model.dart';
 import '../../../run/domain/models/cadence_analysis_series.dart';
 import '../../../run/domain/models/elevation_analysis_series.dart';

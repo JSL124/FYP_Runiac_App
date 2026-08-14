@@ -5,6 +5,16 @@ import 'package:flutter/widgets.dart';
 import '../../../run/domain/models/run_location_sample.dart';
 import '../../../run/domain/models/run_route_snapshot.dart';
 
+/// Works out how to frame a route inside a small thumbnail.
+///
+/// The hard case is a very short run: fitting its bounds to the viewport would
+/// zoom in so far that a 200 m jog fills the frame like a marathon. The three
+/// [ActivityRouteThumbnailViewportMode] values are that decision made explicit —
+/// a route worth framing, a route too small to frame honestly, and no route at
+/// all — and each is drawn differently.
+///
+/// Pure geometry with no Flutter painting, so the fit can be unit-tested
+/// directly.
 enum ActivityRouteThumbnailViewportMode { meaningfulRoute, tinyRoute, noRoute }
 
 class ActivityRouteThumbnailViewport {

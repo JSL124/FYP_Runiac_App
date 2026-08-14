@@ -1,3 +1,12 @@
+// Parses and validates an activity-feedback request before anything reaches the
+// model.
+//
+// The callable's payload is client-supplied, so `parseActivityFeedbackRequest`
+// accepts only the known keys, enforces the split cap and text limits, and
+// throws [ActivityFeedbackContractError] otherwise. Unknown fields are rejected
+// rather than ignored — that is what stops a client from smuggling extra text
+// into the prompt.
+
 import type {
   ActivityFeedbackCadenceMetrics,
   ActivityFeedbackElevationMetrics,

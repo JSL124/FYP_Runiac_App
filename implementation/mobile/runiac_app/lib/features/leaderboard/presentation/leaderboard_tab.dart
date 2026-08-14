@@ -23,6 +23,15 @@ import 'widgets/leaderboard_top_overlay.dart';
 import 'widgets/runner_achievement_profile_screen.dart';
 import 'widgets/share_rank_floating_panel.dart';
 
+/// The Leaderboard tab — the runner's rank within their region and league tier.
+///
+/// Every number here is server-computed. The client cannot write a leaderboard
+/// score (`firestore.rules` rejects it) and does not recompute one for display,
+/// so a rank shown here is exactly what the backend ranked.
+///
+/// [_LeaderboardStateMessage] covers the states this tab spends real time in —
+/// loading, empty period, unranked, failed — because a leaderboard that is
+/// merely blank gives the runner no idea whether they are unranked or offline.
 class LeaderboardTab extends StatefulWidget {
   const LeaderboardTab({
     super.key,

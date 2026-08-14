@@ -4,6 +4,18 @@ import { createHomeGuideContextFingerprint, singaporeDayKey } from "./homeGuideQ
 
 export { createHomeGuideContextFingerprint, singaporeDayKey } from "./homeGuideQuotaFingerprint.js";
 
+// Daily quota and result cache for the Home guide agent.
+//
+// Two jobs, both about not paying for the same generation twice. A generated
+// guide is cached against a fingerprint of the context it was built from, so an
+// unchanged day reuses it; and each runner gets a bounded number of generations
+// per Singapore day.
+//
+// Reservation is lease-based ([LEASE_MILLIS]) rather than a plain counter
+// increment: two devices opening Home at once must not both be granted the last
+// generation of the day, and a request that dies mid-flight must not consume
+// quota forever — the lease simply expires.
+
 const DAILY_SCHEMA_VERSION = 1;
 const MAX_ATTEMPTS = 3;
 const LEASE_MILLIS = 90_000;

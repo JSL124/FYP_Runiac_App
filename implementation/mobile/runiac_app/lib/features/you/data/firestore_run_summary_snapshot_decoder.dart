@@ -3,6 +3,14 @@ import '../../run/domain/models/pace_analysis_series.dart';
 import '../../run/domain/models/run_location_sample.dart';
 import '../../run/domain/models/run_route_snapshot.dart';
 
+/// Reconstructs the heavy parts of a past run — route, pace series, elevation —
+/// from its stored Firestore document.
+///
+/// Kept apart from the repository because this is the untrusted boundary: the
+/// document may have been written by an older app version or be partially
+/// missing. Decoding therefore validates rather than casts, and reports what it
+/// could not rebuild (see [FirestoreRunSummaryDetails.hasValidPersistedRoutePreview])
+/// so the summary can show a run without a route instead of failing to open it.
 class FirestoreRunSummaryDetails {
   const FirestoreRunSummaryDetails({
     required this.route,

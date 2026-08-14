@@ -9,6 +9,13 @@ const _successGreen = Color(0xFF0F9F52);
 const _softOrange = Color(0xFFFFF4DF);
 const _starOrange = Color(0xFFF6A800);
 
+/// The progress block on Home: weekly goal, streak and the supporting metric
+/// cards.
+///
+/// This is the runner's at-a-glance answer to "am I on track this week", so the
+/// goal bar is the emphasis and everything else supports it. Progress beyond
+/// 100% is clamped for the bar but still stated in the label — overshooting a
+/// weekly goal should read as a win, not as a full bar with no explanation.
 class HomeProgressInsightSection extends StatelessWidget {
   const HomeProgressInsightSection({
     super.key,

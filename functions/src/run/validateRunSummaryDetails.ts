@@ -2,6 +2,19 @@ import { HttpsError } from "firebase-functions/v2/https";
 import type { ElevationSeriesPayload, PaceAnalysisSeriesPayload } from "./runCompletionTypes.js";
 import { rejectUnsupportedFields } from "./rejectUnsupportedFields.js";
 
+// Validation for the optional analysis series a client sends with a finished
+// run — the pace series and the elevation series.
+//
+// This is a trust boundary. The payload arrives from the app, so it is checked
+// for internal consistency rather than accepted: samples must be within
+// plausible bounds, must not exceed the sample cap, and must agree with the
+// run's own duration and distance to within the tolerances below. A payload
+// that fails is rejected with an `HttpsError`, not silently trimmed.
+//
+// The tolerances are deliberately loose. The goal is to reject fabricated or
+// corrupt data, not to re-derive the run — GPS noise means a legitimate series
+// never lines up exactly with the summary.
+
 const maxAnalysisSampleCount = 360;
 const minPaceSecondsPerKm = 150;
 const maxPaceSecondsPerKm = 1_800;

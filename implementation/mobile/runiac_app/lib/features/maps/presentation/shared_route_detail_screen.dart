@@ -7,6 +7,14 @@ import 'widgets/shared_route_detail_actions.dart';
 import 'widgets/shared_route_detail_painters.dart';
 import 'widgets/shared_route_detail_sections.dart';
 
+/// One shared route in full: its shape, its metrics, and what can be done with
+/// it — save, share or report.
+///
+/// The screen takes a [SharedRouteDetailSnapshot] rather than fetching, because
+/// it is reached from several places (the map sheet, saved routes, a feed post)
+/// that have already loaded the route. Reporting matters here: a shared route
+/// is user-generated content, so the report path feeds the admin console's
+/// Exception Queue.
 class SharedRouteDetailSnapshot {
   const SharedRouteDetailSnapshot({
     required this.title,

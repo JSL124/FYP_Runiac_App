@@ -2,6 +2,14 @@ import 'package:flutter/material.dart';
 
 import '../theme/runiac_colors.dart';
 
+/// The app's shared button styles and tap surfaces.
+///
+/// Every button in Runiac should come from here rather than from a locally
+/// styled `ElevatedButton` — that is what keeps tap targets, radii and
+/// disabled states consistent across features written at different times.
+///
+/// [RuniacButtonTone] is the only choice a caller normally makes: blue is the
+/// default action, orange is reserved for the primary action of a screen.
 enum RuniacButtonTone { blue, orange }
 
 class RuniacButtonStyles {

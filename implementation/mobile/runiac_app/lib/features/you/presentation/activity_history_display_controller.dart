@@ -11,6 +11,17 @@ import 'current_session_activity_history.dart';
 import 'data/activity_history_demo_snapshots.dart';
 import 'data/you_overview_demo_snapshots.dart';
 
+/// Decides what the activity history shows, from three sources that can
+/// disagree.
+///
+/// A run may exist only on the backend, only on this device (finished offline
+/// and not yet synced), or in both. This controller merges them into one
+/// ordered list without duplicates, so a run does not appear twice the moment
+/// its sync lands.
+///
+/// It also picks the demo history when the app runs without a backend, which is
+/// why the static snapshots are imported here rather than in the screen — the
+/// widget layer stays unaware of which source it is rendering.
 class ActivityHistoryDisplayController extends ChangeNotifier {
   ActivityHistoryDisplayController({
     required this.repository,

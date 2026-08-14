@@ -25,6 +25,14 @@ const List<String> _kFriendsTabLabels = [
   'Blocked',
 ];
 
+/// Friends: the runner's list, incoming requests, and search.
+///
+/// Sectioned by a segmented control rather than tabs so the pending-request
+/// count stays visible while browsing the list — a request the user never
+/// notices is a request that never gets accepted.
+///
+/// Reporting a user is reachable from here and writes to the moderation queue
+/// the admin console triages.
 class FriendsScreen extends StatefulWidget {
   const FriendsScreen({
     required this.authRepository,

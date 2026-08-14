@@ -11,6 +11,16 @@ import '../../domain/models/local_onboarding_draft.dart';
 import 'first_week_preview.dart';
 import 'onboarding_visuals.dart';
 
+/// The last onboarding step: what we concluded about the runner, and the plan
+/// that follows from it.
+///
+/// Shown before anything is committed so the runner can go back and change an
+/// answer. The plan here is produced by the real
+/// [BeginnerAdaptivePlanGenerator] — generation is deterministic, so the
+/// previewed plan is exactly the plan they will get, not an approximation.
+///
+/// [_SafetyReadinessPreview] surfaces the safety gate when the health answers
+/// triggered an easier start, so an adjusted plan is never a silent one.
 class OnboardingPreviewBody extends StatelessWidget {
   const OnboardingPreviewBody({required this.answers, super.key});
 

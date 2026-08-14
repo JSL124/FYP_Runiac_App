@@ -1,5 +1,13 @@
 import 'package:flutter/material.dart';
 
+// A developer overlay that exposes what the run map's camera-follow logic is
+// doing — follow state, camera centre, and why follow was released or resumed.
+//
+// Camera follow misbehaves in ways that are almost impossible to diagnose from
+// a video of a device: the fix is usually to see the state at the moment it
+// went wrong. Compiled out unless `RUNIAC_MAPBOX_FOLLOW_QA` is passed at build
+// time, so it costs shipped builds nothing.
+
 const runMapboxFollowQaEnabled = bool.fromEnvironment(
   'RUNIAC_MAPBOX_FOLLOW_QA',
 );

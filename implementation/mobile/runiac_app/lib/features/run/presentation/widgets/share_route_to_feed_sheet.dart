@@ -6,6 +6,13 @@ import '../../../feed/data/feed_publish/feed_thumbnail_artifact.dart';
 import '../../../feed/domain/models/feed_display_models.dart';
 import 'share_route_feed_preview.dart';
 
+// The sheet for sharing a finished run to the feed: preview, caption, publish.
+//
+// Publishing is the point of no return, so the sheet shows
+// [ShareRouteFeedPostPreview] first and keeps the confirm action distinct from
+// dismissing. The actual write goes through `FeedPublishService`; this file
+// owns only the composing UI and the thumbnail hand-off.
+
 const _rBlue = Color(0xFF2F51C8);
 const _rWhite = Color(0xFFFFFFFF);
 const _rBlue60 = Color(0x992F51C8);

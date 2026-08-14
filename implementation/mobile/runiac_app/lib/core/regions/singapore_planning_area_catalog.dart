@@ -1,4 +1,9 @@
 // GENERATED FILE. Run: node tools/leaderboard/generate_leaderboard_contracts.mjs
+//
+// The Singapore planning areas the regional leaderboard ranks within, and the
+// region each one rolls up to. Do not edit by hand — the same generator emits
+// the backend's copy, and the two must agree or a runner can be scored into a
+// region the server does not recognise.
 class SingaporePlanningArea {
   const SingaporePlanningArea({
     required this.regionId,

@@ -1,5 +1,11 @@
 part of 'weekly_workout_detail_screen.dart';
 
+/// The wheel pickers for choosing when a planned session happens.
+///
+/// Split out of `weekly_workout_detail_screen.dart` as a `part` to keep that
+/// screen readable; these widgets are private to it. [_WheelTimeSelection] is
+/// what keeps the hour, minute and meridiem wheels consistent with each other,
+/// so the screen deals in one selection rather than three controllers.
 class _TimeWheelPicker extends StatelessWidget {
   const _TimeWheelPicker({
     required this.controller,

@@ -8,6 +8,13 @@ import 'activity_route_mapbox_snapshot_provider.dart';
 import 'activity_route_preview.dart';
 import 'activity_route_snapshot_thumbnail_cache.dart';
 
+/// One run as a row in the activity history: route thumbnail, date, and the
+/// headline metrics.
+///
+/// The thumbnail is resolved through the shared snapshot cache rather than
+/// rendered per card — a scrolling history would otherwise start a Mapbox
+/// snapshot per row. When no Mapbox token is configured the card falls back to
+/// the painted route preview, so the history looks complete offline.
 class CompactRunActivityCard extends StatelessWidget {
   const CompactRunActivityCard({
     required this.activity,

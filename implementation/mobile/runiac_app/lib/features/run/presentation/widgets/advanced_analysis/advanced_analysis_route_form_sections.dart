@@ -7,6 +7,13 @@ import 'advanced_analysis_charts.dart';
 import 'advanced_analysis_shared_widgets.dart';
 import 'advanced_analysis_theme.dart';
 
+/// The elevation and cadence sections of the Advanced Analysis screen.
+///
+/// Both describe the shape of the route and the runner's form, and both are the
+/// most likely metrics to be missing — elevation needs usable altitude
+/// readings, cadence needs a trustworthy source. Each section therefore has a
+/// first-class unavailable state that names the reason instead of hiding, so
+/// the screen keeps its structure whatever the run contained.
 class AdvancedAnalysisElevationSection extends StatelessWidget {
   const AdvancedAnalysisElevationSection({super.key, this.analysis});
 

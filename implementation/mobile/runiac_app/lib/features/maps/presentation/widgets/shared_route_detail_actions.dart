@@ -4,6 +4,11 @@ import '../../../../core/theme/runiac_colors.dart';
 import '../../../../core/widgets/runiac_buttons.dart';
 import 'shared_route_detail_sections.dart';
 
+/// The header and share flow of the shared-route detail screen.
+///
+/// Sharing shows [RouteDetailSharePreviewSheet] first — the runner sees exactly
+/// what will be published before it is, since a route reveals where someone
+/// runs. The notice in that sheet is part of the flow, not decoration.
 class RouteDetailHeader extends StatelessWidget {
   const RouteDetailHeader({required this.onShare, super.key});
 

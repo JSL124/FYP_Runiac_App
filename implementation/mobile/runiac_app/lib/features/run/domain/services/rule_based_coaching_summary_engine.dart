@@ -21,6 +21,23 @@ const int _steadyPaceSpreadSeconds = 35;
 const int _fastStartFadeSeconds = 55;
 const int _strongFinishSeconds = 35;
 
+/// Writes the post-run Coaching Summary and Next Focus **without** calling an
+/// LLM.
+///
+/// The run is first reduced to a handful of coarse signals (`_Coaching*` enums
+/// below: how long it was, whether the pace data is trustworthy, the pace
+/// pattern, cadence, elevation, heart rate), and the copy is then chosen from
+/// those. Two consequences worth knowing before editing:
+///
+/// * It is deterministic. The same run always produces the same words, so the
+///   tests assert on exact copy.
+/// * It degrades instead of guessing. When the data is too thin to support a
+///   claim the engine says less rather than inventing a trend — which is why
+///   the thresholds above are conservative.
+///
+/// The LLM-backed feedback is a separate, Premium-only path
+/// (`cloud_function_activity_feedback_agent.dart`); this engine is what every
+/// runner gets.
 class RuleBasedCoachingSummaryEngine {
   const RuleBasedCoachingSummaryEngine();
 

@@ -12,6 +12,15 @@ const double _routeLikeCountWidth = 38;
 const double _routeLikeClusterWidth =
     _routeLikeTapTargetWidth + _routeLikeIconCountGap + _routeLikeCountWidth;
 
+/// A shared route as a compact card — thumbnail, distance, and the like
+/// control.
+///
+/// The like button updates locally the moment it is pressed and reconciles with
+/// the backend afterwards, because these cards appear in scrolling lists where
+/// waiting for a round trip reads as an unresponsive tap.
+///
+/// [_RouteThumbnailPainter] draws the route shape directly, so a card needs no
+/// map tiles and costs nothing to render in a list.
 class RoutePreviewCard extends StatelessWidget {
   const RoutePreviewCard({
     required this.title,

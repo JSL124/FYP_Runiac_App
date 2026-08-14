@@ -1,5 +1,14 @@
 part of 'view_summary_screen.dart';
 
+/// Paints the summary's pace line.
+///
+/// Deliberately simpler than the Advanced Analysis pace chart: this one is a
+/// glanceable shape on the summary card, so it draws the line and its fill
+/// without axes or labels.
+///
+/// [isLockedPreview] is the Basic-tier treatment — the real shape is still
+/// drawn, then blurred and dimmed, so the runner can see there is something
+/// there rather than being shown a blank teaser.
 class _PaceChartPainter extends CustomPainter {
   const _PaceChartPainter({required this.graph, required this.isLockedPreview});
 

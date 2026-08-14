@@ -85,6 +85,16 @@ double paceChartDisplayProgressForPoint({
   return rawProgressFraction.clamp(0.0, 1.0);
 }
 
+/// The post-run summary — the screen a runner lands on when a run ends.
+///
+/// It shows the distance/time/pace headline, the route, splits and the pace
+/// graph, the XP earned, and the entry points to the deeper Premium surfaces
+/// (Advanced Analysis, AI activity feedback, sharing).
+///
+/// The same screen is reached two ways: straight from finishing a run, and by
+/// reopening a past run from the activity history. It therefore takes a
+/// completed result rather than live tracking state, so both paths render
+/// identically.
 class ViewSummaryScreen extends StatelessWidget {
   const ViewSummaryScreen({
     super.key,

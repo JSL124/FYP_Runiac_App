@@ -10,6 +10,17 @@ import 'activity_route_preview.dart';
 import 'activity_route_snapshot_thumbnail_cache.dart';
 import 'activity_route_thumbnail_viewport.dart';
 
+/// Renders a route thumbnail by driving Mapbox's off-screen snapshotter.
+///
+/// The snapshotter is a native resource that must be created, used and disposed
+/// in order; leaking one leaks memory on the device. That is what the explicit
+/// runtime and lifecycle types here are for, and why the history list goes
+/// through [ActivityRouteSnapshotThumbnailMemoryCache] rather than snapshotting
+/// per card.
+///
+/// Output is re-encoded as an 8-bit PNG (`core/imaging/eight_bit_png.dart`) —
+/// a thumbnail this small does not need full colour depth, and the smaller
+/// bytes matter when a screen shows dozens of them.
 class ActivityRouteMapboxSnapshotStyle {
   const ActivityRouteMapboxSnapshotStyle._();
 

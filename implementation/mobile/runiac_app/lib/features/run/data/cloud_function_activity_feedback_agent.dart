@@ -9,6 +9,15 @@ typedef ActivityFeedbackCallable =
     Future<Object?> Function(Map<String, Object?> payload);
 typedef ActivityFeedbackOwnerUidProvider = String? Function();
 
+/// Calls the backend AI activity-feedback agent for one finished run.
+///
+/// Results are cached locally per (owner, run) — see
+/// [_ActivityFeedbackCacheAddress] — because the feedback for a completed run
+/// never changes, and each generation costs an LLM call against the user's
+/// quota. Reopening a run summary must therefore not spend a second one.
+///
+/// The cache is keyed by owner as well as run so that signing in as a different
+/// account on the same device cannot surface someone else's feedback.
 class CloudFunctionActivityFeedbackAgent implements ActivityFeedbackAgent {
   CloudFunctionActivityFeedbackAgent({
     FirebaseFunctions? functions,

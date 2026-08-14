@@ -7,6 +7,16 @@ import '../../../run/domain/models/run_route_snapshot.dart';
 import 'activity_route_preview.dart';
 import 'activity_route_thumbnail_viewport.dart';
 
+/// Caches the little route thumbnails drawn on activity-history cards.
+///
+/// Rendering a route image is expensive and the history scrolls, so thumbnails
+/// are cached and their in-flight renders de-duplicated — [_InFlightArtifactKey]
+/// is what stops the same route being rendered several times while the first
+/// render is still running.
+///
+/// Every cache key includes the owning account ([_OwnedArtifactKey]). Signing
+/// out and back in as someone else must not surface the previous account's
+/// route images, and the lifecycle drops the owner's artifacts on sign-out.
 class ActivityRouteSnapshotThumbnailCacheKey {
   const ActivityRouteSnapshotThumbnailCacheKey({
     required this.activityIdentity,

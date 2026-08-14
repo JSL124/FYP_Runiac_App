@@ -11,6 +11,13 @@ class ActivityFeedbackPayloadException implements Exception {
   String toString() => 'ActivityFeedbackPayloadException: $message';
 }
 
+/// Packs a finished run into the request body for the AI activity-feedback
+/// callable.
+///
+/// The build deliberately throws rather than degrading: demo/imported runs are
+/// rejected here, at the client, so a fabricated run can never reach the agent
+/// and come back as personalised advice the runner did not earn. Treat the
+/// exception as a programming error at the call site, not a user-facing state.
 class ActivityFeedbackPayloadBuilder {
   const ActivityFeedbackPayloadBuilder();
 

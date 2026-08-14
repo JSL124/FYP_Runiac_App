@@ -9,6 +9,17 @@ import '../domain/models/run_tracking_notification_copy.dart';
 import '../domain/repositories/run_location_preview_provider.dart';
 import '../domain/repositories/run_location_provider.dart';
 
+/// The real GPS source for a run, backed by `geolocator`.
+///
+/// Tracking has to survive the screen going off, so the stream runs as a
+/// foreground service with a persistent notification. On Android the app
+/// sometimes owns that service itself (`RuniacRunTrackingService`) rather than
+/// letting the plugin post its own — see
+/// [AndroidForegroundNotificationSettings.runiacOwnsAndroidForegroundService],
+/// which exists to stop two competing notifications from appearing.
+///
+/// The `ForegroundLocationAdapter` seam is what lets every run-tracking test
+/// run against scripted samples instead of a real device.
 class LocationSettingsRequest {
   const LocationSettingsRequest({
     this.highAccuracy = true,

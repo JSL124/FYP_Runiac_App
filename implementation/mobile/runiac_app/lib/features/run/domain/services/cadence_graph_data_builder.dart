@@ -4,6 +4,12 @@ import '../models/cadence_graph_snapshot.dart';
 const minVisibleCadenceRangeSpm = 20;
 const cadenceGraphRangePaddingSpm = 4;
 
+/// Builds the plotted cadence graph from a cadence series.
+///
+/// The counterpart to [PaceGraphDataBuilder], with one extra job: cadence is
+/// only trustworthy from some sources, so [build] refuses up front for a series
+/// whose origin cannot support a graph and returns an unavailable snapshot with
+/// a machine-readable reason instead of a half-drawn line.
 class CadenceGraphDataBuilder {
   const CadenceGraphDataBuilder();
 

@@ -38,6 +38,17 @@ class CompletedRouteMapboxSurfaceConfig {
   final bool isExpanded;
 }
 
+/// Draws the finished route of a completed run — used by the summary, the
+/// activity history and the share card.
+///
+/// The live map ([RunMapboxRunMap]) follows a moving point; this one has the
+/// whole route up front and must frame it, so the camera is fitted to the
+/// route's bounds with padding rather than centred on a position. There is no
+/// follow mode and no gesture handling to unwind.
+///
+/// Sharing renders this same surface off-screen, which is why the camera fit is
+/// a pure function of the route and viewport: the share image has to match what
+/// the runner saw.
 class CompletedRouteMapSurface extends StatelessWidget {
   const CompletedRouteMapSurface({
     super.key,

@@ -3,6 +3,14 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/runiac_colors.dart';
 import 'shared_route_detail_painters.dart';
 
+// The body sections of the shared-route detail screen — hero, metric strip,
+// elevation and runner notes.
+//
+// The `routeDetail*` constants below are the static/offline content for this
+// screen. They are exported rather than inlined so the widget tests assert
+// against the same strings the app renders, instead of duplicating copy that
+// can drift.
+
 const routeDetailTitle = 'Marina Bay easy loop';
 const routeDetailTagLine = 'EASY \u00B7 LOOP';
 const routeDetailLikeSummary = '128';

@@ -1,6 +1,16 @@
 import '../../../onboarding/domain/models/local_onboarding_draft.dart';
 import '../models/beginner_plan_profile.dart';
 
+/// Decides how often the runner trains and on which days.
+///
+/// The user says how many days a week they can run and which ones they prefer,
+/// but those answers can be unusable on their own — three sessions crammed into
+/// consecutive days is worse for a beginner than three spread out.
+/// [_DaySpacingScore] is how this is resolved: candidate day sets are scored on
+/// spacing and the best-spaced one that respects the stated preference wins.
+///
+/// The safety gate can lower the session count below what was asked for; it is
+/// never raised above it.
 class BeginnerPlanPolicyResolver {
   const BeginnerPlanPolicyResolver();
 

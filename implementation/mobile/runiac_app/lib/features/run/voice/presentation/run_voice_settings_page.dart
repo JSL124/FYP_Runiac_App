@@ -8,6 +8,16 @@ import '../domain/models/run_voice_language.dart';
 import '../domain/repositories/run_voice_settings_repository.dart';
 import 'run_voice_preview_page.dart';
 
+/// Settings for spoken run updates — language, how often to announce, and what
+/// each announcement includes.
+///
+/// Reached from the gear icon on the Run tab and configured once rather than
+/// per run. Changes are written straight through to the repository as they are
+/// made, so there is no save button and no unsaved state to lose.
+///
+/// **Preview voices** opens [RunVoicePreviewPage], which speaks a sample using
+/// the current selection — text-to-speech voice availability varies by device
+/// and language, so hearing it is the only reliable check.
 class RunVoiceSettingsPage extends StatefulWidget {
   const RunVoiceSettingsPage({
     this.settingsRepository =

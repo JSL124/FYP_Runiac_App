@@ -7,6 +7,15 @@ import '../domain/repositories/user_progress_repository.dart';
 import 'local_user_progress_cache_store.dart';
 import 'user_streak_refresh_service.dart';
 
+/// Reads the runner's progression state — level, XP, streak — from Firestore.
+///
+/// Read-only on purpose: these fields are backend-owned and client writes to
+/// them are rejected by `firestore.rules`. The only thing this repository
+/// triggers is a streak *refresh* (`UserStreakRefreshService`), which asks the
+/// backend to re-evaluate an expired streak rather than editing it here.
+///
+/// Results are cached locally so the You tab can render immediately on a cold
+/// start instead of showing a spinner over the user's own progress.
 abstract interface class UserProgressDocumentReader {
   Future<Map<String, Object?>?> readUserProgress({required String uid});
 }

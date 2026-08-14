@@ -1,3 +1,9 @@
+/// The answer sets for the onboarding questionnaire.
+///
+/// Every enum carries an explicit string [value] rather than relying on its
+/// Dart name, because these answers are persisted and are read back by the plan
+/// generator. Renaming a case is therefore safe; changing its `value` breaks
+/// every stored draft and must not be done casually.
 enum OnboardingGoal {
   habit('habit'),
   gentle('gentle'),

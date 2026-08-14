@@ -1,5 +1,11 @@
 part of 'view_summary_screen.dart';
 
+/// The route preview on the run summary, and the full-screen map it expands to.
+///
+/// [_MapPreview] picks between the interactive Mapbox surface and
+/// [_StaticMapPreview] depending on whether a token is configured, so callers
+/// never have to branch on it. [_SourceLabel] states where the run's data came
+/// from — a Runiac GPS run and an imported workout must not look identical.
 class _SourceLabel extends StatelessWidget {
   const _SourceLabel({required this.sourceLabel});
 

@@ -9,6 +9,11 @@ const _routeCardGap = 12.0;
 const _routeCardRadius = 20.0;
 const _routeVisualHeight = 140.0;
 
+/// The "explore routes" strip on Home — a horizontal row of suggested routes.
+///
+/// Each card's route shape is painted from its own points ([_RouteVisual])
+/// rather than loaded as an image, so the strip scrolls without any map tiles
+/// and costs Home nothing on first paint.
 class ExploreRoutesSection extends StatelessWidget {
   const ExploreRoutesSection({
     this.routes = homeExploreRouteDemoSnapshots,

@@ -7,6 +7,14 @@ import 'data/activity_history_demo_snapshots.dart';
 import 'widgets/compact_run_activity_card.dart';
 import 'widgets/you_surface_primitives.dart';
 
+/// The full activity history, browsable by month.
+///
+/// History is paged by month rather than loaded whole — a year of running is a
+/// lot of documents, and the month picker is what bounds each read.
+///
+/// The empty-filter state and the load-failure banner are deliberately
+/// different widgets: "you did not run in March" and "we could not load March"
+/// must not look the same to the runner.
 class ActivityHistoryScreen extends StatefulWidget {
   const ActivityHistoryScreen({
     required this.activityHistoryMonths,

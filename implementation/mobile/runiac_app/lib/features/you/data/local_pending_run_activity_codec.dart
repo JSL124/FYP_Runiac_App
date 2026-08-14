@@ -1,5 +1,17 @@
 part of 'local_pending_run_activity_store.dart';
 
+// JSON encoding for runs that finished while the device was offline and are
+// waiting to be synced.
+//
+// This is persisted data, so it has to survive app updates: decoding is written
+// to tolerate records written by older versions rather than assuming the
+// current shape. The `_legacy*` constants below are the sanity bounds applied
+// to values from those older records — a stored run whose cadence falls outside
+// them is treated as unusable rather than trusted.
+//
+// A decode failure must never lose the run. Prefer dropping a single suspect
+// field over rejecting the whole record.
+
 const _legacyCompleteRunMinCadenceSpm = 90;
 const _legacyCompleteRunMaxCadenceSpm = 220;
 

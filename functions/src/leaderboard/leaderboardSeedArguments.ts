@@ -6,6 +6,14 @@ import {
   type SeedCommand,
 } from "./leaderboardSeedCommandTypes.js";
 
+// Parses the leaderboard seeder's command line.
+//
+// Kept apart from the command itself so the argument rules are unit-testable
+// without a Firestore connection — which matters because this parser is the
+// first of the seeder's safety checks. An unrecognised action, a missing scope
+// or a production target that was not spelled out is rejected here, before
+// anything is opened.
+
 const actions = new Set<SeedAction>([
   "dry-run",
   "seed",

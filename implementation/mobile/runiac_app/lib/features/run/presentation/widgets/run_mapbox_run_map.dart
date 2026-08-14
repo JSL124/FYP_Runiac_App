@@ -17,6 +17,18 @@ const _ornamentTopMargin = 80.0;
 const _logoBelowScaleBarTopMargin = 104.0;
 const _attributionRightMargin = 24.0;
 
+/// The live Mapbox map shown while a run is in progress.
+///
+/// The Mapbox widget owns its own native surface, so this file is mostly about
+/// keeping that surface in step with Dart state without fighting it. The work
+/// is split into small sync controllers — style-ready, runner marker, camera —
+/// each of which waits for the native side to be ready before applying
+/// anything; applying too early silently does nothing on a real device.
+///
+/// Camera follow is released as soon as the user pans and only resumes when
+/// they press recenter, so the map never yanks itself back mid-gesture. If no
+/// Mapbox token is configured the caller falls back to [RunMapPlaceholder] and
+/// run tracking is unaffected.
 class RunMapboxRunMap extends StatefulWidget {
   const RunMapboxRunMap({super.key, required this.config});
 

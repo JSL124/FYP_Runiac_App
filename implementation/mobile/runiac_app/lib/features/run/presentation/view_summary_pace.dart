@@ -1,5 +1,14 @@
 part of 'view_summary_screen.dart';
 
+/// The pace graph card on the run summary.
+///
+/// Split out of `view_summary_screen.dart` as a `part` purely to keep that file
+/// readable — these widgets are private to the summary and are not meant to be
+/// reused elsewhere.
+///
+/// The card has a guard state: when the run is too short to say anything about
+/// pace, or the graph came back unavailable, it shows the explanation instead
+/// of an empty chart frame.
 class _PaceSection extends StatelessWidget {
   const _PaceSection({
     required this.hasSufficientData,

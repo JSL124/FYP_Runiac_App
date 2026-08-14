@@ -1,5 +1,11 @@
 part of 'feed_comment_sheet.dart';
 
+/// The layout half of [FeedCommentSheet], split off as a `part` to keep the
+/// state class focused on behaviour.
+///
+/// The awkward part of a comment sheet is the keyboard: it is a draggable
+/// scrollable sheet whose bottom padding tracks `viewInsets`, so the composer
+/// stays above the keyboard without the list jumping as it opens.
 extension _FeedCommentSheetLayout on _FeedCommentSheetState {
   Widget buildCommentSheetLayout(BuildContext context) => SizedBox(
     height: MediaQuery.sizeOf(context).height,

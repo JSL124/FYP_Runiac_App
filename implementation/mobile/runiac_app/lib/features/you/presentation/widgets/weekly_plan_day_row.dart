@@ -3,6 +3,12 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/runiac_colors.dart';
 import '../data/you_overview_demo_snapshots.dart';
 
+/// One day of the training plan, as a row in the You tab's week view.
+///
+/// [WeeklyPlanDayRowState] is the whole design of this widget: rest, completed,
+/// completed today, missed and the upcoming states are separate cases rather
+/// than a boolean, because a missed session and a rest day must never look
+/// alike to a beginner — one is the plan working, the other is not.
 enum WeeklyPlanDayRowState {
   rest,
   completed,

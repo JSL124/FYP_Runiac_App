@@ -9,6 +9,20 @@ import 'beginner_plan_policy_resolver.dart';
 import 'plan_family_resolver.dart';
 import 'plan_family_workout_builder.dart';
 
+/// Turns the onboarding answers into the runner's first training plan.
+///
+/// This is the entry point of plan generation and it only orchestrates. The
+/// judgements are made by the resolvers it calls, each of which answers one
+/// question and can be tested alone:
+///
+/// * `RunnerLevelResolver` — how experienced is this runner?
+/// * `SafetyGateResolver` — did the health answers require an easier start?
+/// * `OnboardingPlanStyleResolver` / `PlanFamilyResolver` — which plan shape fits?
+/// * [BeginnerPlanPolicyResolver] — how many sessions a week, on which days?
+/// * [PlanFamilyWorkoutBuilder] — the actual sessions.
+///
+/// Generation is deterministic: the same answers always produce the same plan,
+/// which is what makes the onboarding preview trustworthy and the tests exact.
 class BeginnerAdaptivePlanGenerator {
   const BeginnerAdaptivePlanGenerator([
     this._policyResolver = const BeginnerPlanPolicyResolver(),

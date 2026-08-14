@@ -1,5 +1,13 @@
 import '../singapore_region_options.dart';
 
+/// The contract for reading and writing the runner's own profile.
+///
+/// Nickname availability is the interesting part. It has three outcomes, not
+/// two: available, taken, and *could not be checked* —
+/// [NicknameAvailabilityFailureReason.rulesUnavailable] is what a permission
+/// failure looks like. They are distinguished because treating "we could not
+/// check" as "taken" would block a legitimate nickname, and treating it as
+/// "available" would let the save fail later with no explanation.
 abstract interface class UserProfilePersistenceRepository {
   Future<bool> isNicknameAvailable({
     required String uid,

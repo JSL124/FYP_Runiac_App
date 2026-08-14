@@ -26,6 +26,15 @@ class SensorsPlusMotionSensorAdapter implements RunMotionSensorAdapter {
   }
 }
 
+/// Supplies accelerometer evidence that the runner is actually moving.
+///
+/// GPS alone cannot tell "standing still at a crossing" from "GPS drifting
+/// around a stationary phone", so auto-pause needs a second opinion. This
+/// provider reduces the raw accelerometer stream to a coarse intensity signal
+/// that [RunMovementClassifier] weighs alongside the GPS verdict.
+///
+/// The clock and the sensor adapter are both injectable — motion tests replay a
+/// fixed intensity sequence against a fake clock.
 class SensorsPlusRunMotionProvider implements RunMotionProvider {
   SensorsPlusRunMotionProvider({
     this.adapter = const SensorsPlusMotionSensorAdapter(),

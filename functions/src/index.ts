@@ -1,3 +1,14 @@
+// Every Cloud Function Runiac deploys, in one place.
+//
+// Firebase only deploys what this file exports, so adding a function elsewhere
+// has no effect until it is re-exported here — and removing a line here
+// *deletes* the deployed function on the next `firebase deploy`.
+//
+// The grouping below is by feature, and it is worth reading as a map of what
+// the backend owns: run completion and progression, the LLM coaching agents,
+// feed and social, leaderboard aggregation, notifications, moderation,
+// newsletter, and account deletion.
+
 export { completeRun } from "./run/completeRun.js";
 export { completeCoolDown } from "./run/completeCoolDown.js";
 export { homeGuideAgent } from "./agent/homeGuideAgent.js";

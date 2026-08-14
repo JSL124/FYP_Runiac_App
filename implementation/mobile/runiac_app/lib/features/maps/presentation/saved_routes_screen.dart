@@ -9,6 +9,12 @@ const double _savedRouteLikeClusterWidth = 92;
 const double _savedRouteLikeClusterOffset = 4;
 const double _savedRouteLikeIconOffset = 5;
 
+/// The routes the runner has saved from the community map.
+///
+/// Routes are other people's shared runs, so a card shows the social signals
+/// (likes, who shared it) as well as the shape — that is what a runner picks
+/// on. Selecting one opens [SharedRouteDetailScreen], which is the only place
+/// a route can be started from.
 class SavedRoutesScreen extends StatefulWidget {
   const SavedRoutesScreen({super.key});
 

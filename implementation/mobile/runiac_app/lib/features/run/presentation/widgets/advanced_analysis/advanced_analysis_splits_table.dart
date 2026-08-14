@@ -5,6 +5,15 @@ import 'package:runiac_app/features/run/domain/models/advanced_analysis_snapshot
 import '../../data/advanced_analysis_demo_snapshots.dart';
 import 'advanced_analysis_theme.dart';
 
+/// The per-kilometre splits table on the Advanced Analysis screen.
+///
+/// Each row's bar is scaled relative to the run's own fastest and slowest
+/// split, not an absolute pace, so the comparison is meaningful for any runner.
+/// [_minFill] keeps the slowest split visible as a bar rather than collapsing
+/// it to nothing.
+///
+/// A final partial kilometre is shown but marked, because judging it against
+/// full splits would be misleading.
 class AdvancedAnalysisSplitTable extends StatelessWidget {
   const AdvancedAnalysisSplitTable({super.key, required this.analysis});
 

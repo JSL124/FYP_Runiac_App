@@ -13,6 +13,22 @@ import 'pace_graph_data_builder.dart';
 import 'run_distance_calculator.dart';
 import 'run_movement_classifier.dart';
 
+/// Accumulates one run in progress from raw GPS and motion samples.
+///
+/// This is the single place that decides what a location sample is allowed to
+/// contribute to. A sample can be accepted for distance, for the drawn route,
+/// for moving time, or for none of those, and the four decisions are
+/// independent — GPS drift while the runner stands still must not add distance,
+/// but it should still keep the map centred.
+///
+/// The session also owns auto-pause and auto-resume. It pauses when the runner
+/// stops (or stops sending samples) for longer than the matching dwell, and
+/// resumes on sustained real movement. `RunMovementClassifier` makes the
+/// per-sample judgement; this class holds the state across samples — anchors,
+/// candidate streaks and dwell timers — that a single sample cannot express.
+///
+/// All thresholds are constructor parameters so tests can drive the state
+/// machine deterministically instead of waiting on real time or real GPS.
 class LocalRunTrackingSession {
   LocalRunTrackingSession({
     required this.startedAt,

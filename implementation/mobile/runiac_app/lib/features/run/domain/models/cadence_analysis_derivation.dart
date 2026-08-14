@@ -1,5 +1,16 @@
+// The conclusions drawn from a [CadenceAnalysisSeries]: average, range,
+// stability and trend.
+//
+// Kept separate from the series itself so the raw samples stay untouched and
+// the interpretation can be re-derived or changed without rewriting stored
+// data. Both "stable" and "insufficient data" are explicit outcomes — the UI
+// must be able to tell "your cadence held steady" apart from "we could not
+// tell", and an unavailable derivation always carries the reason why.
+
 import 'cadence_analysis_series.dart';
 
+// Within 8 spm counts as holding steady; an 8 spm move across the run counts as
+// a real trend. Both are deliberately loose — beginners are not metronomes.
 const stableCadenceSpreadSpm = 8;
 const cadenceTrendDeltaSpm = 8;
 

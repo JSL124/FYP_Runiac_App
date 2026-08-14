@@ -2,6 +2,17 @@ import 'workout_metric_types.dart';
 
 export 'workout_metric_types.dart';
 
+/// A metric imported from an external workout source, in a shape the rest of
+/// the app can trust.
+///
+/// Health platforms hand over data of wildly varying quality — a full sample
+/// series, a single summary number, or nothing at all — so every instance is
+/// built through a named constructor that states which of those it is, and
+/// [_validate] rejects contradictory combinations at construction time. An
+/// invalid contract cannot exist, so no consumer needs a defensive check.
+///
+/// [provenance] travels with the value on purpose: the analysis screens present
+/// an imported metric differently from one Runiac measured itself.
 class ImportedWorkoutMetricContract {
   ImportedWorkoutMetricContract._({
     required this.metric,

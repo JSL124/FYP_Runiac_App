@@ -1,3 +1,15 @@
+// The LLM call behind AI activity feedback: prompt construction, the provider
+// seam, and output validation.
+//
+// Model output is never trusted as-is. It is validated against the expected
+// section structure (`activityFeedbackModelOutput.ts`) and rejected on
+// mismatch, so a malformed or off-topic completion surfaces as a failure rather
+// than as advice shown to a runner.
+//
+// [ActivityFeedbackModelProvider] is the seam that makes this testable: the
+// suites run a deterministic fake provider, which is why the functions tests
+// need no OpenAI key.
+
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { ChatOpenAI } from "@langchain/openai";
 import type {

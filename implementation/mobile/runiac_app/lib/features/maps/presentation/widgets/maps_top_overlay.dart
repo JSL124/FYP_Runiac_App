@@ -9,6 +9,11 @@ const _mapsTopOverlayDisplaySnapshot = _MapsTopOverlayDisplaySnapshot(
   savedActionLabel: 'Saved',
 );
 
+/// The search field and Saved shortcut floating over the maps tab.
+///
+/// An overlay rather than an app bar so the map fills the screen behind it.
+/// Its copy comes from [_MapsTopOverlayDisplaySnapshot] instead of inline
+/// strings, which keeps the widget renderable in a test without a map.
 class MapsTopOverlay extends StatelessWidget {
   const MapsTopOverlay({
     required this.isSearchActive,

@@ -6,6 +6,17 @@ import '../../../../core/theme/runiac_colors.dart';
 import '../../../run/presentation/widgets/mapbox_runtime_config.dart';
 import '../models/leaderboard_display_models.dart';
 
+// The Singapore map behind the leaderboard, with the runner's planning area
+// highlighted.
+//
+// Boundaries are drawn from a bundled GeoJSON asset rather than fetched, so the
+// leaderboard renders without a network round trip and without a Mapbox tile
+// request for the shapes themselves.
+//
+// The layer ids below are exported because the fill and line layers must be
+// added, restyled and removed by name — Mapbox has no handle to hold onto, and
+// adding a layer twice under the same id is an error on a real device.
+
 const leaderboardPlanningAreaGeoJsonAsset =
     'assets/maps/master_plan_2025_planning_area_boundary_no_sea.geojson';
 

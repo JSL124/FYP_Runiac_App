@@ -13,6 +13,15 @@ part 'feed_comment_list.dart';
 part 'feed_comment_sheet_layout.dart';
 part 'feed_comment_sheet_source.dart';
 
+/// The comments sheet for a feed post.
+///
+/// Opened both from a post and from a comment notification. The notification
+/// path may name a comment on a post that is no longer in the loaded page, so
+/// the sheet resolves that post by a single direct read rather than paging the
+/// feed until it appears — see the tap-through regression test.
+///
+/// A comment's author can edit or delete their own ([FeedCommentOwnerAction]);
+/// anyone else can only report it.
 class FeedCommentSheet extends StatefulWidget {
   const FeedCommentSheet._(this._source, [this.sheetController]);
 

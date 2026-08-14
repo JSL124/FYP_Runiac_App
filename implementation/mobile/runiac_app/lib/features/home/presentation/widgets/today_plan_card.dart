@@ -3,6 +3,12 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/runiac_colors.dart';
 import '../data/home_dashboard_demo_snapshots.dart';
 
+/// The card on Home that says what today's session is, and starts it.
+///
+/// Two actions on purpose: **View plan** for the runner who wants context, and
+/// **Quick start** for the one who just wants to go. The card also has to read
+/// well on a rest day and on a day the session is already done, which is what
+/// [_GoalModeBadge] and the copy block distinguish.
 class TodayPlanCard extends StatelessWidget {
   const TodayPlanCard({
     required this.onViewPlan,

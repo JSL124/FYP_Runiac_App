@@ -6,6 +6,12 @@ import '../models/leaderboard_display_models.dart';
 
 // Display-only demo snapshots. In production, rank, XP, level, and
 // leaderboard values must come from backend-owned read models.
+//
+// The file is long because the leaderboard has many states worth seeing without
+// a backend — league tiers, regional standings, an unranked runner, achievement
+// badges — and each needs a full snapshot to render. Every value here is
+// fictional; nothing in this file may ever become a fallback for a real
+// leaderboard read, or the client would be inventing standings.
 const leaderboardRunnerAchievementDemoBadges = [
   RunnerAchievementBadgeSnapshot(
     icon: Icons.flag_outlined,

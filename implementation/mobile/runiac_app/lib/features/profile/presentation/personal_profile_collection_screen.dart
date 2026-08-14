@@ -7,6 +7,16 @@ import '../../../core/widgets/runiac_buttons.dart';
 import '../domain/repositories/user_profile_persistence_repository.dart';
 import 'widgets/profile_form_controls.dart';
 
+/// Collects the profile details Runiac needs after sign-up — nickname, date of
+/// birth, region.
+///
+/// The nickname is checked for availability as the user types, debounced, and
+/// re-checked on save: another account can claim it in between, so the
+/// client-side check is a courtesy and the save is the authority.
+/// [_NicknameStatusText] shows all three outcomes, including "could not check".
+///
+/// Email is shown read-only — it comes from the auth account and is not
+/// editable here.
 class PersonalProfileCollectionScreen extends StatefulWidget {
   const PersonalProfileCollectionScreen({
     required this.uid,

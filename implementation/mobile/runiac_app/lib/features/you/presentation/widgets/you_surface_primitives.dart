@@ -4,6 +4,13 @@ import '../../../../core/theme/runiac_colors.dart';
 import '../../../../core/widgets/runiac_buttons.dart';
 import '../../../../core/widgets/runiac_section_header.dart';
 
+/// The shared card, header and divider widgets every You-tab surface is built
+/// from.
+///
+/// Collected here so the tab and the screens it pushes (activity history, plan
+/// detail) stay visually identical without copying padding and radii between
+/// files. Add a new You surface by composing these rather than styling a fresh
+/// `Container`.
 class RuniacAccentStrip extends StatelessWidget {
   const RuniacAccentStrip({super.key});
 

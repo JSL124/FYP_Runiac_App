@@ -1,3 +1,15 @@
+// The data contract for the Home guide agent: exactly which fields it may read
+// about a runner, and in what shape.
+//
+// [HOME_GUIDE_ACTIVITY_PROJECTION] is the important one. The agent's prompt is
+// built only from these fields, so an activity document gaining new fields
+// later cannot quietly widen what gets sent to the model. Anything that should
+// never reach an LLM simply stays off this list.
+//
+// The `Trusted*` types mark values that have already been read through that
+// projection — passing a raw Firestore document where one is expected is a type
+// error, which is the point.
+
 export const HOME_GUIDE_ACTIVITY_PROJECTION = [
   "ownerUid",
   "status",

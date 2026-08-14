@@ -1,5 +1,7 @@
 import '../models/pace_graph_snapshot.dart';
 
+// Paces outside this band are treated as unplottable rather than drawn — 2:30/km
+// is faster than this app's users run, 30:00/km is slower than a walk.
 const minGraphPaceSecondsPerKm = 150;
 const maxGraphPaceSecondsPerKm = 1800;
 const minVisiblePaceRangeSeconds = 80;
@@ -20,6 +22,16 @@ class PaceGraphSample {
   final int? cumulativeDistanceMeters;
 }
 
+/// Turns the pace samples collected during a run into the plotted pace graph.
+///
+/// Raw per-sample pace is far too noisy to draw directly, so this buckets
+/// samples by elapsed time (the bucket widens with run length — see the
+/// `_*BucketSeconds` constants), takes a **median** per bucket rather than a
+/// mean so one bad GPS reading cannot spike the line, and clamps the result
+/// into the plottable band above.
+///
+/// It also chooses the y-axis range. [minVisiblePaceRangeSeconds] is what stops
+/// a steady run from being drawn as dramatic zig-zags on a hair-thin axis.
 class PaceGraphDataBuilder {
   const PaceGraphDataBuilder();
 

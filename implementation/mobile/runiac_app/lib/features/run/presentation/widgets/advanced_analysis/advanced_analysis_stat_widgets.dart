@@ -3,6 +3,13 @@ import 'package:flutter/material.dart';
 import '../../data/advanced_analysis_demo_snapshots.dart';
 import 'advanced_analysis_theme.dart';
 
+/// The reusable building blocks of the Advanced Analysis screen — stat grid,
+/// section headings, chart panel and interpretation row.
+///
+/// Every section on that screen is assembled from these, which is what keeps
+/// pace, elevation and cadence looking like one screen rather than three. A
+/// stat tile renders its own unavailable state, so a section never has to
+/// decide whether it has enough data to draw a tile at all.
 class AdvancedAnalysisStatGrid extends StatelessWidget {
   const AdvancedAnalysisStatGrid({
     super.key,

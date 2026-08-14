@@ -9,6 +9,15 @@ import '../domain/models/run_cadence_sample.dart';
 import '../domain/models/cadence_analysis_series.dart';
 import '../domain/repositories/run_cadence_provider.dart';
 
+/// Reads step cadence from the phone's own motion hardware.
+///
+/// Cadence is estimated natively rather than in Dart — the Kotlin/Swift side
+/// (`RuniacStepCadenceEstimator`) stays alive with the screen off, which a
+/// Dart-side estimator would not. This class is the Flutter half of that
+/// bridge: it starts and stops the native estimator over the method channel and
+/// turns the event-channel stream into [RunCadenceSample]s.
+///
+/// Both channels are injectable so tests can drive cadence without a device.
 class PhoneMotionRunCadenceProvider implements RunCadenceProvider {
   PhoneMotionRunCadenceProvider({
     MethodChannel methodChannel = const MethodChannel(

@@ -1,3 +1,15 @@
+// A validated cadence series, plus the audit trail of how it was validated.
+//
+// Cadence can arrive from very different places — the phone's own sensors, an
+// Apple Watch, Health Connect, a Garmin, or static demo data — and they are not
+// equally trustworthy. Every series therefore carries its [CadenceAnalysisSource]
+// and a [CadenceAnalysisConfidence] derived from it, and downstream code is
+// expected to weaken or hide its claims accordingly rather than treat all
+// cadence alike.
+//
+// Rejected samples are kept rather than dropped, each with a rejection reason,
+// so an unexpectedly empty graph can be explained instead of just being blank.
+
 const minCadenceAnalysisSpm = 40;
 const maxCadenceAnalysisSpm = 240;
 const defaultMinimumCadenceAnalysisSamples = 3;

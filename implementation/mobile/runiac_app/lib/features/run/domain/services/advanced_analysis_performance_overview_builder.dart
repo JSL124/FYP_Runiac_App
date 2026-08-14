@@ -6,6 +6,14 @@ import '../models/run_summary_snapshot.dart';
 import 'advanced_analysis_achievement_badge_builder.dart';
 import 'pace_analysis_deriver.dart';
 
+/// Builds the header of the Advanced Analysis screen: the performance score,
+/// its quality label, and the achievement badges earned by the run.
+///
+/// The score is always paired with a *source mode* — demo, phone GPS only, or
+/// wearable-backed — because the same number means different things depending
+/// on where the data came from. The screen shows the mode's confidence label
+/// alongside the score so a phone-only run is never presented with the same
+/// authority as a wearable-backed one.
 class AdvancedAnalysisPerformanceOverviewBuilder {
   const AdvancedAnalysisPerformanceOverviewBuilder();
 

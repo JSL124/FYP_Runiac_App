@@ -1,3 +1,11 @@
+// Named pace-sample fixtures, one per case the pace graph has to survive:
+// a clean run, a GPS spike, thin data, too few valid points, and a walk.
+//
+// Shared by the static/offline app mode and by the tests, on purpose — the
+// screens a reviewer sees without a backend are driven by the same data the
+// assertions run against, so a fixture that stops being realistic breaks a test
+// rather than quietly making the demo look better than the real thing.
+
 import '../../domain/models/pace_graph_snapshot.dart';
 import '../../domain/services/pace_graph_data_builder.dart';
 

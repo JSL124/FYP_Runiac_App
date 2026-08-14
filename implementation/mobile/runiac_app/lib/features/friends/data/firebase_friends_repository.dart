@@ -14,6 +14,16 @@ import 'friends_repository_errors.dart';
 export 'friend_identity_mapper.dart' show mapFriendIdentityDocument;
 export 'friends_repository_errors.dart';
 
+/// Reads the friends graph from Firestore and performs friend actions through
+/// callables.
+///
+/// The split is deliberate: *reads* go straight to Firestore, but requesting,
+/// accepting and removing a friend go through Cloud Functions. A friendship
+/// touches two users' documents at once, and only the backend may write both —
+/// the rules do not let a client edit someone else's friend list.
+///
+/// Friends are displayed with their level, which is backend-owned; see
+/// `friend_level_resolver.dart` for how that is read rather than computed here.
 class FirebaseFriendsRepository implements FriendsRepository {
   FirebaseFriendsRepository({
     required this.authRepository,

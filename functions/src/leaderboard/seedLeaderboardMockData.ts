@@ -1,3 +1,13 @@
+// The operator command that seeds, refreshes, verifies and cleans up mock
+// leaderboard data.
+//
+// It can be pointed at a real project, so it is written to fail closed. A
+// destructive action against production is refused unless the project matches
+// [allowedProductionProject] and the scope is stated explicitly, `dry-run` is a
+// first-class action, and cleanup consults the inventory first — see
+// [isBlockedInventory], which stops a cleanup that would touch documents the
+// seeder did not create.
+
 import { pathToFileURL } from "node:url";
 import { parseSeedCommand } from "./leaderboardSeedArguments.js";
 import {

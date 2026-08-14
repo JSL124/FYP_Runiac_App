@@ -6,6 +6,11 @@ import '../../../feed/data/feed_publish/feed_thumbnail_artifact.dart';
 import '../../../feed/domain/models/feed_display_models.dart';
 import '../../domain/models/run_summary_snapshot.dart';
 
+/// Shows what a run will look like as a feed post, before it is published.
+///
+/// Built from the same display models the real feed renders, so the preview
+/// cannot drift away from the posted result — if the feed card changes, this
+/// changes with it.
 class ShareRouteFeedPostPreview extends StatelessWidget {
   const ShareRouteFeedPostPreview({
     required this.artifact,

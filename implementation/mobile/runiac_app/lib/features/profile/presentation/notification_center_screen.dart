@@ -6,6 +6,12 @@ import '../../notifications/data/shared_preferences_notification_center_settings
 import '../../notifications/domain/models/notification_center_settings.dart';
 import '../../notifications/domain/repositories/notification_center_settings_repository.dart';
 
+/// Notification preferences, grouped by what the notification is about.
+///
+/// There is a master switch above the groups, and turning it off disables the
+/// individual toggles rather than silently overriding them — [_DisabledHelper]
+/// explains why they are greyed out, so the user's per-group choices are still
+/// visible and are restored when the master is turned back on.
 class NotificationCenterScreen extends StatefulWidget {
   const NotificationCenterScreen({
     this.settingsRepository =

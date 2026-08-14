@@ -4,6 +4,14 @@ import '../domain/models/beginner_adaptive_plan_snapshot.dart';
 import '../domain/models/plan_family.dart';
 import '../domain/repositories/generated_plan_persistence_repository.dart';
 
+/// Stores and reloads the runner's generated plan.
+///
+/// The plan is regenerated deterministically from the onboarding answers, so
+/// what is persisted is the *result plus the runner's edits* — rescheduled
+/// days, completed sessions — which cannot be recovered by regenerating.
+///
+/// [GeneratedPlanUpdatedAtFactory] exists so the timestamp is injectable:
+/// production uses the server timestamp, tests use a fixed clock.
 typedef GeneratedPlanUpdatedAtFactory = Object Function();
 
 abstract interface class GeneratedPlanDocumentStore {

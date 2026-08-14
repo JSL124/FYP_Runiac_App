@@ -4,6 +4,13 @@ import '../../../../core/theme/runiac_colors.dart';
 import '../../../../core/widgets/runiac_buttons.dart';
 import '../../../auth/domain/runiac_auth_service.dart';
 
+/// The sign-out control in Settings.
+///
+/// Stateful because signing out is asynchronous and must not be startable
+/// twice — the row disables itself while the request is in flight. Sign-out
+/// also has to clear per-account cached state (route thumbnails, progress,
+/// pending runs), so it goes through the auth service rather than calling
+/// Firebase directly.
 class AccountSignOutRow extends StatefulWidget {
   const AccountSignOutRow({required this.authRepository, super.key});
 

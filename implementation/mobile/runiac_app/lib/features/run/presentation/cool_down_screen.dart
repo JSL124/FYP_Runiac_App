@@ -20,6 +20,14 @@ const _rBlue30 = Color(0x4D2F51C8);
 const _rBlue10 = Color(0x1A2F51C8);
 const _rBlue06 = Color(0x0F2F51C8);
 
+/// The optional guided cool-down offered between finishing a run and the
+/// summary.
+///
+/// Sits in the flow rather than beside it — a beginner audience is the reason
+/// the app suggests a walk and stretches instead of jumping straight to the
+/// numbers. Skipping goes directly to [ViewSummaryScreen], so nothing here may
+/// be load-bearing for run completion; the run is already saved by the time
+/// this screen appears.
 class CoolDownScreen extends StatelessWidget {
   const CoolDownScreen({
     super.key,
