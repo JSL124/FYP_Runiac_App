@@ -1794,6 +1794,14 @@ is_allowed_path() {
     tests/governance/backend_functions_scope_test.sh)
       return 0
       ;;
+    # Governance CI's own drift checks. `tools/governance-ci/*` above already
+    # carries the gates themselves; these two are the same infrastructure and
+    # only happen to live under tests/, so they are listed rather than routed
+    # through a capsule. Listed individually, not globbed, to keep the gate as
+    # narrow as every other entry here.
+    tests/governance/field_override_scope_drift_test.sh|tests/cross-system/field-override-scope-drift.mjs)
+      return 0
+      ;;
     functions/.gitignore|functions/package-lock.json|functions/package.json|functions/tsconfig.json|functions/src/index.ts|functions/src/run/completeRun.ts|functions/src/run/runCompletionTypes.ts|functions/src/run/validateCadenceAnalysisSeries.ts|functions/src/run/validateRunPayload.ts|functions/src/run/validateRunScalarFields.ts|functions/src/progression/planBoundedStreakState.ts|functions/src/progression/progressionEventWriter.ts|functions/src/progression/streakCalculator.ts|functions/src/agent/homeGuideAgent.ts|functions/src/agent/homeGuideAgentHandler.ts|functions/src/agent/homeGuideContracts.ts|functions/src/agent/homeGuideEvidence.ts|functions/src/agent/homeGuideModel.ts|functions/src/agent/homeGuideModelOutput.ts|functions/src/agent/homeGuideQuotaCache.ts|functions/src/agent/homeGuideQuotaFingerprint.ts|functions/test/completeRun.test.ts|functions/test/completeRunCallableSurface.test.ts|functions/test/homeGuideAgentCallableSurface.test.ts|functions/test/homeGuideAgentSurface.test.ts|functions/test/homeGuideEvidence.test.ts|functions/test/homeGuideEvidenceFixtures.ts|functions/test/homeGuideModel.test.ts|functions/test/homeGuideModelFixtures.ts|functions/test/homeGuideQuotaCache.test.ts)
       if is_complete_run_functions_capsule_active; then
         return 0
