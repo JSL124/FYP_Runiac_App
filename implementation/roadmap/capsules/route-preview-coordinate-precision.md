@@ -158,4 +158,30 @@ Already-stored runs are not repaired by either step.
 - [x] Backend rejection case and fixtures updated; Flutter regression test added.
 - [x] Flutter and Functions suites green; governance CI PASS locally.
 - [x] `completeRun` deployed to `runiac-fypp` (2026-08-09).
+- [x] Read-side ceiling raised to match the write contract (2026-08-14, see below).
 - [ ] Mobile release built and shipped, after which new runs draw at the new precision.
+
+## Follow-up — the read-side ceiling was missed (2026-08-14)
+
+The 2026-08-09 change moved the writer and the server validator but left the reader on the old
+grid. `FirestoreRunSummarySnapshotDecoder._readRoutePreviewPoint` gated every persisted point on
+a three-decimal check, and the "Background" note above — that the read path "never re-quantizes"
+— was true of the geometry but missed that the same path *validates* it. A five-decimal point
+failed the check, the point decoded to `null`, and one `null` discards the entire `routePreview`,
+so a run recorded by a fixed client would have opened from Activity History with
+`RunRouteSnapshot.empty` and `isTrustedPersistedRoutePreview: false` — no line drawn at all.
+
+It stayed invisible because the completion screen renders the live session route and never goes
+through the decoder; only re-opening the run from history reads Firestore. No shipped build wrote
+five-decimal data, so no stored run was affected.
+
+The guard now accepts the five-decimal write contract. Coarser values still pass, which is what
+keeps every run stored under the old ceiling readable — that grid is a subset of this one. The
+check remains a real trust boundary: anything finer than the contract is raw geometry and is
+still rejected, alongside the untouched timestamp/altitude/bounds rules.
+
+Files: `implementation/mobile/runiac_app/lib/features/you/data/firestore_run_summary_snapshot_decoder.dart`
+and its coverage in `implementation/mobile/runiac_app/test/firestore_activity_history_repository_test.dart`
+(the `unquantized-preview` rejection fixture moved past the new ceiling, plus a positive
+five-decimal acceptance test). Both sit under the unconditionally allowed
+`implementation/mobile/runiac_app/*` scope; no backend, deploy, or privacy surface is touched.

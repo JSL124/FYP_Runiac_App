@@ -794,8 +794,13 @@ void main() {
           'routePreview': <String, Object?>{
             'segments': <Object?>[
               <String, Object?>{
+                // Finer than the five-decimal (~1.1 m) write contract, so this
+                // is raw geometry wearing a preview's shape.
                 'points': <Object?>[
-                  <String, Object?>{'latitude': 1.3014, 'longitude': 103.801},
+                  <String, Object?>{
+                    'latitude': 1.3014159,
+                    'longitude': 103.8012653,
+                  },
                 ],
               },
             ],
@@ -870,6 +875,57 @@ void main() {
           reason: invalidRoute.key,
         );
       }
+    });
+
+    test('accepts five-decimal persisted route previews', () async {
+      // Given: a run stored by a client on the current five-decimal (~1.1 m)
+      // write contract. The reader's previous three-decimal ceiling threw the
+      // whole preview away, so such a run reopened from history drew no route.
+      final authRepository = FakeRuniacAuthRepository()..emitSignedIn();
+      final repository = FirestoreActivityHistoryRepository(
+        authRepository: authRepository,
+        reader: _FakeActivityHistorySummaryDocumentReader(
+          documents: <ActivityHistorySummaryDocument>[
+            _runSummaryDocument(
+              id: 'five-decimal-preview',
+              ownerUid: 'test-auth-user-1',
+              endedAt: DateTime.utc(2026, 6, 14, 7, 25),
+              routePreview: const <String, Object?>{
+                'segments': <Object?>[
+                  <String, Object?>{
+                    'points': <Object?>[
+                      <String, Object?>{
+                        'latitude': 1.30141,
+                        'longitude': 103.80122,
+                      },
+                      <String, Object?>{
+                        'latitude': 1.30158,
+                        'longitude': 103.80139,
+                      },
+                    ],
+                  },
+                ],
+              },
+            ),
+          ],
+        ),
+      );
+
+      // When: Activity History hydrates from Firestore.
+      final item = (await repository.loadActivityHistory()).recentRuns.single;
+
+      // Then: the geometry survives at the precision it was stored with and
+      // stays trusted for the persisted-preview thumbnail path.
+      expect(item.summarySnapshot?.route.segments.single, hasLength(2));
+      expect(
+        item.summarySnapshot?.route.segments.single.first.longitude,
+        closeTo(103.80122, 1e-9),
+      );
+      expect(
+        item.summarySnapshot?.route.lastKnownLocation?.latitude,
+        closeTo(1.30158, 1e-9),
+      );
+      expect(item.isTrustedPersistedRoutePreview, isTrue);
     });
 
     test(
