@@ -223,13 +223,13 @@ void main() {
     expect(model.currentStageId, HomeStageMapModel.stageId(0, firstRunIndex));
   });
 
-  test('calendar day marks earlier incomplete run stones as missed', () {
+  test('elapsed plan days mark earlier incomplete run stones as missed', () {
     final plan = _plan();
     final model = buildHomeStageMapModel(
       plan: plan,
       completedScheduledWorkoutIds: const <String>{},
       activeWeekNumber: plan.weeks.first.weekNumber,
-      currentWeekdayIndex: DateTime.thursday,
+      currentPlanDayIndex: DateTime.thursday - 1,
       backgroundSequence: homeStageBackgroundSequence(
         planId: plan.id,
         weekCount: plan.weeks.length,
@@ -441,12 +441,15 @@ void main() {
   );
 
   test(
-    'mid-week startsOnDate slots the today stone on the real calendar weekday',
+    'mid-week startsOnDate puts the start weekday on the first stone',
     () {
-      // Mirrors the home_tab wiring: currentWeekdayIndex comes from
-      // activeGeneratedPlanWeekdayFor, so day offset 0 of a Wednesday-start
-      // plan is Wednesday's slot — not Monday's, as the pre-9eab87cd
-      // `DateTime.monday + dayIndex` wiring would have reported.
+      // Mirrors the home_tab wiring: currentPlanDayIndex comes from
+      // activeGeneratedPlanDayIndexFor, and stones are keyed by position inside
+      // the plan week. A Wednesday-start plan therefore reads Wed, Thu, Fri,
+      // Sat, Sun, Mon, Tue and the runner begins on stone 1 with nothing behind
+      // them. Keying by calendar weekday put them on stone 3 with the Monday
+      // and Tuesday runs of the same plan week drawn below — days that are
+      // still five and six days away.
       final week = _manualWeek(1, [
         _workout(dayLabel: 'Mon', title: 'Monday Run'),
         _workout(dayLabel: 'Wed', title: 'Wednesday Run'),
@@ -454,33 +457,40 @@ void main() {
       ]);
       // 2026-07-08 is a Wednesday.
       final plan = _manualPlan([week], startsOnDate: '2026-07-08');
+      final startDay = DateTime(2026, 7, 8);
 
-      final activeWeekdayIndex = activeGeneratedPlanWeekdayFor(
-        plan,
-        currentDate: DateTime(2026, 7, 8),
-      );
-      expect(activeWeekdayIndex, DateTime.wednesday);
+      expect(activeGeneratedPlanDayIndexFor(plan, currentDate: startDay), 0);
 
       final model = buildHomeStageMapModel(
         plan: plan,
         completedScheduledWorkoutIds: const <String>{},
         activeWeekNumber: 1,
-        currentWeekdayIndex: activeWeekdayIndex,
+        currentPlanDayIndex: activeGeneratedPlanDayIndexFor(
+          plan,
+          currentDate: startDay,
+        ),
+        currentDate: startDay,
         backgroundSequence: const <String>['bg.webp'],
       );
 
       final stones = model.sections.single.stones;
-      expect(model.todayDayIndex, 2);
-      expect(stones[2].kind, HomeStageStoneKind.run);
-      expect(stones[2].workoutTitle, 'Wednesday Run');
-      expect(stones[2].state, HomeStageStoneState.current);
-      // The Monday-role run of this plan week lies AFTER the Wednesday start,
-      // so it must not pulse as today and (being before today's slot in the
-      // calendar column) renders as missed-style rather than current.
-      expect(stones[0].workoutTitle, 'Monday Run');
-      expect(stones[0].state, isNot(HomeStageStoneState.current));
-      expect(stones[4].workoutTitle, 'Friday Run');
-      expect(stones[4].state, HomeStageStoneState.future);
+      expect(model.todayDayIndex, 0);
+      expect(
+        stones.map((stone) => stone.dayLabel),
+        const ['Wed', 'Thu', 'Fri', 'Sat', 'Sun', 'Mon', 'Tue'],
+      );
+      expect(stones[0].workoutTitle, 'Wednesday Run');
+      expect(stones[0].state, HomeStageStoneState.current);
+      // Both of the other runs are still ahead of the runner, so neither may
+      // be marked missed on the day the plan was created.
+      expect(stones[2].workoutTitle, 'Friday Run');
+      expect(stones[2].state, HomeStageStoneState.future);
+      expect(stones[5].workoutTitle, 'Monday Run');
+      expect(stones[5].state, HomeStageStoneState.future);
+      expect(
+        stones.where((stone) => stone.state == HomeStageStoneState.missed),
+        isEmpty,
+      );
     },
   );
 
@@ -494,27 +504,78 @@ void main() {
       ]);
       final plan = _manualPlan([week], startsOnDate: '2026-07-08');
 
-      // 2026-07-13 is the Monday inside plan week 1 of a Wednesday start.
-      final activeWeekdayIndex = activeGeneratedPlanWeekdayFor(
-        plan,
-        currentDate: DateTime(2026, 7, 13),
+      // 2026-07-13 is the Monday inside plan week 1 of a Wednesday start, and
+      // the sixth day of that plan week.
+      final followingMonday = DateTime(2026, 7, 13);
+      expect(
+        activeGeneratedPlanDayIndexFor(plan, currentDate: followingMonday),
+        5,
       );
-      expect(activeWeekdayIndex, DateTime.monday);
 
       final model = buildHomeStageMapModel(
         plan: plan,
         completedScheduledWorkoutIds: const <String>{},
         activeWeekNumber: 1,
-        currentWeekdayIndex: activeWeekdayIndex,
+        currentPlanDayIndex: activeGeneratedPlanDayIndexFor(
+          plan,
+          currentDate: followingMonday,
+        ),
+        currentDate: followingMonday,
         backgroundSequence: const <String>['bg.webp'],
       );
 
       final stones = model.sections.single.stones;
-      expect(model.todayDayIndex, 0);
-      expect(stones[0].workoutTitle, 'Monday Run');
-      expect(stones[0].state, HomeStageStoneState.current);
-      expect(stones[2].state, HomeStageStoneState.future);
-      expect(stones[4].state, HomeStageStoneState.future);
+      expect(model.todayDayIndex, 5);
+      expect(stones[5].workoutTitle, 'Monday Run');
+      expect(stones[5].state, HomeStageStoneState.current);
+      // Wednesday and Friday really have elapsed by now, so these two are the
+      // missed markers the fix must keep showing.
+      expect(stones[0].state, HomeStageStoneState.missed);
+      expect(stones[2].state, HomeStageStoneState.missed);
     },
   );
+
+  test('saturday signup marks nothing in plan week one as missed', () {
+    // The reported bug: a plan created on a Saturday showed that plan week's
+    // Monday, Wednesday and Friday runs as missed on the day it was created,
+    // and again on the Saturday and Sunday of every following week.
+    final week = _manualWeek(1, [
+      _workout(dayLabel: 'Mon', title: 'Monday Run'),
+      _workout(dayLabel: 'Wed', title: 'Wednesday Run'),
+      _workout(dayLabel: 'Fri', title: 'Friday Run'),
+    ]);
+    // 2026-08-15 is a Saturday.
+    final plan = _manualPlan([week], startsOnDate: '2026-08-15');
+    final signupDay = DateTime(2026, 8, 15);
+
+    final model = buildHomeStageMapModel(
+      plan: plan,
+      completedScheduledWorkoutIds: const <String>{},
+      activeWeekNumber: 1,
+      currentPlanDayIndex: activeGeneratedPlanDayIndexFor(
+        plan,
+        currentDate: signupDay,
+      ),
+      currentDate: signupDay,
+      backgroundSequence: const <String>['bg.webp'],
+    );
+
+    final stones = model.sections.single.stones;
+    expect(stones, hasLength(kHomeStageDaysPerWeek));
+    expect(model.todayDayIndex, 0);
+    expect(
+      stones.map((stone) => stone.dayLabel),
+      const ['Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+    );
+    expect(
+      stones.where((stone) => stone.state == HomeStageStoneState.missed),
+      isEmpty,
+    );
+    expect(stones[2].workoutTitle, 'Monday Run');
+    expect(stones[2].state, HomeStageStoneState.future);
+    expect(stones[4].workoutTitle, 'Wednesday Run');
+    expect(stones[4].state, HomeStageStoneState.future);
+    expect(stones[6].workoutTitle, 'Friday Run');
+    expect(stones[6].state, HomeStageStoneState.future);
+  });
 }

@@ -203,7 +203,8 @@ void main() {
           plan: plan,
           completedScheduledWorkoutIds: const <String>{},
           activeWeekNumber: activeWeek!.weekNumber,
-          currentWeekdayIndex: DateTime.monday + activeDayIndex!,
+          currentPlanDayIndex: activeDayIndex,
+          currentDate: date,
           backgroundSequence: homeStageBackgroundSequence(
             planId: plan.id,
             weekCount: plan.weeks.length,

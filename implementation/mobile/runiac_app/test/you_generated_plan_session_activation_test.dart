@@ -275,32 +275,50 @@ void main() {
     },
   );
 
-  testWidgets('generated plan rolls to next week on start weekday midnight', (
-    WidgetTester tester,
-  ) async {
+  test('plan week rolls on the start weekday, rows roll on monday', () {
+    // A Sunday-start plan: plan week 1 is 5–11 Jul, plan week 2 is 12–18 Jul.
+    // The two scopes on the weekly card roll on different days by design —
+    // progress follows the plan week, the seven rows follow the calendar week.
     final plan = _sundayStartedTenKPerformancePlan();
+    final saturday = DateTime(2026, 7, 11, 23, 59);
+    final sunday = DateTime(2026, 7, 12);
+    final monday = DateTime(2026, 7, 13);
+
     final saturdayDisplay = generatedYouPlanDisplayFromSnapshot(
       plan,
-      currentDate: DateTime(2026, 7, 11, 23, 59),
+      currentDate: saturday,
     );
     final sundayDisplay = generatedYouPlanDisplayFromSnapshot(
       plan,
-      currentDate: DateTime(2026, 7, 12),
+      currentDate: sunday,
     );
-    final saturdayGoal = generatedGoalPlanDisplayFromSnapshot(
+    final mondayDisplay = generatedYouPlanDisplayFromSnapshot(
       plan,
-      currentDate: DateTime(2026, 7, 11, 23, 59),
-    );
-    final sundayGoal = generatedGoalPlanDisplayFromSnapshot(
-      plan,
-      currentDate: DateTime(2026, 7, 12),
-      currentWeekDisplay: sundayDisplay,
+      currentDate: monday,
     );
 
     expect(saturdayDisplay, isNotNull);
     expect(sundayDisplay, isNotNull);
+    expect(mondayDisplay, isNotNull);
+
+    // Progress rolls at the plan-week boundary, Saturday night into Sunday.
+    expect(saturdayDisplay!.progressLabel, startsWith('Week 1 '));
+    expect(sundayDisplay!.progressLabel, startsWith('Week 2 '));
+
+    // The rows do not: Saturday and Sunday are the same calendar week, so they
+    // show the same seven dates. They roll once Sunday midnight passes.
     expect(
-      saturdayDisplay!.scheduleRows
+      sundayDisplay.scheduleRows.map((row) => row.date),
+      saturdayDisplay.scheduleRows.map((row) => row.date),
+    );
+    expect(
+      mondayDisplay!.scheduleRows.map((row) => row.date),
+      [for (var day = 13; day <= 19; day++) DateTime(2026, 7, day)],
+    );
+
+    // Week 1's own sessions all sit inside the 6–12 Jul rows.
+    expect(
+      saturdayDisplay.scheduleRows
           .where((row) => row.detailSnapshot != null)
           .map((row) => row.detailSnapshot!.dayLabel),
       containsAll([
@@ -308,8 +326,9 @@ void main() {
           '${workout.dayLabel} · ${workout.title}',
       ]),
     );
+    // And week 2's are what the Monday rows pick up.
     expect(
-      sundayDisplay!.scheduleRows
+      mondayDisplay.scheduleRows
           .where((row) => row.detailSnapshot != null)
           .map((row) => row.detailSnapshot!.dayLabel),
       containsAll([
@@ -317,8 +336,18 @@ void main() {
           '${workout.dayLabel} · ${workout.title}',
       ]),
     );
+
+    final saturdayGoal = generatedGoalPlanDisplayFromSnapshot(
+      plan,
+      currentDate: saturday,
+    );
+    final sundayGoal = generatedGoalPlanDisplayFromSnapshot(
+      plan,
+      currentDate: sunday,
+    );
     expect(saturdayGoal!.weeks.first.status, GoalPlanWeekStatus.current);
     expect(sundayGoal!.weeks[1].status, GoalPlanWeekStatus.current);
+    expect(sundayGoal.weeks.first.status, GoalPlanWeekStatus.completed);
   });
 
   // Regression coverage for the week-1-hardcode bug: a past week whose

@@ -135,7 +135,7 @@ void main() {
         );
         final activeWeekNumber =
             activeWeek?.weekNumber ?? plan.weeks.first.weekNumber;
-        final activeWeekdayIndex = activeGeneratedPlanWeekdayFor(
+        final activePlanDayIndex = activeGeneratedPlanDayIndexFor(
           plan,
           currentDate: DateTime.now(),
         );
@@ -143,7 +143,8 @@ void main() {
           plan: plan,
           completedScheduledWorkoutIds: const <String>{},
           activeWeekNumber: activeWeekNumber,
-          currentWeekdayIndex: activeWeekdayIndex,
+          currentPlanDayIndex: activePlanDayIndex,
+          currentDate: DateTime.now(),
           backgroundSequence: homeStageBackgroundSequence(
             planId: plan.id,
             weekCount: plan.weeks.length,

@@ -658,7 +658,7 @@ void main() {
       );
       final activeWeekNumber =
           activeWeek?.weekNumber ?? plan.weeks.first.weekNumber;
-      final activeWeekdayIndex = activeGeneratedPlanWeekdayFor(
+      final activePlanDayIndex = activeGeneratedPlanDayIndexFor(
         plan,
         currentDate: c.currentDate,
       );
@@ -666,7 +666,8 @@ void main() {
         plan: plan,
         completedScheduledWorkoutIds: const <String>{},
         activeWeekNumber: activeWeekNumber,
-        currentWeekdayIndex: activeWeekdayIndex,
+        currentPlanDayIndex: activePlanDayIndex,
+        currentDate: c.currentDate,
         backgroundSequence: homeStageBackgroundSequence(
           planId: plan.id,
           weekCount: plan.weeks.length,
@@ -697,14 +698,17 @@ void main() {
     );
     final activeWeekNumber =
         activeWeek?.weekNumber ?? plan.weeks.first.weekNumber;
-    final activeWeekdayIndex = activeGeneratedPlanWeekdayFor(
+    final activePlanDayIndex = activeGeneratedPlanDayIndexFor(
       plan,
       currentDate: c.currentDate,
     );
     // Sanity: today really does resolve to Monday, week 1, before marking it
     // completed — otherwise this case would not exercise what it claims to.
     expect(activeWeekNumber, plan.weeks.first.weekNumber);
-    expect(activeWeekdayIndex, DateTime.monday);
+    expect(
+      activeGeneratedPlanWeekdayFor(plan, currentDate: c.currentDate),
+      DateTime.monday,
+    );
 
     final mondayWorkout = plan.weeks.first.workouts.firstWhere(
       (w) => w.dayLabel == 'Mon',
@@ -719,7 +723,8 @@ void main() {
       plan: plan,
       completedScheduledWorkoutIds: <String>{mondayScheduledId},
       activeWeekNumber: activeWeekNumber,
-      currentWeekdayIndex: activeWeekdayIndex,
+      currentPlanDayIndex: activePlanDayIndex,
+      currentDate: c.currentDate,
       backgroundSequence: homeStageBackgroundSequence(
         planId: plan.id,
         weekCount: plan.weeks.length,
