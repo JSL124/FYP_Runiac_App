@@ -177,6 +177,14 @@ void main() {
   testWidgets('RuniacApp preserves generated plan progress after reschedule', (
     tester,
   ) async {
+    // The week card carries its plan-week and calendar-week date labels, so on
+    // the default 800x600 test surface the last schedule rows land under the
+    // bottom navigation bar and cannot be tapped. Give this one a taller
+    // viewport rather than scrolling by a magic number.
+    tester.view.physicalSize = const Size(1200, 2400);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+
     // Given: generatedPlans owns the snapshot and planProgress owns a
     // completed workout in this week's schedule.
     final plan = _tenKPerformancePlan();

@@ -1528,6 +1528,26 @@ is_presentation_scripts_path() {
   esac
 }
 
+is_plan_calendar_week_display_capsule_active() {
+  grep -Eq '^- Newly routed plan calendar-week display on 2026-08-15 Asia/Singapore: `implementation/roadmap/capsules/plan-calendar-week-display\.md`' implementation/roadmap/CURRENT.md
+}
+
+# Only the capsule document needs routing here. Everything else that capsule
+# touches is Flutter client source under implementation/mobile/runiac_app/,
+# which is already inside the approved scaffold prefix at the bottom of
+# is_allowed_path, and it deliberately touches no functions/, rules, or index
+# path — the backend's date arithmetic was already correct.
+is_plan_calendar_week_display_path() {
+  case "$1" in
+    implementation/roadmap/capsules/plan-calendar-week-display.md)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 is_user_manual_capsule_active() {
   grep -Eq '^- Newly routed user manual screenshots on 2026-08-04 Asia/Singapore: `implementation/roadmap/capsules/user-manual-screenshots\.md`' implementation/roadmap/CURRENT.md
 }
@@ -1554,6 +1574,10 @@ is_allowed_path() {
   fi
 
   if is_presentation_scripts_path "$1" && is_presentation_scripts_capsule_active; then
+    return 0
+  fi
+
+  if is_plan_calendar_week_display_path "$1" && is_plan_calendar_week_display_capsule_active; then
     return 0
   fi
 
